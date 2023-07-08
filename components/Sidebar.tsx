@@ -1,13 +1,22 @@
 import { formatCurrency } from "@/utils/formatting";
-import { CreditCard, PiggyBank, Settings } from "iconoir-react";
+import { CreditCard, Page, PiggyBank, Settings } from "iconoir-react";
 import { MenuItem } from "./Menu";
 
 export function Sidebar({ ledger, l, currentAccount, setCurrentAccount }) {
   return (
     <div className="text-sm flex flex-col justify-between h-full">
       <div className="p-2 ">
-        <MenuItem onClick={() => setCurrentAccount(null)} icon={<PiggyBank />}>
+        <MenuItem
+          onClick={() => setCurrentAccount(null)}
+          icon={<PiggyBank className="text-yellow-700" />}
+        >
           Budget
+        </MenuItem>
+        <MenuItem
+          onClick={() => setCurrentAccount(null)}
+          icon={<Page className="text-indigo-700" />}
+        >
+          Ledger
         </MenuItem>
         <h2 className="p-2 text-stone-600 text-xs font-bold uppercase mt-3">
           Accounts
@@ -17,7 +26,7 @@ export function Sidebar({ ledger, l, currentAccount, setCurrentAccount }) {
             <MenuItem
               key={idx}
               onClick={() => setCurrentAccount(account)}
-              icon={<CreditCard />}
+              icon={<CreditCard className="text-sky-700" />}
               badge={
                 <div className="font-mono ml-auto">
                   {formatCurrency(account.currentBalance)}

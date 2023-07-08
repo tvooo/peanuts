@@ -4,12 +4,12 @@ import { Ledger } from "@/models/Ledger";
 const ledger = new Ledger();
 // ledger.accounts = [new Account("dkb", 43891), new Account("asn", 54159)];
 ledger._budgets = [
-  new Budget("software"),
+  new Budget("software", "Misc"),
   new Budget("coffee", "Enjoying Life"),
   new Budget("insurance", "Finances"),
   new Budget("entertainment", "Enjoying Life"),
   new Budget("inflow"),
-  new Budget("misc"),
+  new Budget("misc", "Misc"),
   new Budget("investing", "Finances"),
   new Budget("watch2023", "Purchases", true),
   new Budget("watch-or-not", "Purchases", true),
@@ -37,6 +37,8 @@ const transactions = `
 2023-07-03 > asn rockingchair coffee -415
 2023-07-04 > asn tr investing -30000
 2023-07-06 > asn blommers coffee -4615
+
+2023-07-10 > asn hallofframe glasses -76000
 
 2023-08-01 > asn bectim inflow 70000
 2023-08-01 > asn bectim inflow 10000
@@ -77,6 +79,13 @@ ledger.aliases.set("misc", "Miscellaneous");
 ledger.aliases.set("watch-or-not", "The Watch/Invest pledge");
 ledger.aliases.set("watch2023", "New  Watch (2023)");
 ledger.aliases.set("glasses", "Glasses");
+ledger.aliases.set("hallofframe", "Hall of Frame");
+
+ledger.aliases.set("bectim", "Beccy & Tim");
+ledger.aliases.set("thevillage", "The Village");
+ledger.aliases.set("rockingchair", "Rocking Chair");
+ledger.aliases.set("wc", "WC");
+ledger.aliases.set("tr", "Trade Republic");
 
 
 accounts

@@ -9,14 +9,13 @@ import {
 
 import { Button } from "@/components/Button";
 import { Sidebar } from "@/components/Sidebar";
-import { AmountCell, Cell, HeaderCell } from "@/components/Table";
 import { BudgetTable } from "@/features/budget/BudgetTable";
+import { TransactionsTable } from "@/features/budget/TransactionsTable";
 import { Account } from "@/models/Account";
-import { formatCurrency, formatDate, formatMonth } from "@/utils/formatting";
+import { formatCurrency, formatMonth } from "@/utils/formatting";
 import { ledger } from "@/utils/ledger.mock";
 import { addMonths, isSameMonth, startOfMonth, subMonths } from "date-fns";
-import { sortBy } from "lodash";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 const l = ledger.alias.bind(ledger);
 
@@ -90,10 +89,10 @@ export default function Home() {
               placeholder="Search..."
             />
           </div>
-          <div className="p-8">
+          <div className="">
             {currentAccount ? (
-              <div>
-                <div className="flex justify-between items-center mb-6">
+              <div className="">
+                <div className="flex justify-between items-center mb-6 p-8">
                   <h2 className="text-2xl font-bold">
                     {l(currentAccount.name)}
                   </h2>
@@ -105,7 +104,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-[max-content,max-content,max-content,auto,auto]">
+                {/* <div className="grid grid-cols-[max-content,max-content,max-content,auto,auto]">
                   <HeaderCell>Date</HeaderCell>
                   <HeaderCell>Payee</HeaderCell>
                   <HeaderCell>Budget</HeaderCell>
@@ -124,11 +123,16 @@ export default function Home() {
                         <AmountCell amount={transaction.amount} />
                       </Fragment>
                     ))}
-                </div>
+                  </div> */}
+                <TransactionsTable
+                  currentAccount={currentAccount}
+                  ledger={ledger}
+                  l={l}
+                />
               </div>
             ) : (
-              <div>
-                <div className="flex justify-between items-center mb-6">
+              <div className="">
+                <div className="flex justify-between items-center mb-6 p-8">
                   {/* <h2 className="text-2xl font-bold">
                     Budget 
                   </h2> */}
@@ -180,7 +184,11 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-                <BudgetTable currentMonth={currentMonth} ledger={ledger} l={l} />
+                <BudgetTable
+                  currentMonth={currentMonth}
+                  ledger={ledger}
+                  l={l}
+                />
               </div>
             )}
           </div>
