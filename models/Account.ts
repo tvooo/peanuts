@@ -1,5 +1,4 @@
 import { Balance } from "@/utils/types";
-import { parseISO } from "date-fns";
 import { Transaction } from "./Transaction";
 
 export class Account {
@@ -12,12 +11,12 @@ export class Account {
     this.name = name;
   }
 
-  static fromOpenStatement(statement: string) {
-    // Example: `2020-04-18 open dkb`
-    const [ dateStr, chip, nameStr ] = statement.split(' ')
-    const date = parseISO(dateStr)
-    return new Account(nameStr, 0)
-  }
+  // static fromOpenStatement(statement: string) {
+  //   // Example: `2020-04-18 open dkb`
+  //   const [ dateStr, chip, nameStr ] = statement.split(' ')
+  //   const date = parseISO(dateStr)
+  //   return new Account(nameStr, 0)
+  // }
 
   processTransaction(transaction: Transaction) {
     this.balance += transaction.amount

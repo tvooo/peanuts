@@ -1,7 +1,10 @@
 import { Account } from "@/models/Account";
 import { Budget } from "@/models/Budget";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
-import { parseISO } from "date-fns";
+import { Balance } from "@/utils/types";
+import { endOfMonth, isBefore, isSameMonth, parseISO } from "date-fns";
+import { groupBy } from "lodash";
+import { Assignment } from "./Assignment";
 
 `2023-01-01 open dkb
 2023-01-01 open asn
@@ -16,8 +19,9 @@ alias asn "ASN Bank"
 
 export class Ledger {
   accounts: Account[] = [];
-  budgets: Budget[] = [];
+  _budgets: Budget[] = [];
   transactions: Transaction[] = [];
+  assignments: Assignment[] = [];
   aliases: Map<string, string> = new Map<string, string>();
 
   alias(s: string) {
@@ -29,6 +33,26 @@ export class Ledger {
 
   addTransaction(transaction: Transaction) {
     this.transactions.push(transaction);
+  }
+
+  addAccountStatement(source: string) {
+    const tokens = source.split(" ");
+    const [dateStr, chipStr, accountStr, amountStr] =
+      tokens;
+    const date = parseISO(dateStr);
+    // const account = this.getAccount(accountStr);
+    const amount = parseInt(amountStr, 10);
+
+    // if (!account) {
+    //   throw new Error(`Account '${accountStr}' not found`);
+    // }
+
+    const account = new Account(accountStr, 0);
+    this.accounts.push(
+      account
+    );
+    // this.assignments.push(new Assignment(date, this.getBudget("inflow")!, amount))
+    this.transactions.push(new Transaction(date, account, [new TransactionPosting("Opening balance", this.getBudget("inflow")!, amount)]))
   }
 
   addTransactionStatement(source: string) {
@@ -58,8 +82,7 @@ export class Ledger {
 
   addAssignmentStatement(source: string) {
     const tokens = source.split(" ");
-    const [dateStr, chipStr, budgetStr, amountStr] =
-      tokens;
+    const [dateStr, chipStr, budgetStr, amountStr] = tokens;
     const date = parseISO(dateStr);
     const budget = this.getBudget(budgetStr);
     const amount = parseInt(amountStr, 10);
@@ -70,9 +93,13 @@ export class Ledger {
     }
 
     // Process
-    budget.balance += amount
-    const inflow = this.getBudget('inflow')
-    if(inflow) { inflow.balance -= amount }
+    budget.balance += amount;
+    const inflow = this.getBudget("inflow");
+    if (inflow) {
+      inflow.balance -= amount;
+    }
+
+    this.assignments.push(new Assignment(date, budget, amount));
 
     // this.addTransaction(
     //   new Transaction(date, account, [
@@ -86,7 +113,15 @@ export class Ledger {
   }
 
   getBudget(name: string): Budget | undefined {
-    return this.budgets.find((a) => a.name === name);
+    return this._budgets.find((a) => a.name === name);
+  }
+
+  get budgets(): Budget[] {
+    return this._budgets.filter(b => b.name !== 'inflow')
+  }
+
+  get budgetGroups(): Record<string, Budget[]> {
+    return groupBy(this.budgets, 'group')
   }
 
   transactionsForAccount(account: Account) {
@@ -105,6 +140,80 @@ export class Ledger {
 
   renamePayee(oldName: string, newName: string) {
     // TODO: Go through all postings with old name and replace with new name
+  }
+
+  budgetAvailableForMonth(budget: Budget, date: Date): Balance {
+    let activity: Balance = 0;
+    this.transactions
+      .filter((t) => isBefore(t.date, endOfMonth(date)))
+      .forEach((t) => {
+        //   t.account.processTransaction(t);
+        // t.budgets.forEach((b) => b.processTransaction(t));
+        t.postings
+          .filter((p) => p.budget === budget)
+          .forEach((p) => {
+            if(budget.name === 'inflow') { console.log(t) }
+            activity += p.amount;
+          });
+      });
+
+    let assigned: Balance = 0;
+    if(budget.name === 'inflow') {
+
+        this.assignments
+        .filter((t) => isBefore(t.date, endOfMonth(date)))
+        .filter((p) =>
+        p.budget !== budget
+        )
+        .forEach((a) => {
+            assigned -= a.amount;
+            if (budget.name === "inflow") {
+              console.log(a);
+            }
+        });
+    } else {
+        this.assignments
+          .filter((t) => isBefore(t.date, endOfMonth(date)))
+          .filter((p) =>
+            p.budget === budget
+          )
+          .forEach((a) => {
+            assigned += a.amount;
+          });
+    }
+
+    return assigned + activity;
+  }
+
+  budgetActivityForMonth(budget: Budget, date: Date): Balance {
+    let activity: Balance = 0;
+    this.transactions
+      .filter((t) => isSameMonth(t.date, date))
+      .forEach((t) => {
+        //   t.account.processTransaction(t);
+        // t.budgets.forEach((b) => b.processTransaction(t));
+        t.postings
+          .filter((p) => p.budget === budget)
+          .forEach((p) => {
+            activity += p.amount;
+          });
+      });
+    return activity;
+  }
+
+  budgetAssignedForMonth(budget: Budget, date: Date): Balance {
+    let assigned: Balance = 0;
+    this.assignments
+      .filter((t) => isSameMonth(t.date, date))
+      .filter((p) => p.budget === budget)
+      .forEach((a) => {
+        //   t.account.processTransaction(t);
+        // t.budgets.forEach((b) => b.processTransaction(t));
+
+        assigned += a.amount;
+      });
+
+    return assigned;
   }
 }
 
