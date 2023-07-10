@@ -18,7 +18,6 @@ export class Budget {
     this.name = name;
     this.isTarget = isTarget
     this.group = group
-    // this.bal = balance;
   }
 
   processPosting(posting: TransactionPosting) {

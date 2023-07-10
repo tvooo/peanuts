@@ -19,14 +19,62 @@ alias asn "ASN Bank"
 
 export class Ledger {
   accounts: Account[] = [];
-  _budgets: Budget[] = [];
+  _budgets: Budget[] = [new Budget("inflow")];
   transactions: Transaction[] = [];
   assignments: Assignment[] = [];
   aliases: Map<string, string> = new Map<string, string>();
+  source: string = ""
 
-  alias(s: string) {
+  static fromSource(source: string): Ledger {
+    const ledger = new Ledger();
+    ledger.source = source
+    
+    source
+      .split("\n") // Split into lines
+      .map((t) => t.trim()) // Trim whitespace
+      .filter((t) => t !== "") // Skip empty lines
+      .forEach((statement) => {
+        if (statement[0] === "#") {
+          // It's a comment!
+          return;
+        }
+
+        // Poor man's directive detection
+        if (statement.length < 12) {
+          return;
+        }
+        switch (statement[11]) {
+          case "*":
+          case "!":
+            // Statement
+            ledger.addTransactionStatement(statement);
+            break;
+          case "o":
+            // Account opening
+            ledger.addAccountStatement(statement);
+            return;
+          case "c":
+            // Account closing
+            return;
+          case "b":
+            // Budget
+            ledger.addBudgetStatement(statement);
+            return;
+          case ">":
+            // Budget assignment
+            ledger.addAssignmentStatement(statement)
+            return;
+          default:
+            return;
+        }
+      });
+
+    return ledger;
+  }
+
+  alias(s: string): string {
     if (this.aliases.has(s)) {
-      return this.aliases.get(s);
+      return this.aliases.get(s)!;
     }
     return s;
   }
@@ -37,8 +85,7 @@ export class Ledger {
 
   addAccountStatement(source: string) {
     const tokens = source.split(" ");
-    const [dateStr, chipStr, accountStr, amountStr] =
-      tokens;
+    const [dateStr, chipStr, accountStr, amountStr] = tokens;
     const date = parseISO(dateStr);
     // const account = this.getAccount(accountStr);
     const amount = parseInt(amountStr, 10);
@@ -48,11 +95,42 @@ export class Ledger {
     // }
 
     const account = new Account(accountStr, 0);
-    this.accounts.push(
-      account
-    );
+    this.accounts.push(account);
     // this.assignments.push(new Assignment(date, this.getBudget("inflow")!, amount))
-    this.transactions.push(new Transaction(date, account, [new TransactionPosting("Opening balance", this.getBudget("inflow")!, amount)]))
+    this.transactions.push(
+      new Transaction(date, account, [
+        new TransactionPosting(
+          "Opening balance",
+          this.getBudget("inflow")!,
+          amount
+        ),
+      ])
+    );
+  }
+
+  addBudgetStatement(source: string) {
+    const tokens = source.split(" ");
+    const [dateStr, chipStr, budgetStr, groupStr] = tokens;
+    const date = parseISO(dateStr);
+    // const account = this.getAccount(accountStr);
+    // const amount = parseInt(amountStr, 10);
+
+    // if (!account) {
+    //   throw new Error(`Account '${accountStr}' not found`);
+    // }
+
+    // const account = new Account(accountStr, 0);
+    this._budgets.push(new Budget(budgetStr, groupStr));
+    // this.assignments.push(new Assignment(date, this.getBudget("inflow")!, amount))
+    // this.transactions.push(
+    //   new Transaction(date, account, [
+    //     new TransactionPosting(
+    //       "Opening balance",
+    //       this.getBudget("inflow")!,
+    //       amount
+    //     ),
+    //   ])
+    // );
   }
 
   addTransactionStatement(source: string) {
@@ -86,7 +164,10 @@ export class Ledger {
     const date = parseISO(dateStr);
     const budget = this.getBudget(budgetStr);
     const amount = parseInt(amountStr, 10);
-    console.log(amount);
+    
+    if(isNaN(amount)) {
+      debugger
+    }
 
     if (!budget) {
       throw new Error(`Budget '${budgetStr}' not found`);
@@ -117,11 +198,11 @@ export class Ledger {
   }
 
   get budgets(): Budget[] {
-    return this._budgets.filter(b => b.name !== 'inflow')
+    return this._budgets.filter((b) => b.name !== "inflow");
   }
 
   get budgetGroups(): Record<string, Budget[]> {
-    return groupBy(this.budgets, 'group')
+    return groupBy(this.budgets, "group");
   }
 
   transactionsForAccount(account: Account) {
@@ -152,34 +233,31 @@ export class Ledger {
         t.postings
           .filter((p) => p.budget === budget)
           .forEach((p) => {
-            if(budget.name === 'inflow') { console.log(t) }
+            if (budget.name === "inflow") {
+              console.log(t);
+            }
             activity += p.amount;
           });
       });
 
     let assigned: Balance = 0;
-    if(budget.name === 'inflow') {
-
-        this.assignments
+    if (budget.name === "inflow") {
+      this.assignments
         .filter((t) => isBefore(t.date, endOfMonth(date)))
-        .filter((p) =>
-        p.budget !== budget
-        )
+        .filter((p) => p.budget !== budget)
         .forEach((a) => {
-            assigned -= a.amount;
-            if (budget.name === "inflow") {
-              console.log(a);
-            }
+          assigned -= a.amount;
+          if (budget.name === "inflow") {
+            console.log(a);
+          }
         });
     } else {
-        this.assignments
-          .filter((t) => isBefore(t.date, endOfMonth(date)))
-          .filter((p) =>
-            p.budget === budget
-          )
-          .forEach((a) => {
-            assigned += a.amount;
-          });
+      this.assignments
+        .filter((t) => isBefore(t.date, endOfMonth(date)))
+        .filter((p) => p.budget === budget)
+        .forEach((a) => {
+          assigned += a.amount;
+        });
     }
 
     return assigned + activity;

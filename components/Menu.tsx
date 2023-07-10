@@ -1,3 +1,5 @@
+import { twJoin } from "tailwind-merge";
+
 interface MenuItemProps extends React.ComponentProps<'button'> {
   children: React.ReactNode;
   icon?: React.ReactNode;
@@ -14,14 +16,17 @@ export function MenuItem({
   badge = null,
 }: MenuItemProps) {
   return (
-    <button
-      className="transition-color flex items-center gap-2 px-2 py-1 hover:bg-stone-200 rounded-md w-full"
+    <div
+      className={twJoin(
+        "mb-0.5 transition-color flex items-center gap-2 px-2 py-1 hover:bg-stone-200 rounded-md w-full",
+        isActive && "bg-stone-200 font-semibold"
+      )}
       onClick={onClick}
       aria-pressed={isActive}
     >
       {icon}
       <div>{children}</div>
       {badge}
-    </button>
+    </div>
   );
 }
