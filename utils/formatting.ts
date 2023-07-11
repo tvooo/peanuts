@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { padEnd } from 'lodash';
+import { padStart } from "lodash";
 
 export function formatCurrency(n: number): string {
   const negative = n < 0
@@ -7,8 +7,8 @@ export function formatCurrency(n: number): string {
   
   const cents = abs % 100;
   const euros = Math.floor(abs / 100);
-
-  return `${negative ? '-' : ''}${euros},${padEnd(String(cents), 2, '0')} €`;
+  
+  return `${negative ? '-' : ''}${euros},${padStart(String(cents), 2, '0')} €`;
 }
 
 export function formatDate(d: Date): string {

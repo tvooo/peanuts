@@ -19,6 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function doit() {
+      console.log(fileHandle)
       if (!fileHandle) {
         return;
       }
@@ -26,6 +27,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       const contents = await file.text();
       setLedgerText(contents);
       const l = Ledger.fromSource(contents);
+      l.name = "Tim's budget"
+      l.fileName = fileHandle.name
 
       l.aliases.set('dkb', 'DKB')
       l.aliases.set("asn", "ASN Bank");
@@ -71,8 +74,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           }}
         >
           <div className="bg-stone-100 border-r-stone-300 border-r-[1px] flex-[1_0_280px]">
-            <Sidebar />
-            <button
+            <Sidebar
+              fileHandle={fileHandle}
+              onOpenLedgerClick={async () => {
+                const result = await window.showOpenFilePicker();
+                const [fh] = result;
+                setFileHandle(fh);
+              }}
+            />
+            {/* <button
               onClick={async () => {
                 const result = await window.showOpenFilePicker();
                 const [fh] = result;
@@ -80,7 +90,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               }}
             >
               open
-            </button>
+            </button> */}
           </div>
 
           <div className="bg-white flex-[1_1_100%]">

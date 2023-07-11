@@ -2,13 +2,13 @@ import Link from "next/link";
 
 import { formatCurrency } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
-import { CreditCard, Page, PiggyBank, Settings } from "iconoir-react";
+import { CreditCard, GraphUp, Page, PiggyBank, Upload } from "iconoir-react";
 import { usePathname } from "next/navigation";
 import { MenuItem } from "./Menu";
 
-export function Sidebar() {
-  const pathname = usePathname()
-  const ledger = useLedger()
+export function Sidebar({ fileHandle, onOpenLedgerClick }) {
+  const pathname = usePathname();
+  const ledger = useLedger();
 
   return (
     <div className="text-sm flex flex-col justify-between h-full">
@@ -27,6 +27,14 @@ export function Sidebar() {
             icon={<Page className="text-indigo-700" />}
           >
             Ledger
+          </MenuItem>
+        </Link>
+        <Link href="/app/reports">
+          <MenuItem
+            isActive={pathname === "/app/reports"}
+            icon={<GraphUp className="text-indigo-700" />}
+          >
+            Reports
           </MenuItem>
         </Link>
         <h2 className="p-2 text-stone-600 text-xs font-bold uppercase mt-3">
@@ -49,15 +57,30 @@ export function Sidebar() {
             </Link>
           ))}
         </div>
-      </div>
-      <div className="flex p-4">
-        <div className="mr-auto">
-          <h1 className="text-md font-bold">Tim&apos;s budget</h1>
-          <div className="font-mono text-xs font-bold text-stone-600">
-            tim.pbj
-          </div>
-        </div>
-        <Settings />
+        {fileHandle && <div>{JSON.stringify(fileHandle)}</div>}
+        {ledger && (
+          <button onClick={onOpenLedgerClick}>
+            <MenuItem icon={<Upload />}>
+              {ledger ? (
+                <div>
+                  <div>{ledger.name}</div>
+                  <div>{ledger.fileName}</div>
+                </div>
+              ) : (
+                "Open ledger"
+              )}
+            </MenuItem>
+          </button>
+          // <button className="flex p-4">
+          //   <div className="mr-auto">
+          //     <h1 className="text-md font-bold">{ledger.name}</h1>
+          //     <div className="font-mono text-xs font-bold text-stone-600">
+          //       {ledger.fileName}
+          //     </div>
+          //   </div>
+          //   {/* <Settings /> */}
+          // </button>
+        )}
       </div>
     </div>
   );
