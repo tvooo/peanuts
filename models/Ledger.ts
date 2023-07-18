@@ -2,26 +2,17 @@ import { Account } from "@/models/Account";
 import { Budget } from "@/models/Budget";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
 import { Balance } from "@/utils/types";
-import { endOfMonth, isBefore, isSameMonth, parseISO } from "date-fns";
+import { addDays, endOfMonth, isBefore, isSameMonth, parseISO, startOfDay } from "date-fns";
 import { groupBy } from "lodash";
 import { Assignment } from "./Assignment";
-
-`2023-01-01 open dkb
-2023-01-01 open asn
-
-2023-01-01 open dkb
-
-alias dkb "DKB"
-alias asn "ASN Bank"
-
-2023-07-06 > dkb Apple 
-`;
+import { BalanceAssertion } from "./BalanceAssertion";
 
 export class Ledger {
   accounts: Account[] = [];
   _budgets: Budget[] = [new Budget("inflow")];
   transactions: Transaction[] = [];
   assignments: Assignment[] = [];
+  balanceAssertions: BalanceAssertion[] = []
   aliases: Map<string, string> = new Map<string, string>();
   source: string = ""
 
@@ -64,6 +55,10 @@ export class Ledger {
             // Budget assignment
             ledger.addAssignmentStatement(statement)
             return;
+          case "=":
+            // Account balance assertion
+            ledger.addBalanceStatement(statement)
+            return
           default:
             return;
         }
@@ -88,6 +83,7 @@ export class Ledger {
     const [dateStr, chipStr, accountStr, amountStr] = tokens;
     const date = parseISO(dateStr);
     // const account = this.getAccount(accountStr);
+    const status = chipStr === '*' ? 'cleared' : 'open'
     const amount = parseInt(amountStr, 10);
 
     // if (!account) {
@@ -98,7 +94,7 @@ export class Ledger {
     this.accounts.push(account);
     // this.assignments.push(new Assignment(date, this.getBudget("inflow")!, amount))
     this.transactions.push(
-      new Transaction(date, account, [
+      new Transaction(date, account, status, [
         new TransactionPosting(
           "Opening balance",
           this.getBudget("inflow")!,
@@ -106,6 +102,46 @@ export class Ledger {
         ),
       ])
     );
+  }
+
+  addBalanceStatement(source: string) {
+    const tokens = source.split(" ");
+    const [dateStr, chipStr, accountStr, balanceStr] = tokens;
+    const date = parseISO(dateStr);
+    const account = this.getAccount(accountStr);
+    const balance = parseInt(balanceStr, 10);
+
+    if (!account) {
+      throw new Error(`Account '${accountStr}' not found`);
+    }
+
+    // TODO: Register alert if balance at date is not balance
+    console.log(this.accountBalanceAtDate(account, date), balance)
+
+    this.balanceAssertions.push(new BalanceAssertion(date, account, balance))
+
+    // const account = new Account(accountStr, 0);
+    // this.accounts.push(account);
+    // this.assignments.push(new Assignment(date, this.getBudget("inflow")!, amount))
+    // this.transactions.push(
+    //   new Transaction(date, account, [
+    //     new TransactionPosting(
+    //       "Opening balance",
+    //       this.getBudget("inflow")!,
+    //       amount
+    //     ),
+    //   ])
+    // );
+  }
+
+  accountBalanceAtDate(account: Account, date: Date) {
+    // FIXME: only take cleared transactions into account
+    let balance = 0
+    const cutoff = startOfDay(addDays(date, 1))
+    this.transactionsForAccount(account).filter(tr => isBefore(tr.date, cutoff)).forEach(tr => {
+      balance += tr.amount
+    })
+    return balance
   }
 
   addBudgetStatement(source: string) {
@@ -138,6 +174,7 @@ export class Ledger {
     const [dateStr, chipStr, accountStr, payeeStr, budgetStr, amountStr] =
       tokens;
     const date = parseISO(dateStr);
+    const status = chipStr === '*' ? 'cleared' : 'open'
     const account = this.getAccount(accountStr);
     const payee = payeeStr;
     const budget = this.getBudget(budgetStr);
@@ -152,7 +189,7 @@ export class Ledger {
     }
 
     this.addTransaction(
-      new Transaction(date, account, [
+      new Transaction(date, account, status, [
         new TransactionPosting(payee, budget, amount),
       ])
     );
@@ -207,6 +244,10 @@ export class Ledger {
 
   transactionsForAccount(account: Account) {
     return this.transactions.filter((tr) => tr.account === account);
+  }
+
+  transactionsAndBalancesForAccount(account: Account) {
+    return [...this.transactions.filter((tr) => tr.account === account), ...this.balanceAssertions.filter(tr => tr.account === account)];
   }
 
   get payees(): string[] {

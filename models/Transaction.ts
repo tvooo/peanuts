@@ -11,7 +11,9 @@ export class Transaction {
 
   amount: Amount;
 
-  constructor(date: Date, account: Account, postings: TransactionPosting[]) {
+  status: 'open' | 'cleared';
+
+  constructor(date: Date, account: Account, status: 'open' | 'cleared', postings: TransactionPosting[]) {
     if (postings.length < 1) {
       throw new Error("Transaction must have at least one posting");
     }
@@ -20,6 +22,7 @@ export class Transaction {
     this.account = account;
     this.amount = postings[0].amount;
     this.postings = postings;
+    this.status = status;
   }
 
   addsUp(): boolean {
