@@ -54,7 +54,7 @@ export function TransactionsTable({ currentAccount, ledger, l }: TransactionsTab
               <td className="p-1 pl-8 w-[64px] align-middle">
                 <input type="checkbox" />
               </td>
-              <td className="tabular-nums">{formatDate(transaction.date)}</td>
+              <td className="tabular-nums py-2">{formatDate(transaction.date)}</td>
               <td>{l(transaction.postings[0].payee)}</td>
               <td>
                 <BudgetCell>
@@ -66,12 +66,10 @@ export function TransactionsTable({ currentAccount, ledger, l }: TransactionsTab
               <td>
                 <AmountCell
                   amount={transaction.amount}
-                  // highlightNegativeAmount
                   highlightPositiveAmount
-                  //   chip
                 />
               </td>
-              <td className="py-2 pr-8 text-center">{transaction.status === 'cleared' ? <DoubleCheck width={20} className="inline-block" /> : <>&middot;</>}</td>
+              <td className="pr-8 text-center">{transaction.status === 'cleared' ? <DoubleCheck width={20} className="inline-block" /> : <>&middot;</>}</td>
             </tr>
           ) : (
             <tr
@@ -81,25 +79,8 @@ export function TransactionsTable({ currentAccount, ledger, l }: TransactionsTab
               <td className="p-1 pl-8 w-[64px] align-middle">
                 <input type="checkbox" />
               </td>
-              <td className="tabular-nums">{formatDate(transaction.date)}</td>
-              {/* <td>{l(transaction.postings[0].payee)}</td> */}
-              <td colSpan={4}>Account balance was <strong>{formatCurrency(transaction.balance)}</strong></td>
-              {/* <td>
-                <BudgetCell>
-                  {l(transaction.postings[0].budget.name)}
-                </BudgetCell>
-              
-              </td> */}
-              {/* <td>{transaction.postings[0].note}</td> */}
-              {/* <td>
-                <AmountCell
-                  amount={transaction.balance}
-                  // highlightNegativeAmount
-                  highlightPositiveAmount
-                  //   chip
-                />
-              </td> */}
-              {/* <td className="py-2 pr-8 text-center">{transaction.status === 'cleared' ? <DoubleCheck width={20} className="inline-block" /> : <>&middot;</>}</td> */}
+              <td className="tabular-nums py-2">{formatDate(transaction.date)}</td>
+              <td colSpan={4} className="">Account balance was <strong>{formatCurrency(transaction.balance)}</strong></td>
               <td />
             </tr>
           ))}

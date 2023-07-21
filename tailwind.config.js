@@ -15,5 +15,11 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  corePlugins: {
+    fontWeight: false,
+    fontStyle: false,
+  },
+  plugins: [
+    require("./fontVariationSettingsPlugin"),
+  ],
 };
