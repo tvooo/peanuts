@@ -15,6 +15,8 @@ export class Ledger {
   balanceAssertions: BalanceAssertion[] = []
   aliases: Map<string, string> = new Map<string, string>();
   source: string = ""
+  name: string = ""
+  fileName: string = ""
 
   static fromSource(source: string): Ledger {
     const ledger = new Ledger();

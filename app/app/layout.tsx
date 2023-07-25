@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 
 import { Ledger } from "@/models/Ledger";
 import { LedgerContext } from "@/utils/useLedger";
+import { get, set } from "idb-keyval";
 import { useEffect, useState } from "react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -63,6 +64,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     doit();
   }, [fileHandle]);
 
+  useEffect(() => {
+    const doit = async () => {
+      const fh = await get(`peanuts:ledgerFileHandle`);
+      await verifyPermission(fh, true);
+      if (fh) {
+        setFileHandle(fh as FileSystemFileHandle);
+      }
+    };
+    doit()
+  }, [])
+
   return (
     <LedgerContext.Provider value={ledger}>
       <main className="text-stone-800 flex min-h-screen flex-col items-stretch justify-between">
@@ -80,6 +92,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 const result = await window.showOpenFilePicker();
                 const [fh] = result;
                 setFileHandle(fh);
+                await set(`peanuts:ledgerFileHandle`, fh);
               }}
             />
             {/* <button
@@ -110,4 +123,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
     </LedgerContext.Provider>
   );
+}
+
+async function verifyPermission(fileHandle: FileSystemFileHandle, readWrite: boolean) {
+  const options: FileSystemHandlePermissionDescriptor = {};
+  if (readWrite) {
+    options.mode = "readwrite";
+  }
+  // Check if permission was already granted. If so, return true.
+  if ((await fileHandle.queryPermission(options)) === "granted") {
+    return true;
+  }
+  // Request permission. If the user grants permission, return true.
+  if ((await fileHandle.requestPermission(options)) === "granted") {
+    return true;
+  }
+  // The user didn't grant permission, so return false.
+  return false;
 }

@@ -7,7 +7,7 @@ export default function LedgerPage() {
     return (
       <textarea
         className="w-full h-full bg-transparent font-mono"
-        value={ledger.source}
+        value={ledger?.source || ""}
       ></textarea>
     );
 }

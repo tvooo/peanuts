@@ -53,6 +53,6 @@ export const BudgetCell = ({ children, ...props }: HeaderCellProps) => (
 );
 
 
-export const Cell = (props) => (
+export const Cell = (props: React.ComponentProps<"div">) => (
   <div className="px-2 py-1" {...props} />
 );
