@@ -11,6 +11,10 @@ export class Account {
     this.name = name;
   }
 
+  toString() {
+    return `2020-01-01 open ${this.name} ${this.balance}`;
+  }
+
   // static fromOpenStatement(statement: string) {
   //   // Example: `2020-04-18 open dkb`
   //   const [ dateStr, chip, nameStr ] = statement.split(' ')

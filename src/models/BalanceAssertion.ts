@@ -1,4 +1,5 @@
-import { Amount, Balance } from "@/utils/types";
+import { formatDateIsoShort } from "@/utils/formatting";
+import { Balance } from "@/utils/types";
 import { Account } from "./Account";
 
 export class BalanceAssertion {
@@ -12,5 +13,9 @@ export class BalanceAssertion {
     this.date = date;
     this.account = account;
     this.balance = balance;
+  }
+
+  toString() {
+    return `${formatDateIsoShort(this.date)}} = ${this.account.name} ${this.balance}`;
   }
 }

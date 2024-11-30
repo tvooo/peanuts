@@ -8,16 +8,25 @@ export class Budget {
 
   group?: string; // FIXME: for grouping budgets together, not sure about this
 
-  isTarget?: boolean = false
+  isTarget?: boolean = false;
+
+  toString() {
+    return `2020-01-01 budget ${this.name} ${this.group}`;
+  }
 
   get currentBalance(): Balance {
     return this.balance;
   }
 
-  constructor(name: string, group: string = "", isTarget: boolean = false, _?: Balance) {
+  constructor(
+    name: string,
+    group: string = "",
+    isTarget: boolean = false,
+    _?: Balance
+  ) {
     this.name = name;
-    this.isTarget = isTarget
-    this.group = group
+    this.isTarget = isTarget;
+    this.group = group;
   }
 
   processPosting(posting: TransactionPosting) {

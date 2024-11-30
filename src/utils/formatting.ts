@@ -15,6 +15,10 @@ export function formatDate(d: Date): string {
   return format(d, 'dd.MM.yyyy')
 }
 
+export function formatDateIsoShort(d: Date): string {
+  return format(d, "yyyy-MM-dd");
+}
+
 export function formatMonth(d: Date): string {
   return format(d, "MMM yyyy");
 }

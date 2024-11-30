@@ -1,6 +1,6 @@
 import { AmountCell, HeaderCell } from "@/components/Table";
 import { Ledger } from "@/models/Ledger";
-import { Archery } from "iconoir-react";
+import { Goal } from "lucide-react";
 import { Fragment } from "react";
 
 interface BudgetTableProps {
@@ -50,7 +50,7 @@ export function BudgetTable({ currentMonth, ledger, l }: BudgetTableProps) {
                   </td>
                   <td>
                     <div className="p-0.5 flex items-center  align-middle">
-                      {budget.isTarget && <Archery className="mr-2 w-3" />}
+                      {budget.isTarget && <Goal className="mr-2 w-3" />}
                       {l(budget.name)}
                     </div>
                   </td>

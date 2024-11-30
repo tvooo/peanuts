@@ -4,12 +4,13 @@
 import { BudgetTable } from "@/features/budget/BudgetTable";
 import { formatCurrency } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
+import { redirect } from "next/navigation";
 
 export default function AccountPage() {
   const ledger = useLedger();
 
   if (!ledger) {
-    return <h1>No ledger opened</h1>;
+    redirect("/app");
   }
 
   const l = ledger.alias.bind(ledger);

@@ -53,6 +53,10 @@ export class Ledger {
             // Budget
             ledger.addBudgetStatement(statement);
             return;
+          case "a":
+            // Alias
+            ledger.addAliasStatement(statement);
+            return
           case ">":
             // Budget assignment
             ledger.addAssignmentStatement(statement)
@@ -69,6 +73,16 @@ export class Ledger {
     return ledger;
   }
 
+  toString() {
+    return [
+      this.accounts.map(t => t.toString()).join("\n"),
+      this.budgets.map(t => t.toString()).join("\n"),
+      this.transactions.map(t => t.toString()).join("\n"),
+      this.balanceAssertions.map(t => t.toString()).join("\n"),
+      this.assignments.map(t => t.toString()).join("\n"),
+    ].join('\n');
+  }
+
   alias(s: string): string {
     if (this.aliases.has(s)) {
       return this.aliases.get(s)!;
@@ -78,6 +92,16 @@ export class Ledger {
 
   addTransaction(transaction: Transaction) {
     this.transactions.push(transaction);
+  }
+
+  addAliasStatement(source: string) {
+    const tokens = source.split(" ");
+    const [dateStr, chipStr, shorthandStr, nameStr] = tokens;
+    // const date = parseISO(dateStr);
+    const shorthand = shorthandStr;
+    const name = nameStr;
+
+    this.aliases.set(shorthand, name);
   }
 
   addAccountStatement(source: string) {
