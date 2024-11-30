@@ -14,7 +14,6 @@ export const SubscriptionsPage = () => {
                 <PiggyBank size={16} color="white" />
               </div>
               <strong>Joint budget</strong>
-              {/* <span>joint.budget</span> */}
               <ChevronsUpDown size={16} className="ml-auto" />
             </Button>
           </DropdownMenuTrigger>

@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import AccountPage from "./pages/AccountPage";
 import BudgetPage from "./pages/BudgetPage";
+import { LedgerPage } from "./pages/LedgerPage";
 import { OpenPage } from "./pages/OpenPage";
 import { SubscriptionsPage } from "./pages/SubscriptionsPage";
 
@@ -109,7 +110,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Route path="/" element={<OpenPage />} />
             <Route path="/budget" element={<BudgetPage />} />
             <Route path="/subscriptions" element={<SubscriptionsPage />} />
-            <Route path="/ledger" element={<AccountPage />} />
+            <Route path="/ledger" element={<LedgerPage />} />
             <Route path="/ledger/:accountName" element={<AccountPage />} />
           </Routes>
         </BrowserRouter>
