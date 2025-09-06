@@ -1,4 +1,3 @@
-import { db, overwriteDatabaseFile } from "@/db";
 import { Account } from "@/models/Account";
 import { Budget, BudgetCategory } from "@/models/Budget";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
@@ -135,37 +134,6 @@ export class Ledger {
     };
   }
 
-  static async fromDatabase(blob: Blob): Promise<Ledger> {
-    const ledger = new Ledger();
-    // ledger.source = db.schema.toString();
-    await overwriteDatabaseFile(blob);
-
-    const accounts = await db.selectFrom("accounts").selectAll().execute();
-    accounts.forEach((a) => {
-      ledger.accounts.push(new Account(a.name, 0));
-    });
-
-    const budgetCategories = await db
-      .selectFrom("budget_categories")
-      .selectAll()
-      .execute();
-    budgetCategories.forEach((b) => {
-      ledger.budgetCategories.push(new BudgetCategory(b.uuid, b.name));
-    });
-
-    const budgets = await db.selectFrom("budgets").selectAll().execute();
-    budgets.forEach((b) => {
-      const budgetCategory = ledger.budgetCategories.find(
-        (c) => c.uuid === b.budget_category_uuid
-      );
-      if (!budgetCategory) {
-        throw new Error(`Budget category ${b.budget_category_uuid} not found`);
-      }
-      ledger._budgets.push(Budget.fromDBRecord(b, budgetCategory));
-    });
-
-    return ledger;
-  }
 
   // addTransaction(transaction: Transaction) {
   //   this.transactions.push(transaction);

@@ -12,7 +12,6 @@ import { del, get } from "idb-keyval";
 import { ChevronRight, FolderOpen, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { db } from "../db";
 
 export const OpenPage = () => {
   const { ledger, openLedger, fileHandle } = useLedger();
@@ -71,12 +70,6 @@ export const OpenPage = () => {
             <Button
               onClick={async () => {
                 await createEmptyLedger()
-                // const data = await db
-                //   .selectFrom("groceries")
-                //   .select(["name", "quantity"])
-                //   .orderBy("name", "asc")
-                //   .execute();
-                // console.log(data);
               }}
               className="ml-auto"
               variant="secondary"
@@ -91,21 +84,5 @@ export const OpenPage = () => {
 };
 
 async function createEmptyLedger() {
-  await db.schema.dropTable("accounts").ifExists().execute();
-  await db.schema
-    .createTable("accounts")
-    .ifNotExists()
-    .addColumn("uuid", "text")
-    .addColumn("name", "text")
-    .addColumn("type", "text")
-    .execute();
-
-  // await db.
-  // db.execute
-  // console.log(accounts.getSQL())
-  await db.insertInto("accounts").values([{ uuid: "123", name: "ABN Amro", type: 'budget' }]).execute();
-  await db.insertInto("accounts").values([{ uuid: "1233", name: "bunq", type: "budget" }]).execute();
-
-  const res = await db.selectFrom("accounts").selectAll().execute();
-  // console.log(res);
+  window.alert("Creating new ledger is not implemented yet.");
 }

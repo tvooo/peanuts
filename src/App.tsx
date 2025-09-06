@@ -30,23 +30,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       const file = await fileHandle.getFile();
 
       console.log(file.type)
-      if(file.name.endsWith("sqlite")) {
-        console.log('SQLite file detected')
-        // alert("File must be plain text but is " + file.type);
-        // alert("SQLite file detected. This is not supported yet.")
-
-
-        // setLedgerText(contents);
-        const l = await Ledger.fromDatabase(file);
-        l.name = "Tim's budget";
-        l.fileName = fileHandle.name;
-        l.transactions.forEach((t) => {
-          t.account.processTransaction(t);
-        });
-        setLedger(l); 
-
-        return;
-      }
 
       if (file.name.endsWith("json") || file.name.endsWith("pbj")) {
         console.log("JSON file detected");
