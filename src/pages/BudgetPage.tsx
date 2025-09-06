@@ -1,7 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { AddBudgetModal } from "@/features/budget/AddBudgetModal";
 import { BudgetTable } from "@/features/budget/BudgetTable";
+import { Budget } from "@/models/Budget";
 import { PageLayout } from "@/PageLayout";
 import { formatCurrency, formatMonth } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
@@ -12,9 +14,11 @@ import { useNavigate } from "react-router";
 // import { redirect } from "next/navigation";
 
 export default function BudgetPage() {
-  const {ledger} = useLedger();
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
+  const { ledger } = useLedger();
+  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
   const navigate = useNavigate();
+
+  const [newEnvelope, setNewEnvelope] = useState<Budget | null>(null);
 
   useEffect(() => {
     if (!ledger) {
@@ -27,56 +31,80 @@ export default function BudgetPage() {
     return null;
   }
 
-  const l = ledger.alias.bind(ledger);
-
-
   return (
     <PageLayout>
       <div className="">
         <div className="flex justify-between items-center mb-6 p-8">
           <div className="flex justify-around items-center gap-2">
-          <Button
-            onClick={() => 
-              setCurrentMonth(startOfMonth(subMonths(currentMonth, 1)))
-            }
-          >
-            <ChevronLeft />
-          </Button>
-          <div>{formatMonth(currentMonth)}</div>
-          <Button
-            onClick={() =>
-              setCurrentMonth(startOfMonth(addMonths(currentMonth, 1)))
-            }
-          >
-            <ChevronRight />
-          </Button>
-          {!isSameMonth(new Date(), currentMonth) && (
-            <Button onClick={
-              () => setCurrentMonth(startOfMonth(new Date()))
-              }>
-              <Calendar />
+            <Button
+              size="icon"
+              variant="secondary"
+              onClick={() =>
+                setCurrentMonth(startOfMonth(subMonths(currentMonth, 1)))
+              }
+            >
+              <ChevronLeft />
             </Button>
-          )}
-        </div>
-          <div className="text-[10px]">
-            <div> from last month +</div>
-            <div>inflow this month -</div>
-            <div>assigned in future -</div>
-            <div>assigned this month =</div>
+            <div>{formatMonth(currentMonth)}</div>
+            <Button
+              size="icon"
+              variant="secondary"
+              onClick={() =>
+                setCurrentMonth(startOfMonth(addMonths(currentMonth, 1)))
+              }
+            >
+              <ChevronRight />
+            </Button>
+            {!isSameMonth(new Date(), currentMonth) && (
+              <Button
+                onClick={() => setCurrentMonth(startOfMonth(new Date()))}
+                size="icon"
+                variant="secondary"
+              >
+                <Calendar />
+              </Button>
+            )}
           </div>
-          <div>
-            <div className="text-sm">Available to budget</div>
-            <div className="text-md font-bold">
+          <div className="text-[10px]">
+            <div>
+              + from last month +{" "}
               {formatCurrency(
                 ledger.budgetAvailableForMonth(
-                  ledger.getBudget("inflow")!,
-                  new Date()
+                  ledger.getInflowBudget()!,
+                  subMonths(currentMonth, 1)
+                )
+              )}
+            </div>
+            <div>
+              + inflow this month{" "}
+              {formatCurrency(
+                ledger.budgetActivityForMonth(
+                  ledger.getInflowBudget()!,
+                  currentMonth
+                )
+              )}
+            </div>
+            <div>- assigned in future</div>
+            <div>
+              - assigned this month {formatCurrency(ledger.assignedForMonth(currentMonth))}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">
+              Available to budget
+            </div>
+            <div className="text-xl font-bold">
+              {formatCurrency(
+                ledger.budgetAvailableForMonth(
+                  ledger.getInflowBudget()!,
+                  currentMonth
                 )
               )}
             </div>
           </div>
         </div>
-        <BudgetTable currentMonth={currentMonth} ledger={ledger} l={l} />
+        <AddBudgetModal />
+        <BudgetTable currentMonth={currentMonth} ledger={ledger} />
       </div>
     </PageLayout>
   );

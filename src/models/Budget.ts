@@ -1,35 +1,77 @@
 import { Balance } from "@/utils/types";
-import { TransactionPosting } from "./Transaction";
+import cuid from "cuid";
+import { computed, observable } from "mobx";
+import { Ledger } from "./Ledger";
+import { Model, ModelConstructorArgs } from "./Model";
 
-export class Budget {
-  name: string = "Some budget";
+export class Budget extends Model {
+  @observable
+  accessor name: string = "Some budget";
 
   balance: Balance = 0;
 
-  group?: string; // FIXME: for grouping budgets together, not sure about this
+  budgetCategory: BudgetCategory | null = null;
 
-  isTarget?: boolean = false;
+  isToBeBudgeted: boolean = false;
 
-  toString() {
-    return `2020-01-01 budget ${this.name} ${this.group}`;
+  constructor({ id, ledger }: ModelConstructorArgs) {
+    super({
+      id: id || cuid(),
+      ledger,
+    });
+  }
+
+  static fromJSON(json: any, ledger: Ledger): Budget {
+    const budget = new Budget({ id: json.id, ledger });
+    budget.name = json.name;
+    budget.budgetCategory =
+      budget.ledger.budgetCategories.find(
+        (c) => c.id === json.budget_category_id
+      ) || null;
+    budget.isToBeBudgeted = json.is_to_be_budgeted;
+    return budget;
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      name: this.name,
+      budget_category_id: this.budgetCategory?.id || null,
+      is_to_be_budgeted: this.isToBeBudgeted
+    };
   }
 
   get currentBalance(): Balance {
     return this.balance;
   }
 
-  constructor(
-    name: string,
-    group: string = "",
-    isTarget: boolean = false,
-    _?: Balance
-  ) {
-    this.name = name;
-    this.isTarget = isTarget;
-    this.group = group;
+  @computed
+  get goal() {
+    return null;
+  }
+}
+
+export class BudgetCategory extends Model {
+  @observable
+  accessor name: string = "Unnamed budget category";
+
+  constructor({ id, ledger }: { id: string | null, ledger: Ledger }) {
+    super({
+      id: id || cuid(),
+      ledger
+    });
   }
 
-  processPosting(posting: TransactionPosting) {
-    this.balance += posting.amount;
+  static fromJSON(json: any, ledger : Ledger): BudgetCategory {
+    const budgetCategory = new BudgetCategory({ id: json.id, ledger });
+    budgetCategory.name = json.name;
+    return budgetCategory;
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      name: this.name
+    }
   }
 }

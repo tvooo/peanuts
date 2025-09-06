@@ -1,38 +1,50 @@
-import { formatDateIsoShort } from "@/utils/formatting";
 import { Amount } from "@/utils/types";
+import cuid from "cuid";
+import { action, computed, observable } from "mobx";
 import { Account } from "./Account";
 import { Budget } from "./Budget";
+import { Ledger } from "./Ledger";
+import { Model, ModelConstructorArgs } from "./Model";
+import { Payee } from "./Payee";
 
-export class Transaction {
-  date: Date;
+export class Transaction extends Model {
+  @observable
+  accessor date: Date | null = null;
 
-  account: Account;
+  account: Account | null = null;
 
-  postings: TransactionPosting[];
+  postings: TransactionPosting[] = [];
 
-  amount: Amount;
+  // amount: Amount;
 
-  status: "open" | "cleared";
+  status: "open" | "cleared" = "open";
 
-  constructor(
-    date: Date,
-    account: Account,
-    status: "open" | "cleared",
-    postings: TransactionPosting[]
-  ) {
-    if (postings.length < 1) {
-      throw new Error("Transaction must have at least one posting");
-    }
-
-    this.date = date;
-    this.account = account;
-    this.amount = postings[0].amount;
-    this.postings = postings;
-    this.status = status;
+  constructor({ id, ledger }: ModelConstructorArgs) {
+    super({ id: id || cuid(), ledger });
   }
 
-  toString() {
-    return `${formatDateIsoShort(this.date)} * ${this.account.name} ${this.postings[0].payee} ${this.postings[0].budget.name} ${this.postings[0].amount}`;
+  static fromJSON(json: any, ledger: Ledger) {
+    const transaction = new Transaction({ id: json.id, ledger });
+    transaction.account = ledger.accounts.find((a) => a.id === json.account_id) || null;
+    transaction.postings = json.transaction_posting_ids.map(
+      (p_id: string) => ledger.transactionPostings.find((pp) => pp.id === p_id) || null
+    );
+    transaction.status = json.status;
+    transaction.date = new Date(json.date);
+    // posting.amount = json.amount;
+    // posting.note = json.note;
+    // posting.payee = json.payee;
+    return transaction;
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      account_id: this.account?.id,
+      transaction_posting_ids: this.postings.map((p) => p.id),
+      status: this.status,
+      date: this.date?.toISOString() || null,
+    }
   }
 
   addsUp(): boolean {
@@ -41,21 +53,66 @@ export class Transaction {
       this.postings.reduce((sum, posting) => posting.amount + sum, 0)
     );
   }
+
+  @computed
+  get amount(): Amount {
+    return this.postings[0].amount;
+  }
 }
 
-export class TransactionPosting {
-  budget: Budget;
+export class TransactionPosting extends Model {
+  @observable
+  accessor budget: Budget | null = null;
 
-  amount: Amount;
+  @observable
+  accessor amount: Amount = 0;
 
-  note?: string;
+  @observable
+  accessor note: string = "";
 
-  payee: string;
+  @observable
+  accessor payee: Payee | null = null;
 
-  constructor(payee: string, budget: Budget, amount: Amount, note?: string) {
+  constructor({ id, ledger }: ModelConstructorArgs) {
+    super({ id: id || cuid(), ledger });
+  }
+
+  static fromJSON(json: any, ledger: Ledger) {
+    const posting = new TransactionPosting({ id: json.id, ledger });
+    posting.budget = ledger.getBudgetByID(json.budget_id) || null;
+    posting.amount = json.amount;
+    posting.note = json.note;
+    posting.payee = ledger.payees.find((p) => p.id === json.payee_id) || null;
+    return posting;
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      budget_id: this.budget?.id,
+      amount: this.amount,
+      note: this.note,
+      payee_id: this.payee?.id,
+    };
+  }
+
+  @action
+  setPayee(payee: Payee) {
     this.payee = payee;
+  }
+
+  @action
+  setBudget(budget: Budget) {
     this.budget = budget;
+  }
+
+  @action
+  setAmount(amount: Amount) {
     this.amount = amount;
+  }
+
+  @action
+  setNote(note: string) {
     this.note = note;
   }
 }

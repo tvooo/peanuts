@@ -1,12 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
-//   content: [
-//     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-//     "./components/**/*.{js,ts,jsx,tsx,mdx}",
-//     "./app/**/*.{js,ts,jsx,tsx,mdx}",
-//     "./features/**/*.{js,ts,jsx,tsx,mdx}",
-//   ],
   content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
     extend: {
@@ -75,11 +69,10 @@ module.exports = {
     },
   },
   corePlugins: {
-    fontWeight: false,
-    fontStyle: false,
+    fontWeight: true,
+    fontStyle: true,
   },
   plugins: [
-    require("./fontVariationSettingsPlugin"),
     require("tailwindcss-animate"),
   ],
 };

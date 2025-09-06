@@ -1,13 +1,63 @@
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageLayout } from "@/PageLayout";
-import { ChevronsUpDown, DoorClosedIcon, PiggyBank, SaveIcon } from "lucide-react";
+import { formatCurrency } from "@/utils/formatting";
+import { useLedger } from "@/utils/useLedger";
+import { useEffect } from "react";
+import { useNavigate } from "react-router";
 
 export const SubscriptionsPage = () => {
-    return (
-      <PageLayout>
-        <h1 className="text-4xl font-bold">Subscriptions Page</h1>
-        <DropdownMenu>
+  const { ledger } = useLedger();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!ledger) {
+      navigate("/");
+      return;
+    }
+  }, [ledger]);
+
+  if (!ledger) {
+    return null;
+  }
+
+  const monthly = ledger!.recurringTransactions.filter(rt => rt.period === "monthly")
+  const yearly = ledger!.recurringTransactions.filter(rt => rt.period === "yearly")
+
+  const yearTotal = Math.abs(ledger!.recurringTransactions.reduce((sum, rt) => {
+    return sum + (rt.period === "yearly" ? rt.amount : rt.amount * 12);
+  }, 0));
+  const monthAverage = Math.ceil(yearTotal / 12);
+
+
+  return (
+    <PageLayout>
+      <div className="flex justify-between items-center px-8 py-4">
+        <h2 className="text-2xl font-bold">
+          Subscriptions &amp; Recurring Transactions
+        </h2>
+        <div>
+          <div className="text-sm">Yearly total</div>
+          <div className="text-md font-bold">{formatCurrency(yearTotal)}</div>
+        </div>
+        <div>
+          <div className="text-sm">Monthly average</div>
+          <div className="text-md font-bold">{formatCurrency(monthAverage)}</div>
+        </div>
+      </div>
+      <div className="flex flex-col justify-between items-start px-8 py-4">
+        {ledger!.recurringTransactions.map((rt, index) => (
+          <div
+            key={index}
+            className="flex justify-between items-center gap-2 p-2 hover:bg-mutedX rounded-md"
+          >
+            <div className="text-sm font-mono">{rt.period}</div>
+            <div className="text-sm">{rt.postings[0].payee?.name}</div>
+            <div className="text-sm font-mono">
+              {formatCurrency(rt.postings[0].amount)}
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button>
               <div className="w-7 h-7 my-2 rounded-2xl bg-green-600 flex items-center justify-center">
@@ -27,7 +77,7 @@ export const SubscriptionsPage = () => {
               <span>Close ledger</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
-      </PageLayout>
-    );
-}
+        </DropdownMenu> */}
+    </PageLayout>
+  );
+};

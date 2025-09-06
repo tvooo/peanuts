@@ -1,256 +1,175 @@
+import { db, overwriteDatabaseFile } from "@/db";
 import { Account } from "@/models/Account";
-import { Budget } from "@/models/Budget";
+import { Budget, BudgetCategory } from "@/models/Budget";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
 import { Balance } from "@/utils/types";
-import { addDays, endOfMonth, isBefore, isSameMonth, parseISO, startOfDay } from "date-fns";
-import { groupBy } from "lodash";
+import {
+  endOfMonth,
+  isBefore,
+  isSameMonth
+} from "date-fns";
+import { action, computed, observable } from "mobx";
 import { Assignment } from "./Assignment";
 import { BalanceAssertion } from "./BalanceAssertion";
+import { Payee } from "./Payee";
+import { RecurringTransaction } from "./RecurringTransaction";
+import { Transfer } from "./Transfer";
+
+// Parse a ledger row, accounting for spaces inside quotes
+function parse(row: string): string[] {
+  let insideQuote = false;
+  let entry: string[] = [];
+  const entries: string[] = [];
+
+  row.split("").forEach(function (character) {
+    if (character === '"') {
+      insideQuote = !insideQuote;
+    } else {
+      if (character == " " && !insideQuote) {
+        entries.push(entry.join(""));
+        entry = [];
+      } else {
+        entry.push(character);
+      }
+    }
+  });
+  entries.push(entry.join(""));
+  return entries;
+}
 
 export class Ledger {
   accounts: Account[] = [];
-  _budgets: Budget[] = [new Budget("inflow")];
-  transactions: Transaction[] = [];
-  assignments: Assignment[] = [];
-  balanceAssertions: BalanceAssertion[] = []
-  aliases: Map<string, string> = new Map<string, string>();
-  source: string = ""
-  name: string = ""
-  fileName: string = ""
 
-  static fromSource(source: string): Ledger {
+  @observable
+  accessor _budgets: Budget[] = [];
+
+  @observable
+  accessor payees: Payee[] = [];
+
+  @observable
+  accessor transactions: Transaction[] = [];
+
+  @observable
+  accessor recurringTransactions: RecurringTransaction[] = [];
+
+  @observable
+  accessor assignments: Assignment[] = [];
+
+  balanceAssertions: BalanceAssertion[] = [];
+
+  @observable
+  accessor transactionPostings: TransactionPosting[] = [];
+
+  @observable
+  accessor transfers: Transfer[] = [];
+
+  source: string = "";
+  name: string = "";
+  fileName: string = "";
+
+  budgetCategories: BudgetCategory[] = [];
+
+  static async fromJSON(json: string): Promise<Ledger> {
     const ledger = new Ledger();
-    ledger.source = source
-    
-    source
-      .split("\n") // Split into lines
-      .map((t) => t.trim()) // Trim whitespace
-      .filter((t) => t !== "") // Skip empty lines
-      .forEach((statement) => {
-        if (statement[0] === "#") {
-          // It's a comment!
-          return;
-        }
+    ledger.source = json;
 
-        // Poor man's directive detection
-        if (statement.length < 12) {
-          return;
-        }
-        switch (statement[11]) {
-          case "*":
-          case "!":
-            // Statement
-            ledger.addTransactionStatement(statement);
-            break;
-          case "o":
-            // Account opening
-            ledger.addAccountStatement(statement);
-            return;
-          case "c":
-            // Account closing
-            return;
-          case "b":
-            // Budget
-            ledger.addBudgetStatement(statement);
-            return;
-          case "a":
-            // Alias
-            ledger.addAliasStatement(statement);
-            return
-          case ">":
-            // Budget assignment
-            ledger.addAssignmentStatement(statement)
-            return;
-          case "=":
-            // Account balance assertion
-            ledger.addBalanceStatement(statement)
-            return
-          default:
-            return;
-        }
-      });
+    const collections = JSON.parse(json);
+    collections.accounts.forEach((a) => {
+      ledger.accounts.push(Account.fromJSON(a, ledger));
+    });
+
+    collections.payees.forEach((a) => {
+      ledger.payees.push(Payee.fromJSON(a, ledger));
+    });
+
+    collections.budget_categories.forEach((b) => {
+      ledger.budgetCategories.push(BudgetCategory.fromJSON(b, ledger));
+    });
+
+    collections.budgets.forEach((b) => {
+      // const budgetCategory = ledger.budgetCategories.find(
+      //   (c) => c.uuid === b.budget_category_uuid
+      // );
+      // if(!budgetCategory) {
+      //   throw new Error(`Budget category ${b.budget_category_uuid} not found`);
+      // }
+      ledger._budgets.push(Budget.fromJSON(b, ledger));
+    });
+
+    collections.transaction_postings.forEach((p) => {
+      ledger.transactionPostings.push(TransactionPosting.fromJSON(p, ledger));
+    });
+
+    collections.transactions.forEach((t) => {
+      ledger.transactions.push(Transaction.fromJSON(t, ledger));
+    });
+
+    collections.recurring_transactions.forEach((t) => {
+      ledger.recurringTransactions.push(
+        RecurringTransaction.fromJSON(t, ledger)
+      );
+    });
+
+    collections.assignments.forEach((t) => {
+      ledger.assignments.push(Assignment.fromJSON(t, ledger));
+    });
+
+    collections.transfers.forEach((t) => {
+      ledger.transfers.push(Transfer.fromJSON(t, ledger));
+    });
 
     return ledger;
   }
 
-  toString() {
-    return [
-      this.accounts.map(t => t.toString()).join("\n"),
-      this.budgets.map(t => t.toString()).join("\n"),
-      this.transactions.map(t => t.toString()).join("\n"),
-      this.balanceAssertions.map(t => t.toString()).join("\n"),
-      this.assignments.map(t => t.toString()).join("\n"),
-    ].join('\n');
+  toJSON() {
+    return {
+      accounts: this.accounts.map((a) => a.toJSON()),
+      budget_categories: this.budgetCategories.map((a) => a.toJSON()),
+      budgets: this._budgets.map((a) => a.toJSON()),
+      payees: this.payees.map((a) => a.toJSON()),
+      transactions: this.transactions.map((a) => a.toJSON()),
+      transaction_postings: this.transactionPostings.map((a) => a.toJSON()),
+      recurring_transactions: this.recurringTransactions.map((a) => a.toJSON()),
+      assignments: this.assignments.map((a) => a.toJSON()),
+      transfers: this.transfers.map((a) => a.toJSON()),
+    };
   }
 
-  alias(s: string): string {
-    if (this.aliases.has(s)) {
-      return this.aliases.get(s)!;
-    }
-    return s;
+  static async fromDatabase(blob: Blob): Promise<Ledger> {
+    const ledger = new Ledger();
+    // ledger.source = db.schema.toString();
+    await overwriteDatabaseFile(blob);
+
+    const accounts = await db.selectFrom("accounts").selectAll().execute();
+    accounts.forEach((a) => {
+      ledger.accounts.push(new Account(a.name, 0));
+    });
+
+    const budgetCategories = await db
+      .selectFrom("budget_categories")
+      .selectAll()
+      .execute();
+    budgetCategories.forEach((b) => {
+      ledger.budgetCategories.push(new BudgetCategory(b.uuid, b.name));
+    });
+
+    const budgets = await db.selectFrom("budgets").selectAll().execute();
+    budgets.forEach((b) => {
+      const budgetCategory = ledger.budgetCategories.find(
+        (c) => c.uuid === b.budget_category_uuid
+      );
+      if (!budgetCategory) {
+        throw new Error(`Budget category ${b.budget_category_uuid} not found`);
+      }
+      ledger._budgets.push(Budget.fromDBRecord(b, budgetCategory));
+    });
+
+    return ledger;
   }
 
-  addTransaction(transaction: Transaction) {
-    this.transactions.push(transaction);
-  }
-
-  addAliasStatement(source: string) {
-    const tokens = source.split(" ");
-    const [dateStr, chipStr, shorthandStr, nameStr] = tokens;
-    // const date = parseISO(dateStr);
-    const shorthand = shorthandStr;
-    const name = nameStr;
-
-    this.aliases.set(shorthand, name);
-  }
-
-  addAccountStatement(source: string) {
-    const tokens = source.split(" ");
-    const [dateStr, chipStr, accountStr, amountStr] = tokens;
-    const date = parseISO(dateStr);
-    // const account = this.getAccount(accountStr);
-    const status = chipStr === '*' ? 'cleared' : 'open'
-    const amount = parseInt(amountStr, 10);
-
-    // if (!account) {
-    //   throw new Error(`Account '${accountStr}' not found`);
-    // }
-
-    const account = new Account(accountStr, 0);
-    this.accounts.push(account);
-    // this.assignments.push(new Assignment(date, this.getBudget("inflow")!, amount))
-    this.transactions.push(
-      new Transaction(date, account, status, [
-        new TransactionPosting(
-          "Opening balance",
-          this.getBudget("inflow")!,
-          amount
-        ),
-      ])
-    );
-  }
-
-  addBalanceStatement(source: string) {
-    const tokens = source.split(" ");
-    const [dateStr, chipStr, accountStr, balanceStr] = tokens;
-    const date = parseISO(dateStr);
-    const account = this.getAccount(accountStr);
-    const balance = parseInt(balanceStr, 10);
-
-    if (!account) {
-      throw new Error(`Account '${accountStr}' not found`);
-    }
-
-    // TODO: Register alert if balance at date is not balance
-    console.log(this.accountBalanceAtDate(account, date), balance)
-
-    this.balanceAssertions.push(new BalanceAssertion(date, account, balance))
-
-    // const account = new Account(accountStr, 0);
-    // this.accounts.push(account);
-    // this.assignments.push(new Assignment(date, this.getBudget("inflow")!, amount))
-    // this.transactions.push(
-    //   new Transaction(date, account, [
-    //     new TransactionPosting(
-    //       "Opening balance",
-    //       this.getBudget("inflow")!,
-    //       amount
-    //     ),
-    //   ])
-    // );
-  }
-
-  accountBalanceAtDate(account: Account, date: Date) {
-    // FIXME: only take cleared transactions into account
-    let balance = 0
-    const cutoff = startOfDay(addDays(date, 1))
-    this.transactionsForAccount(account).filter(tr => isBefore(tr.date, cutoff)).forEach(tr => {
-      balance += tr.amount
-    })
-    return balance
-  }
-
-  addBudgetStatement(source: string) {
-    const tokens = source.split(" ");
-    const [dateStr, chipStr, budgetStr, groupStr] = tokens;
-    const date = parseISO(dateStr);
-    // const account = this.getAccount(accountStr);
-    // const amount = parseInt(amountStr, 10);
-
-    // if (!account) {
-    //   throw new Error(`Account '${accountStr}' not found`);
-    // }
-
-    // const account = new Account(accountStr, 0);
-    this._budgets.push(new Budget(budgetStr, groupStr));
-    // this.assignments.push(new Assignment(date, this.getBudget("inflow")!, amount))
-    // this.transactions.push(
-    //   new Transaction(date, account, [
-    //     new TransactionPosting(
-    //       "Opening balance",
-    //       this.getBudget("inflow")!,
-    //       amount
-    //     ),
-    //   ])
-    // );
-  }
-
-  addTransactionStatement(source: string) {
-    const tokens = source.split(" ");
-    const [dateStr, chipStr, accountStr, payeeStr, budgetStr, amountStr] =
-      tokens;
-    const date = parseISO(dateStr);
-    const status = chipStr === '*' ? 'cleared' : 'open'
-    const account = this.getAccount(accountStr);
-    const payee = payeeStr;
-    const budget = this.getBudget(budgetStr);
-    const amount = parseInt(amountStr, 10);
-    console.log(amount);
-
-    if (!account) {
-      throw new Error(`Account '${accountStr}' not found`);
-    }
-    if (!budget) {
-      throw new Error(`Budget '${budgetStr}' not found`);
-    }
-
-    this.addTransaction(
-      new Transaction(date, account, status, [
-        new TransactionPosting(payee, budget, amount),
-      ])
-    );
-  }
-
-  addAssignmentStatement(source: string) {
-    const tokens = source.split(" ");
-    const [dateStr, chipStr, budgetStr, amountStr] = tokens;
-    const date = parseISO(dateStr);
-    const budget = this.getBudget(budgetStr);
-    const amount = parseInt(amountStr, 10);
-    
-    if(isNaN(amount)) {
-      debugger
-    }
-
-    if (!budget) {
-      throw new Error(`Budget '${budgetStr}' not found`);
-    }
-
-    // Process
-    budget.balance += amount;
-    const inflow = this.getBudget("inflow");
-    if (inflow) {
-      inflow.balance -= amount;
-    }
-
-    this.assignments.push(new Assignment(date, budget, amount));
-
-    // this.addTransaction(
-    //   new Transaction(date, account, [
-    //     new TransactionPosting(payee, budget, amount),
-    //   ])
-    // );
-  }
+  // addTransaction(transaction: Transaction) {
+  //   this.transactions.push(transaction);
+  // }
 
   getAccount(name: string): Account | undefined {
     return this.accounts.find((a) => a.name === name);
@@ -260,12 +179,30 @@ export class Ledger {
     return this._budgets.find((a) => a.name === name);
   }
 
-  get budgets(): Budget[] {
-    return this._budgets.filter((b) => b.name !== "inflow");
+  getBudgetByID(id: string): Budget | undefined {
+    return this._budgets.find((a) => a.id === id);
+  }
+  
+  getBudgetCategoryByID(id: string): BudgetCategory | undefined {
+    return this.budgetCategories.find((a) => a.id === id);
   }
 
-  get budgetGroups(): Record<string, Budget[]> {
-    return groupBy(this.budgets, "group");
+  getInflowBudget(): Budget | undefined {
+    return this._budgets.find((a) => a.isToBeBudgeted);
+  }
+
+  getPayeeByID(id: string): Payee | undefined {
+    return this.payees.find((a) => a.id === id);
+  }
+
+  @action
+  addBudget(budget: Budget) {
+    this._budgets.push(budget);
+  }
+
+  @computed
+  get budgets(): Budget[] {
+    return this._budgets.filter((b) => !b.isToBeBudgeted);
   }
 
   transactionsForAccount(account: Account) {
@@ -273,21 +210,23 @@ export class Ledger {
   }
 
   transactionsAndBalancesForAccount(account: Account) {
-    return [...this.transactions.filter((tr) => tr.account === account), ...this.balanceAssertions.filter(tr => tr.account === account)];
+    return [
+      ...this.transactions.filter((tr) => tr.account === account),
+      ...this.balanceAssertions.filter((tr) => tr.account === account),
+      ...this.transfers.filter((tr) => tr.fromAccount === account || tr.toAccount === account),
+    ];
   }
 
-  get payees(): string[] {
-    let payees: string[] = [];
-    this.transactions.forEach((tr) => {
-      tr.postings.forEach((posting) => {
-        payees.push(posting.payee);
-      });
-    });
-    return payees;
+  activityForMonth(date: Date): Balance {
+    return this.transactions
+      .filter((t) => isBefore(t.date, endOfMonth(date)))
+      .reduce((sum, t) => sum + t.amount, 0);
   }
 
-  renamePayee(oldName: string, newName: string) {
-    // TODO: Go through all postings with old name and replace with new name
+  assignedForMonth(date: Date): Balance {
+    return this.assignments
+      .filter((t) => isSameMonth(t.date!, date))
+      .reduce((sum, t) => sum + t.amount, 0);
   }
 
   budgetAvailableForMonth(budget: Budget, date: Date): Balance {
@@ -300,23 +239,20 @@ export class Ledger {
         t.postings
           .filter((p) => p.budget === budget)
           .forEach((p) => {
-            if (budget.name === "inflow") {
-              console.log(t);
-            }
+            // if (budget.name === "inflow") {
+            // }
             activity += p.amount;
           });
       });
 
     let assigned: Balance = 0;
-    if (budget.name === "inflow") {
+    if (budget.isToBeBudgeted) {
       this.assignments
         .filter((t) => isBefore(t.date, endOfMonth(date)))
         .filter((p) => p.budget !== budget)
         .forEach((a) => {
           assigned -= a.amount;
-          if (budget.name === "inflow") {
-            console.log(a);
-          }
+          
         });
     } else {
       this.assignments
@@ -335,8 +271,6 @@ export class Ledger {
     this.transactions
       .filter((t) => isSameMonth(t.date, date))
       .forEach((t) => {
-        //   t.account.processTransaction(t);
-        // t.budgets.forEach((b) => b.processTransaction(t));
         t.postings
           .filter((p) => p.budget === budget)
           .forEach((p) => {
@@ -352,29 +286,9 @@ export class Ledger {
       .filter((t) => isSameMonth(t.date, date))
       .filter((p) => p.budget === budget)
       .forEach((a) => {
-        //   t.account.processTransaction(t);
-        // t.budgets.forEach((b) => b.processTransaction(t));
-
         assigned += a.amount;
       });
 
     return assigned;
   }
 }
-
-// const accounts = [new Account("DKB", 12345), new Account("ASN Bank", 95021)];
-// const budgets = [new Budget("Software"), new Budget("Coffee")];
-// const transactions = [
-//   new Transaction(new Date(), accounts[0], [
-//     new TransactionPosting("Apple", budgets[0], 99, "iCloud+"),
-//   ]),
-//   new Transaction(new Date(), accounts[0], [
-//     new TransactionPosting("The Village", budgets[1], 1299),
-//   ]),
-// ];
-
-// export const ledger = {
-//   accounts,
-//   budgets,
-//   transactions,
-// };

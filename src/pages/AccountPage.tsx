@@ -1,13 +1,15 @@
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import { TransactionsTable } from "@/features/budget/TransactionsTable";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
 import { PageLayout } from "@/PageLayout";
 import { formatCurrency } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
+import { startOfToday } from "date-fns";
+import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
-export default function AccountPage() {
+export const AccountPage = observer(function AccountPage() {
   const {ledger} = useLedger();
   const params = useParams();
   const [editingTransaction, setEditingTransaction] =
@@ -18,36 +20,25 @@ export default function AccountPage() {
 
     useEffect(() => {
       if(!ledger) {
-        console.log('no ledger')
         navigate("/");
         return
       }
       
       if(!currentAccount) {
-        console.log('no acct')
         navigate("/");
         return
       }
-    }, [ledger, currentAccount])
+    }, [ledger, currentAccount, navigate])
 
   if (!ledger || !currentAccount) {
     return null
   }
 
-  
-
-  // if (!currentAccount) {
-  //   // redirect("/app");
-  //   return null
-  // }
-  const l = ledger.alias.bind(ledger);
-
   return (
     <PageLayout>
-      <div className="">
         <div className="flex justify-between items-center px-8 py-4">
           <h2 className="text-2xl font-bold">
-            {ledger.alias(currentAccount.name)}
+            {currentAccount.name}
           </h2>
           <div>
             <div className="text-sm">Balance</div>
@@ -59,15 +50,30 @@ export default function AccountPage() {
         <div className="flex justify-between items-center px-8 py-4">
           <Button
             onClick={() => {
-              const budget = ledger.getBudget("coffee")!;
-              const transaction = new Transaction(
-                new Date(),
-                currentAccount,
-                "open",
-                [new TransactionPosting("", budget, 0)]
+              if(editingTransaction) {
+                return
+              }
+              
+              const transactionPosting = new TransactionPosting(
+                { ledger: ledger!, id: null },
               );
+              transactionPosting.budget = null
+              transactionPosting.amount = 0;
+              transactionPosting.note = "";
+              transactionPosting.payee = null
+              ledger.transactionPostings.push(transactionPosting);
+
+
+              const transaction = new Transaction(
+                { ledger: ledger!, id: null },
+              );
+              transaction.account = currentAccount;
+              transaction.postings.push(transactionPosting);
+              transaction.date = startOfToday()
+              ledger.transactions.push(transaction);
+
+
               setEditingTransaction(transaction);
-              ledger.addTransaction(transaction);
             }}
           >
             New Transaction
@@ -76,10 +82,9 @@ export default function AccountPage() {
         <TransactionsTable
           currentAccount={currentAccount}
           ledger={ledger}
-          l={l}
+          setEditingTransaction={setEditingTransaction}
           editingTransaction={editingTransaction}
         />
-      </div>
     </PageLayout>
   );
-}
+})

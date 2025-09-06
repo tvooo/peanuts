@@ -7,7 +7,7 @@ export const LedgerPage = () => {
     <PageLayout>
       <Textarea
         className="w-full h-full bg-transparent font-mono"
-        value={ledger?.source || ""}
+        defaultValue={ledger?.source || ""}
       ></Textarea>
     </PageLayout>
   );

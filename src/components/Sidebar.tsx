@@ -1,9 +1,10 @@
 import { useLedger } from "@/utils/useLedger";
-import { CalendarSync, ChevronDown, ChevronsUpDown, DoorClosedIcon, PiggyBank, SaveIcon, Wallet } from "lucide-react";
+import { CalendarSync, ChevronDown, ChevronsUpDown, DoorClosedIcon, PiggyBank, Save, SaveIcon, Users, Wallet } from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -17,6 +18,7 @@ import { formatCurrency } from "@/utils/formatting";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@radix-ui/react-collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { Link, NavLink, useLocation } from "react-router";
+import { Button } from "./ui/button";
 
 // Menu items.
 const items = [
@@ -38,10 +40,16 @@ const items = [
     icon: CalendarSync,
     indicator: null,
   },
+  {
+    title: 'Payees',
+    url: "/payees",
+    icon: Users,
+    indicator: null
+  }
 ];
 
 export function AppSidebar() {
-  const { ledger, openLedger } = useLedger()
+  const { ledger, openLedger, fileHandle } = useLedger()
   let location = useLocation();
   return (
     <Sidebar>
@@ -125,7 +133,7 @@ export function AppSidebar() {
                           }
                         >
                           <Link to={`/ledger/${account.name}`}>
-                            <span>{ledger.alias(account.name)}</span>
+                            <span>{account.name}</span>
                           </Link>
                         </SidebarMenuButton>
                         <SidebarMenuBadge>
@@ -140,8 +148,25 @@ export function AppSidebar() {
           </Collapsible>
         )}
       </SidebarContent>
-      {/* <SidebarFooter>
-      </SidebarFooter> */}
+      <SidebarFooter>
+        <Button
+        variant="secondary"
+          onClick={async () => {
+            console.log(ledger!.toJSON());
+          }}
+        >
+          Debug
+        </Button>
+        <Button
+          onClick={async () => {
+            const writableStream = await fileHandle!.createWritable();
+            await writableStream.write(JSON.stringify(ledger!.toJSON(), null, 2));
+            await writableStream.close();
+          }}
+        >
+          <Save size={16} /> Save
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }

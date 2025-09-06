@@ -1,14 +1,35 @@
-import react from '@vitejs/plugin-react';
-import path from 'path';
-import { defineConfig } from 'vite';
+import react from "@vitejs/plugin-react";
+import path from "path";
+import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src/"),
-      // "@server": path.resolve(__dirname, "../server/src"),
     },
   },
-  plugins: [react()],
+  plugins: [
+    react({
+      babel: {
+        plugins: [
+          "@babel/plugin-transform-class-static-block",
+          ["@babel/plugin-proposal-decorators", { version: "2023-05" }],
+        ],
+      },
+    }),
+    {
+      name: "configure-response-headers",
+      configureServer: (server) => {
+        server.middlewares.use((_req, res, next) => {
+          res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+          res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+          next();
+        });
+      },
+    },
+  ],
+  optimizeDeps: {
+    exclude: ["sqlocal"],
+  },
 });
