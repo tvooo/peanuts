@@ -17,47 +17,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(
     null
   );
-  const [ledgerText, setLedgerText] = useState<string>();
-  const [showSidebar, setShowSidebar] = useState<boolean>(true);
   const [ledger, setLedger] = useState<Ledger | null>(null);
 
   useEffect(() => {
     async function doit() {
-      //   console.log(fileHandle);
       if (!fileHandle) {
         return;
       }
-      const file = await fileHandle.getFile();
 
-      console.log(file.type)
+      const file = await fileHandle.getFile();
 
       if (file.name.endsWith("json") || file.name.endsWith("pbj")) {
         console.log("JSON file detected");
-        // alert("File must be plain text but is " + file.type);
-        // alert("SQLite file detected. This is not supported yet.")
-
-        // setLedgerText(contents);
         const l = await Ledger.fromJSON(await file.text());
         l.name = "Tim's budget";
         l.fileName = fileHandle.name;
         l.transactions.forEach((t) => {
-          t.account.processTransaction(t);
+          t.account?.processTransaction(t);
         });
         setLedger(l);
 
         return;
       }
-
-      // const contents = await file.text();
-      // setLedgerText(contents);
-      // const l = Ledger.fromSource(contents);
-      // l.name = "Tim's budget";
-      // l.fileName = fileHandle.name;
-      // l.transactions.forEach((t) => {
-      //   t.account.processTransaction(t);
-      // });
-
-      // setLedger(l);
     }
     doit();
   }, [fileHandle]);

@@ -15,8 +15,7 @@ export const AccountPage = observer(function AccountPage() {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
   const navigate = useNavigate();
-
-    const currentAccount = ledger?.getAccount(params.accountName);
+    const currentAccount = ledger?.getAccount(params.accountName || "");
 
     useEffect(() => {
       if(!ledger) {
@@ -83,7 +82,7 @@ export const AccountPage = observer(function AccountPage() {
           currentAccount={currentAccount}
           ledger={ledger}
           setEditingTransaction={setEditingTransaction}
-          editingTransaction={editingTransaction}
+          editingTransaction={editingTransaction || undefined}
         />
     </PageLayout>
   );

@@ -25,7 +25,7 @@ export default function BudgetPage() {
       navigate("/");
       return;
     }
-  }, [ledger]);
+  }, [navigate, ledger]);
 
   if (!ledger) {
     return null;

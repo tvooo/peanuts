@@ -14,28 +14,6 @@ import { Payee } from "./Payee";
 import { RecurringTransaction } from "./RecurringTransaction";
 import { Transfer } from "./Transfer";
 
-// Parse a ledger row, accounting for spaces inside quotes
-function parse(row: string): string[] {
-  let insideQuote = false;
-  let entry: string[] = [];
-  const entries: string[] = [];
-
-  row.split("").forEach(function (character) {
-    if (character === '"') {
-      insideQuote = !insideQuote;
-    } else {
-      if (character == " " && !insideQuote) {
-        entries.push(entry.join(""));
-        entry = [];
-      } else {
-        entry.push(character);
-      }
-    }
-  });
-  entries.push(entry.join(""));
-  return entries;
-}
-
 export class Ledger {
   accounts: Account[] = [];
 
@@ -133,11 +111,6 @@ export class Ledger {
       transfers: this.transfers.map((a) => a.toJSON()),
     };
   }
-
-
-  // addTransaction(transaction: Transaction) {
-  //   this.transactions.push(transaction);
-  // }
 
   getAccount(name: string): Account | undefined {
     return this.accounts.find((a) => a.name === name);

@@ -22,7 +22,7 @@ export const OpenPage = () => {
     if (ledger) {
       navigate("/budget");
     }
-  }, [ledger]);
+  }, [navigate, ledger]);
 
   useEffect(() => {
     get(`peanuts:ledgerFileHandle`).then((fileHandle) => {
