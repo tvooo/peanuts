@@ -17,7 +17,7 @@ export const TransferRow = ({ transfer, isInbound, onClick }: TransferRowProps) 
     <tr
       className={twJoin(
         "hover:bg-stone-100 rounded-md border-b border-stone-200",
-        transfer.isFuture && "bg-stone-50/50 text-stone-400"
+        transfer.isFuture && "bg-stone-50 text-stone-400"
       )}
       onClick={onClick}
     >

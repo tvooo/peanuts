@@ -2,7 +2,7 @@ import { AmountCell, BudgetCell } from "@/components/Table"
 import { Transaction } from "@/models/Transaction"
 import { formatDate } from "@/utils/formatting"
 import { useLedger } from "@/utils/useLedger"
-import { CheckCheck, ArrowDownToLine } from "lucide-react"
+import { ArrowDownToLine, CheckCheck } from "lucide-react"
 import { twJoin } from "tailwind-merge"
 
 interface TransactionRowProps {
@@ -17,7 +17,7 @@ export const TransactionRow = ({ transaction, onClick }: TransactionRowProps) =>
                 <tr
                   className={twJoin(
                     "hover:bg-stone-100 rounded-md border-b border-stone-200",
-                    transaction.isFuture && "bg-stone-50/50 text-stone-400"
+                    transaction.isFuture && "bg-stone-50 text-stone-400"
                   )}
                   onClick={onClick}
                 >

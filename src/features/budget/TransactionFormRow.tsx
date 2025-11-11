@@ -1,13 +1,13 @@
+import { Combobox } from "@/components/Combobox";
+import { cn } from "@/lib/utils";
+import { Payee } from "@/models/Payee";
 import { Transaction } from "@/models/Transaction";
 import { formatDateIsoShort } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
-import { Check } from "lucide-react";
-import { observer } from "mobx-react-lite";
-import { cn } from "@/lib/utils";
-import * as React from "react";
-import { Combobox } from "@/components/Combobox";
-import { Payee } from "@/models/Payee";
+import { Check, X } from "lucide-react";
 import { runInAction } from "mobx";
+import { observer } from "mobx-react-lite";
+import * as React from "react";
 
 // Form Input component with white background
 const FormInput = React.forwardRef<
@@ -83,8 +83,20 @@ export const TransactionFormRow = observer(function TransactionFormRow({
 
       <td className="pr-2">
         <Combobox
-          options={ledger!.payees.map(p => ({ id: p.id, label: p.name, payee: p }))}
-          value={posting.payee ? { id: posting.payee.id, label: posting.payee.name, payee: posting.payee } : null}
+          options={ledger!.payees.map((p) => ({
+            id: p.id,
+            label: p.name,
+            payee: p,
+          }))}
+          value={
+            posting.payee
+              ? {
+                  id: posting.payee.id,
+                  label: posting.payee.name,
+                  payee: posting.payee,
+                }
+              : null
+          }
           onValueChange={(option: any) => posting.setPayee(option.payee)}
           onCreateNew={(name) => {
             return new Promise<any>((resolve) => {
@@ -92,7 +104,11 @@ export const TransactionFormRow = observer(function TransactionFormRow({
                 const newPayee = new Payee({ ledger: ledger!, id: null });
                 newPayee.name = name;
                 ledger!.payees.push(newPayee);
-                resolve({ id: newPayee.id, label: newPayee.name, payee: newPayee });
+                resolve({
+                  id: newPayee.id,
+                  label: newPayee.name,
+                  payee: newPayee,
+                });
               });
             });
           }}
@@ -133,19 +149,30 @@ export const TransactionFormRow = observer(function TransactionFormRow({
         />
       </td>
       <td className="pr-2 text-center">
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-1">
           <button
             type="button"
             onClick={() => onDone()}
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium",
+              "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
+              "bg-primary text-primary-foreground shadow-sm",
+              "hover:bg-primary/90 transition-colors",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            )}
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDone()}
+            className={cn(
+              "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
               "bg-primary text-primary-foreground shadow-sm",
               "hover:bg-primary/90 transition-colors",
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             )}
           >
             <Check className="h-4 w-4" />
-            Done
           </button>
         </div>
       </td>

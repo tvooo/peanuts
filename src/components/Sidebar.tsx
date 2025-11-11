@@ -1,5 +1,5 @@
 import { useLedger } from "@/utils/useLedger";
-import { Archive, CalendarSync, ChevronDown, ChevronsUpDown, DoorClosedIcon, Eye, PiggyBank, Save, SaveIcon, Users, Wallet } from "lucide-react";
+import { Archive, CalendarSync, ChartSpline, ChevronDown, ChevronsUpDown, DoorClosedIcon, PiggyBank, Save, SaveIcon, Users, Wallet } from "lucide-react";
 
 import {
   Sidebar,
@@ -111,6 +111,7 @@ export function AppSidebar() {
         </SidebarGroup>
         {ledger && (
           <>
+            {/* Regular Accounts */}
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarGroup>
                 <SidebarGroupLabel asChild>
@@ -125,7 +126,7 @@ export function AppSidebar() {
                 <CollapsibleContent>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {ledger.accounts.filter(a => !a.archived).map((account, idx) => (
+                      {ledger.accounts.filter(a => !a.archived && a.type === "budget").map((account, idx) => (
                         <SidebarMenuItem key={account.name}>
                           <SidebarMenuButton
                             asChild
@@ -133,14 +134,13 @@ export function AppSidebar() {
                               decodeURIComponent(location.pathname) === `/ledger/${account.name}`
                             }
                           >
-                            <Link to={`/ledger/${account.name}`} className={account.type === "tracking" ? "text-muted-foreground" : ""}>
-                              {account.type === "tracking" && <Eye size={14} className="mr-1" />}
-                              <span>{account.name}</span>
+                            <Link to={`/ledger/${account.name}`} className="justify-between">
+                              <span className="truncate" title={account.name}>{account.name}</span>
+                              <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 flex-shrink-0">
+                                {formatCurrency(account.currentBalance)}
+                              </span>
                             </Link>
                           </SidebarMenuButton>
-                          <SidebarMenuBadge className={account.type === "tracking" ? "text-muted-foreground" : ""}>
-                            &euro; {formatCurrency(account.currentBalance)}
-                          </SidebarMenuBadge>
                         </SidebarMenuItem>
                       ))}
                     </SidebarMenu>
@@ -148,6 +148,47 @@ export function AppSidebar() {
                 </CollapsibleContent>
               </SidebarGroup>
             </Collapsible>
+            {/* Tracking Accounts */}
+            {ledger.accounts.some(a => !a.archived && a.type === "tracking") && (
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarGroup>
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger>
+                      <ChartSpline size={14} className="mr-1" />
+                      Tracking Accounts
+                      <ChevronDown
+                        size={16}
+                        className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                      />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {ledger.accounts.filter(a => !a.archived && a.type === "tracking").map((account, idx) => (
+                          <SidebarMenuItem key={account.name}>
+                            <SidebarMenuButton
+                              asChild
+                              isActive={
+                                decodeURIComponent(location.pathname) === `/ledger/${account.name}`
+                              }
+                            >
+                              <Link to={`/ledger/${account.name}`} className="justify-between">
+                                <span className="truncate" title={account.name}>{account.name}</span>
+                                <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 flex-shrink-0">
+                                  {formatCurrency(account.currentBalance)}
+                                </span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
+            )}
+            {/* Archived Accounts */}
             {ledger.accounts.some(a => a.archived) && (
               <Collapsible className="group/collapsible">
                 <SidebarGroup>
@@ -172,14 +213,13 @@ export function AppSidebar() {
                                 decodeURIComponent(location.pathname) === `/ledger/${account.name}`
                               }
                             >
-                              <Link to={`/ledger/${account.name}`} className="text-muted-foreground">
-                                {account.type === "tracking" && <Eye size={14} className="mr-1" />}
-                                <span>{account.name}</span>
+                              <Link to={`/ledger/${account.name}`} className="text-muted-foreground justify-between">
+                                <span className="truncate" title={account.name}>{account.name}</span>
+                                <span className="text-xs tabular-nums ml-2 flex-shrink-0">
+                                  {formatCurrency(account.currentBalance)}
+                                </span>
                               </Link>
                             </SidebarMenuButton>
-                            <SidebarMenuBadge className="text-muted-foreground">
-                              &euro; {formatCurrency(account.currentBalance)}
-                            </SidebarMenuBadge>
                           </SidebarMenuItem>
                         ))}
                       </SidebarMenu>
