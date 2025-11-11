@@ -14,15 +14,15 @@ export function AmountCell({
   chip?: boolean;
 }) {
   return (
-    <div className="text-right">
+    <div className="text-right px-3">
       <span
         className={twJoin(
-          "font-mono text-right self-end py-1 px-2 text-sm",
+          "font-mono text-right self-end text-sm",
           amount > 0 && "text-foreground",
           highlightNegativeAmount && amount < 0 && "text-red-600",
           highlightPositiveAmount && amount > 0 && "text-green-700",
           amount === 0 && "text-muted-foreground",
-          chip && "bg-stone-50 rounded-full ring-1 ring-stone-200"
+          chip && "bg-stone-50 rounded-full py-1 px-2 ring-1 ring-stone-200"
         )}
       >
         {formatCurrency(amount)}
@@ -42,14 +42,18 @@ export const HeaderCell = ({ alignRight, ...props }: HeaderCellProps) => (
   />
 );
 
-export const BudgetCell = ({ children, ...props }: HeaderCellProps) => (
+interface BudgetCellProps extends React.ComponentProps<'div'> {
+    isInflow?: boolean
+}
+
+export const BudgetCell = ({ children, isInflow, ...props }: BudgetCellProps) => (
   <div
     className={twJoin(
-    //   "py-1 uppercase text-xs font-bold text-stone-400",
-      children === 'inflow' && "italic text-stone-400"
+      "inline-flex items-center",
+      isInflow && "text-emerald-700 font-medium"
     )}
     {...props}
-  >{children === 'inflow' ? 'To budget' : children}</div>
+  >{children}</div>
 );
 
 

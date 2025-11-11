@@ -13,8 +13,8 @@ export const BalanceAssertionRow = ({ transaction }: BalanceAssertionRowProps) =
       <td className="p-1 pl-8 w-[64px] align-middle">
         <input type="checkbox" />
       </td>
-      <td className="tabular-nums py-2">{formatDate(transaction.date)}</td>
-      <td colSpan={4} className="">
+      <td className="tabular-nums py-2 px-3 pr-2 text-sm">{formatDate(transaction.date)}</td>
+      <td colSpan={4} className="py-2 px-3 pr-2 text-sm">
         Account balance was{" "}
         <strong>{formatCurrency(transaction.balance)}</strong>
       </td>

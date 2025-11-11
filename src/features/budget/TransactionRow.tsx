@@ -2,7 +2,7 @@ import { AmountCell, BudgetCell } from "@/components/Table"
 import { Transaction } from "@/models/Transaction"
 import { formatDate } from "@/utils/formatting"
 import { useLedger } from "@/utils/useLedger"
-import { CheckCheck, MailPlus } from "lucide-react"
+import { CheckCheck, ArrowDownToLine } from "lucide-react"
 
 interface TransactionRowProps {
   transaction: Transaction
@@ -20,23 +20,26 @@ export const TransactionRow = ({ transaction, onClick }: TransactionRowProps) =>
                   <td className="p-1 pl-8 w-[64px] align-middle">
                     <input type="checkbox" />
                   </td>
-                  <td className="tabular-nums py-2">
+                  <td className="tabular-nums py-2 px-3 pr-2 text-sm">
                     {formatDate(transaction.date!)}
                   </td>
-                  <td>{transaction.postings[0].payee?.name}</td>
-                  <td>
-                    <BudgetCell>
-                      {transaction.postings[0].budget?.isToBeBudgeted && <MailPlus />}{transaction.postings[0].budget?.name} 
+                  <td className="py-2 px-3 pr-2 text-sm">{transaction.postings[0].payee?.name}</td>
+                  <td className="py-2 px-3 pr-2 text-sm">
+                    <BudgetCell isInflow={transaction.postings[0].budget?.isToBeBudgeted}>
+                      {transaction.postings[0].budget?.isToBeBudgeted && (
+                        <ArrowDownToLine className="inline-block mr-1.5" size={14} />
+                      )}
+                      {transaction.postings[0].budget?.isToBeBudgeted ? "Inflow" : transaction.postings[0].budget?.name}
                     </BudgetCell>
                   </td>
-                  <td>{transaction.postings[0].note}</td>
-                  <td>
+                  <td className="py-2 px-3 pr-2 text-sm">{transaction.postings[0].note}</td>
+                  <td className="py-2 pr-2">
                     <AmountCell
                       amount={transaction.amount}
                       highlightPositiveAmount
                     />
                   </td>
-                  <td className="pr-8 text-center">
+                  <td className="pr-2 text-center">
                     {transaction.status === "cleared" ? (
                       <CheckCheck width={20} className="inline-block" />
                     ) : (

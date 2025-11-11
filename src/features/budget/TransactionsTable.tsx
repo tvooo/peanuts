@@ -33,24 +33,24 @@ export const TransactionsTable = observer(function TransactionsTable({
     <table className="table w-full">
       <thead>
         <tr className="border-b border-stone-300">
-          <th></th>
-          <th>
+          <th className="p-1 pl-8 w-[64px]"></th>
+          <th className="px-3 pr-2">
             <HeaderCell>Date</HeaderCell>
           </th>
-          <th>
+          <th className="px-3 pr-2">
             <HeaderCell>Payee</HeaderCell>
           </th>
-          <th>
+          <th className="px-3 pr-2">
             <HeaderCell>Budget</HeaderCell>
           </th>
-          <th>
+          <th className="px-3 pr-2">
             <HeaderCell>Note</HeaderCell>
           </th>
-          <th className="pr-8">
+          <th className="px-3 pr-2">
             <HeaderCell alignRight>Amount</HeaderCell>
           </th>
-          <th>
-            <HeaderCell className="pr-8 text-center">
+          <th className="pr-2">
+            <HeaderCell className="text-center">
               <CheckCheck width={20} className="inline-block" />
             </HeaderCell>
           </th>
