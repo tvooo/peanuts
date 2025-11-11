@@ -12,6 +12,9 @@ export class Account extends Model {
   @observable
   accessor type: "budget" | "tracking" = "budget";
 
+  @observable
+  accessor archived: boolean = false;
+
   private balance: number = 0;
 
   constructor({ id, ledger }: { id: string | null, ledger: Ledger }) {
@@ -22,8 +25,10 @@ export class Account extends Model {
   }
 
   static fromJSON(json: any, ledger: Ledger): Account {
-    const account = new Account({ id: json.id, ledger });  
+    const account = new Account({ id: json.id, ledger });
     account.name = json.name;
+    account.type = json.type || "budget";
+    account.archived = json.archived || false;
     account.balance = 0
     return account;
   }
@@ -33,6 +38,7 @@ export class Account extends Model {
       id: this.id,
       name: this.name,
       type: this.type,
+      archived: this.archived,
     }
   }
 

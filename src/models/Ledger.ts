@@ -161,6 +161,8 @@ export class Ledger {
   activityForMonth(date: Date): Balance {
     return this.transactions
       .filter((t) => isBefore(t.date, endOfMonth(date)))
+      // Exclude tracking accounts from budget calculations
+      .filter((t) => t.account?.type !== "tracking")
       .reduce((sum, t) => sum + t.amount, 0);
   }
 
@@ -174,6 +176,8 @@ export class Ledger {
     let activity: Balance = 0;
     this.transactions
       .filter((t) => isBefore(t.date, endOfMonth(date)))
+      // Exclude tracking accounts from budget calculations
+      .filter((t) => t.account?.type !== "tracking")
       .forEach((t) => {
         //   t.account.processTransaction(t);
         // t.budgets.forEach((b) => b.processTransaction(t));
@@ -211,6 +215,8 @@ export class Ledger {
     let activity: Balance = 0;
     this.transactions
       .filter((t) => isSameMonth(t.date, date))
+      // Exclude tracking accounts from budget calculations
+      .filter((t) => t.account?.type !== "tracking")
       .forEach((t) => {
         t.postings
           .filter((p) => p.budget === budget)
