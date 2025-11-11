@@ -23,17 +23,17 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
       <table className="table w-full">
         <thead>
           <tr className="border-b border-stone-300">
-            <th></th>
-            <th>
+            <th className="p-1 pl-8 w-[64px]"></th>
+            <th className="px-3 pr-2">
               <HeaderCell>Budget</HeaderCell>
             </th>
-            <th>
+            <th className="px-3 pr-2">
               <HeaderCell alignRight>Budgeted</HeaderCell>
             </th>
-            <th>
+            <th className="px-3 pr-2">
               <HeaderCell alignRight>Activity</HeaderCell>
             </th>
-            <th className="pr-8">
+            <th className="pr-2">
               <HeaderCell alignRight>Available</HeaderCell>
             </th>
           </tr>
@@ -42,8 +42,8 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
           {ledger.budgetCategories.map((budgetCategory) => (
             <Fragment key={budgetCategory.id}>
               <tr className="border-b border-stone-200 bg-stone-50">
-                <td />
-                <td colSpan={4} className="text-md pt-2 pb-2 font-bold">
+                <td className="p-1 pl-8 w-[64px]" />
+                <td colSpan={4} className="py-2 px-3 pr-2 text-sm font-bold">
                   {budgetCategory.name}
                 </td>
               </tr>
@@ -57,12 +57,12 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                     <td className="p-1 pl-8 w-[64px] align-middle">
                       <Checkbox />
                     </td>
-                    <td className="align-middle">
-                      <div className="p-0.5 flex items-center">
+                    <td className="py-2 px-3 pr-2 text-sm align-middle">
+                      <div className="flex items-center">
                         {/* {budget.isTarget && <Goal className="mr-2 w-3" />} */}
                         {budget.name}
                         <Button
-                          className="hidden group-hover:inline-block"
+                          className="opacity-0 group-hover:opacity-100"
                           variant="link"
                           size="sm"
                           onClick={() => setEnvelope(budget)}
@@ -76,7 +76,7 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                               a.budget === budget &&
                               isSameMonth(a.date!, currentMonth)
                           ) ? (
-                      <td>
+                      <td className="py-2 px-3 pr-2">
                         <Input
                           autoFocus
                           type="number"
@@ -91,7 +91,7 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                       </td>
                     ) : (
                       <td
-                        className="align-middle"
+                        className="py-2 px-3 pr-2 text-sm align-middle"
                         onClick={() => {
                           let assignment = ledger.assignments.find(
                             (a) =>
@@ -120,7 +120,7 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                       </td>
                     )}
 
-                    <td>
+                    <td className="py-2 px-3 pr-2 text-sm">
                       <AmountCell
                         amount={ledger.budgetActivityForMonth(
                           budget,
@@ -128,7 +128,7 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                         )}
                       />
                     </td>
-                    <td className="py-2 pr-8">
+                    <td className="py-2 pr-2">
                       <AmountCell
                         amount={ledger.budgetAvailableForMonth(
                           budget,

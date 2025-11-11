@@ -33,16 +33,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         l.name = "Tim's budget";
         l.fileName = fileHandle.name;
         l.transactions.forEach((t) => {
-          t.account?.processTransaction(t);
+          // Only process transactions that are not in the future
+          if (!t.isFuture) {
+            t.account?.processTransaction(t);
+          }
         });
         l.transfers.forEach((t) => {
-          // Subtract from source account
-          if (t.fromAccount) {
-            t.fromAccount.processTransaction({ amount: -t.amount } as any);
-          }
-          // Add to destination account
-          if (t.toAccount) {
-            t.toAccount.processTransaction({ amount: t.amount } as any);
+          // Only process transfers that are not in the future
+          if (!t.isFuture) {
+            // Subtract from source account
+            if (t.fromAccount) {
+              t.fromAccount.processTransaction({ amount: -t.amount } as any);
+            }
+            // Add to destination account
+            if (t.toAccount) {
+              t.toAccount.processTransaction({ amount: t.amount } as any);
+            }
           }
         });
         setLedger(l);

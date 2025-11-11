@@ -3,6 +3,7 @@ import { Transfer } from "@/models/Transfer";
 import { formatDate } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
 import { ArrowLeftRight, CheckCheck } from "lucide-react";
+import { twJoin } from "tailwind-merge";
 
 interface TransferRowProps {
   transfer: Transfer;
@@ -14,7 +15,10 @@ export const TransferRow = ({ transfer, isInbound, onClick }: TransferRowProps) 
   const { ledger } = useLedger();
   return (
     <tr
-      className="hover:bg-stone-100 rounded-md border-b border-stone-200"
+      className={twJoin(
+        "hover:bg-stone-100 rounded-md border-b border-stone-200",
+        transfer.isFuture && "bg-stone-50/50 text-stone-400"
+      )}
       onClick={onClick}
     >
       <td className="p-1 pl-8 w-[64px] align-middle">

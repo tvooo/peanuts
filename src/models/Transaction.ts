@@ -1,5 +1,6 @@
 import { Amount } from "@/utils/types";
 import cuid from "cuid";
+import { endOfToday, isAfter } from "date-fns";
 import { action, computed, observable } from "mobx";
 import { Account } from "./Account";
 import { Budget } from "./Budget";
@@ -57,6 +58,12 @@ export class Transaction extends Model {
   @computed
   get amount(): Amount {
     return this.postings[0].amount;
+  }
+
+  @computed
+  get isFuture(): boolean {
+    if (!this.date) return false;
+    return isAfter(this.date, endOfToday());
   }
 }
 

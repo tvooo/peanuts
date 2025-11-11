@@ -1,6 +1,7 @@
 import { Amount } from "@/utils/types";
 import cuid from "cuid";
-import { observable } from "mobx";
+import { endOfToday, isAfter } from "date-fns";
+import { computed, observable } from "mobx";
 import { Account } from "./Account";
 import { Ledger } from "./Ledger";
 import { Model, ModelConstructorArgs } from "./Model";
@@ -53,6 +54,12 @@ export class Transfer extends Model {
       date: this.date?.toISOString() || null,
       note: this.note,
     };
+  }
+
+  @computed
+  get isFuture(): boolean {
+    if (!this.date) return false;
+    return isAfter(this.date, endOfToday());
   }
 }
 
