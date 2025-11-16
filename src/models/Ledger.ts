@@ -43,6 +43,8 @@ export class Ledger {
   source: string = "";
   name: string = "";
   fileName: string = "";
+  currency: string = "EUR"
+  currencyFormat = "{amount} {code}";
 
   budgetCategories: BudgetCategory[] = [];
 
@@ -51,6 +53,9 @@ export class Ledger {
     ledger.source = json;
 
     const collections = JSON.parse(json);
+
+    ledger.name = collections.name || "Untitled Ledger";
+
     collections.accounts.forEach((a) => {
       ledger.accounts.push(Account.fromJSON(a, ledger));
     });
@@ -100,6 +105,7 @@ export class Ledger {
 
   toJSON() {
     return {
+      name: this.name,
       accounts: this.accounts.map((a) => a.toJSON()),
       budget_categories: this.budgetCategories.map((a) => a.toJSON()),
       budgets: this._budgets.map((a) => a.toJSON()),
@@ -159,11 +165,13 @@ export class Ledger {
   }
 
   activityForMonth(date: Date): Balance {
-    return this.transactions
+    let activity = this.transactions
       .filter((t) => isBefore(t.date, endOfMonth(date)))
       // Exclude tracking accounts from budget calculations
       .filter((t) => t.account?.type !== "tracking")
       .reduce((sum, t) => sum + t.amount, 0);
+
+    return activity;
   }
 
   assignedForMonth(date: Date): Balance {

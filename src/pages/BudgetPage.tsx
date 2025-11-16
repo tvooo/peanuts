@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { AddBudgetModal } from "@/features/budget/AddBudgetModal";
 import { BudgetTable } from "@/features/budget/BudgetTable";
-import { Budget } from "@/models/Budget";
 import { PageLayout } from "@/PageLayout";
 import { formatCurrency, formatMonth } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
@@ -11,14 +10,11 @@ import { addMonths, isSameMonth, startOfMonth, subMonths } from "date-fns";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-// import { redirect } from "next/navigation";
 
 export default function BudgetPage() {
   const { ledger } = useLedger();
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
   const navigate = useNavigate();
-
-  const [newEnvelope, setNewEnvelope] = useState<Budget | null>(null);
 
   useEffect(() => {
     if (!ledger) {

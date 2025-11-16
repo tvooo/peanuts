@@ -5,6 +5,6 @@ import './globals.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App>HelloM</App>
+    <App />
   </StrictMode>,
 )

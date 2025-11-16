@@ -62,7 +62,7 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                         {/* {budget.isTarget && <Goal className="mr-2 w-3" />} */}
                         {budget.name}
                         <Button
-                          className="opacity-0 group-hover:opacity-100"
+                          className="opacity-0 group-hover:opacity-100 py-0 h-auto"
                           variant="link"
                           size="sm"
                           onClick={() => setEnvelope(budget)}

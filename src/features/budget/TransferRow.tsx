@@ -1,7 +1,6 @@
 import { AmountCell } from "@/components/Table";
 import { Transfer } from "@/models/Transfer";
 import { formatDate } from "@/utils/formatting";
-import { useLedger } from "@/utils/useLedger";
 import { ArrowLeftRight, CheckCheck } from "lucide-react";
 import { twJoin } from "tailwind-merge";
 
@@ -11,8 +10,11 @@ interface TransferRowProps {
   isInbound: boolean;
 }
 
-export const TransferRow = ({ transfer, isInbound, onClick }: TransferRowProps) => {
-  const { ledger } = useLedger();
+export const TransferRow = ({
+  transfer,
+  isInbound,
+  onClick,
+}: TransferRowProps) => {
   return (
     <tr
       className={twJoin(
@@ -24,14 +26,18 @@ export const TransferRow = ({ transfer, isInbound, onClick }: TransferRowProps) 
       <td className="p-1 pl-8 w-[64px] align-middle">
         <input type="checkbox" />
       </td>
-      <td className="tabular-nums py-2 px-3 pr-2 text-sm">{formatDate(transfer.date!)}</td>
+      <td className="tabular-nums py-2 px-3 pr-2 text-sm">
+        {formatDate(transfer.date!)}
+      </td>
       <td className="py-2 px-3 pr-2 text-sm">
         <div className="flex items-center gap-2">
           <ArrowLeftRight className="text-muted-foreground" size={12} />
           {transfer.toAccount?.name}
         </div>
       </td>
-      <td className="py-2 px-3 pr-2 text-sm text-muted-foreground font-normal italic">Transfer</td>
+      <td className="py-2 px-3 pr-2 text-sm text-muted-foreground font-normal italic">
+        Transfer
+      </td>
       <td className="py-2 px-3 pr-2 text-sm">{transfer.note}</td>
       <td className="py-2 pr-2">
         <AmountCell

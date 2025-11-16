@@ -3,7 +3,7 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Ledger } from "@/models/Ledger";
 import { LedgerContext } from "@/utils/useLedger";
-import { set } from "idb-keyval";
+import { get, set } from "idb-keyval";
 import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { AccountPage } from "./pages/AccountPage";
@@ -13,7 +13,12 @@ import { OpenPage } from "./pages/OpenPage";
 import { PayeesPage } from "./pages/PayeesPage";
 import { SubscriptionsPage } from "./pages/SubscriptionsPage";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export interface RecentFile {
+  fileHandle: FileSystemFileHandle;
+  ledgerName: string;
+}
+
+export default function App() {
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(
     null
   );
@@ -30,7 +35,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (file.name.endsWith("json") || file.name.endsWith("pbj")) {
         console.log("JSON file detected");
         const l = await Ledger.fromJSON(await file.text());
-        l.name = "Tim's budget";
+        // l.name = "Tim's budget";
         l.fileName = fileHandle.name;
         l.transactions.forEach((t) => {
           // Only process transactions that are not in the future
@@ -53,6 +58,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         });
         setLedger(l);
 
+        // Update recent files with ledger name
+        const recentFiles: RecentFile[] = (await get(`peanuts:recentFileHandles`)) || [];
+        const updated = recentFiles.map(rf =>
+          rf.fileHandle.name === fileHandle.name
+            ? { ...rf, ledgerName: l.name }
+            : rf
+        );
+        await set(`peanuts:recentFileHandles`, updated);
+
         return;
       }
     }
@@ -64,21 +78,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       value={{
         ledger,
         openLedger: async (fh?: FileSystemFileHandle) => {
+          let fileHandleToOpen: FileSystemFileHandle;
+
           if (fh) {
             await verifyPermission(fh, true);
-            if (fh) {
-              setFileHandle(fh as FileSystemFileHandle);
-            }
-            return;
+            fileHandleToOpen = fh;
           }
           else {
             const result = await window.showOpenFilePicker();
-            const [fileHandle] = result;
-            setFileHandle(fileHandle);
-            await set(`peanuts:ledgerFileHandle`, fileHandle);
+            [fileHandleToOpen] = result;
           }
 
-          
+          // Update recent files list
+          const recentFiles: RecentFile[] = (await get(`peanuts:recentFileHandles`)) || [];
+          // Remove duplicate if exists (compare by name)
+          const filtered = recentFiles.filter(f => f.fileHandle.name !== fileHandleToOpen.name);
+          // Add to front with placeholder name (will be updated after ledger loads)
+          const updated = [
+            { fileHandle: fileHandleToOpen, ledgerName: "" },
+            ...filtered
+          ].slice(0, 10);
+          await set(`peanuts:recentFileHandles`, updated);
+
+          setFileHandle(fileHandleToOpen);
         },
         fileHandle,
       }}
