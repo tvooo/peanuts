@@ -11,13 +11,20 @@ import {
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 
-interface ComboboxOption {
+export interface ComboboxOption {
   id: string;
   label: string;
+  icon?: React.ReactNode;
+}
+
+export interface ComboboxGroup<T extends ComboboxOption> {
+  label: string;
+  options: T[];
 }
 
 interface ComboboxProps<T extends ComboboxOption> {
-  options: T[];
+  options?: T[];
+  groups?: ComboboxGroup<T>[];
   value: T | null;
   onValueChange: (value: T) => void;
   onCreateNew?: (inputValue: string) => T | Promise<T>;
@@ -35,6 +42,7 @@ export const Combobox = React.forwardRef<
   (
     {
       options,
+      groups,
       value,
       onValueChange,
       onCreateNew,
@@ -55,6 +63,13 @@ export const Combobox = React.forwardRef<
     // Sync the ref
     React.useImperativeHandle(ref, () => inputRef.current!);
 
+    // Flatten groups into a single options array for compatibility
+    const allOptions = React.useMemo(() => {
+      if (options) return options;
+      if (groups) return groups.flatMap(g => g.options);
+      return [];
+    }, [options, groups]);
+
     // Default filter function
     const defaultFilterFn = (option: ComboboxOption, search: string) => {
       return getLabel(option).toLowerCase().includes(search.toLowerCase());
@@ -62,20 +77,34 @@ export const Combobox = React.forwardRef<
 
     // Filter options based on search
     const filteredOptions = React.useMemo(() => {
-      if (!search) return options;
+      if (!search) return allOptions;
       const searchLower = search.toLowerCase();
       const filter = filterFn || defaultFilterFn;
-      return options.filter((option) => filter(option, searchLower));
-    }, [options, search, filterFn]);
+      return allOptions.filter((option) => filter(option, searchLower));
+    }, [allOptions, search, filterFn]);
+
+    // Filter groups based on search
+    const filteredGroups = React.useMemo(() => {
+      if (!groups) return null;
+      if (!search) return groups;
+      const searchLower = search.toLowerCase();
+      const filter = filterFn || defaultFilterFn;
+      return groups
+        .map(group => ({
+          ...group,
+          options: group.options.filter(option => filter(option, searchLower))
+        }))
+        .filter(group => group.options.length > 0);
+    }, [groups, search, filterFn]);
 
     // Check if we should show the "Create" option
     const showCreateOption = React.useMemo(() => {
       if (!onCreateNew || !search.trim()) return false;
-      const exactMatch = options.find(
+      const exactMatch = allOptions.find(
         (opt) => getLabel(opt).toLowerCase() === search.toLowerCase()
       );
       return !exactMatch;
-    }, [options, search, onCreateNew, getLabel]);
+    }, [allOptions, search, onCreateNew, getLabel]);
 
     // Handle option selection
     const handleSelect = (option: ComboboxOption) => {
@@ -246,20 +275,48 @@ export const Combobox = React.forwardRef<
                   <CommandSeparator />
                 </>
               )}
-              <CommandGroup>
-                {filteredOptions.length === 0 && !showCreateOption && (
-                  <CommandEmpty>{emptyText}</CommandEmpty>
-                )}
-                {filteredOptions.map((option) => (
-                  <CommandItem
-                    key={option.id}
-                    value={option.id}
-                    onSelect={() => handleSelect(option)}
-                  >
-                    {getLabel(option)}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+              {filteredGroups ? (
+                // Render grouped options
+                <>
+                  {filteredGroups.length === 0 && !showCreateOption && (
+                    <CommandEmpty>{emptyText}</CommandEmpty>
+                  )}
+                  {filteredGroups.map((group, idx) => (
+                    <React.Fragment key={group.label}>
+                      <CommandGroup heading={group.label}>
+                        {group.options.map((option) => (
+                          <CommandItem
+                            key={option.id}
+                            value={option.id}
+                            onSelect={() => handleSelect(option)}
+                          >
+                            {option.icon}
+                            {getLabel(option)}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                      {idx < filteredGroups.length - 1 && <CommandSeparator />}
+                    </React.Fragment>
+                  ))}
+                </>
+              ) : (
+                // Render flat options
+                <CommandGroup>
+                  {filteredOptions.length === 0 && !showCreateOption && (
+                    <CommandEmpty>{emptyText}</CommandEmpty>
+                  )}
+                  {filteredOptions.map((option) => (
+                    <CommandItem
+                      key={option.id}
+                      value={option.id}
+                      onSelect={() => handleSelect(option)}
+                    >
+                      {option.icon}
+                      {getLabel(option)}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
