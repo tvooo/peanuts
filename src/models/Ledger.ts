@@ -11,7 +11,7 @@ import { action, computed, observable } from "mobx";
 import { Assignment } from "./Assignment";
 import { BalanceAssertion } from "./BalanceAssertion";
 import { Payee } from "./Payee";
-import { RecurringTransaction } from "./RecurringTransaction";
+import { RecurringTemplate } from "./RecurringTemplate";
 import { Transfer } from "./Transfer";
 
 export class Ledger {
@@ -27,7 +27,7 @@ export class Ledger {
   accessor transactions: Transaction[] = [];
 
   @observable
-  accessor recurringTransactions: RecurringTransaction[] = [];
+  accessor recurringTemplates: RecurringTemplate[] = [];
 
   @observable
   accessor assignments: Assignment[] = [];
@@ -86,11 +86,13 @@ export class Ledger {
       ledger.transactions.push(Transaction.fromJSON(t, ledger));
     });
 
-    collections.recurring_transactions.forEach((t) => {
-      ledger.recurringTransactions.push(
-        RecurringTransaction.fromJSON(t, ledger)
-      );
-    });
+    if (collections.recurring_templates) {
+      collections.recurring_templates.forEach((t: any) => {
+        ledger.recurringTemplates.push(
+          RecurringTemplate.fromJSON(t, ledger)
+        );
+      });
+    }
 
     collections.assignments.forEach((t) => {
       ledger.assignments.push(Assignment.fromJSON(t, ledger));
@@ -112,7 +114,7 @@ export class Ledger {
       payees: this.payees.map((a) => a.toJSON()),
       transactions: this.transactions.map((a) => a.toJSON()),
       transaction_postings: this.transactionPostings.map((a) => a.toJSON()),
-      recurring_transactions: this.recurringTransactions.map((a) => a.toJSON()),
+      recurring_templates: this.recurringTemplates.map((a) => a.toJSON()),
       assignments: this.assignments.map((a) => a.toJSON()),
       transfers: this.transfers.map((a) => a.toJSON()),
     };

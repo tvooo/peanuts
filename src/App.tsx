@@ -1,6 +1,7 @@
 "use client";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { Ledger } from "@/models/Ledger";
 import { LedgerContext } from "@/utils/useLedger";
 import { get, set } from "idb-keyval";
@@ -11,11 +12,32 @@ import BudgetPage from "./pages/BudgetPage";
 import { LedgerPage } from "./pages/LedgerPage";
 import { OpenPage } from "./pages/OpenPage";
 import { PayeesPage } from "./pages/PayeesPage";
-import { SubscriptionsPage } from "./pages/SubscriptionsPage";
+import { RecurringTransactionsPage } from "./pages/RecurringTransactionsPage";
 
 export interface RecentFile {
   fileHandle: FileSystemFileHandle;
   ledgerName: string;
+}
+
+// Component that uses the ledger context - must be inside the provider
+function AppContent() {
+  // Process recurring transactions (midnight check + on load)
+  useRecurringTransactions();
+
+  return (
+    <SidebarProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<OpenPage />} />
+          <Route path="/budget" element={<BudgetPage />} />
+          <Route path="/recurring" element={<RecurringTransactionsPage />} />
+          <Route path="/ledger" element={<LedgerPage />} />
+          <Route path="/ledger/:accountName" element={<AccountPage />} />
+          <Route path="/payees" element={<PayeesPage />} />
+        </Routes>
+      </BrowserRouter>
+    </SidebarProvider>
+  );
 }
 
 export default function App() {
@@ -105,18 +127,7 @@ export default function App() {
         fileHandle,
       }}
     >
-      <SidebarProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<OpenPage />} />
-            <Route path="/budget" element={<BudgetPage />} />
-            <Route path="/subscriptions" element={<SubscriptionsPage />} />
-            <Route path="/ledger" element={<LedgerPage />} />
-            <Route path="/ledger/:accountName" element={<AccountPage />} />
-            <Route path="/payees" element={<PayeesPage />} />
-          </Routes>
-        </BrowserRouter>
-      </SidebarProvider>
+      <AppContent />
     </LedgerContext.Provider>
   );
 }

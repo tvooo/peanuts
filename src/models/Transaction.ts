@@ -20,6 +20,9 @@ export class Transaction extends Model {
 
   status: "open" | "cleared" = "open";
 
+  @observable
+  accessor recurringTemplateId: string | null = null;
+
   constructor({ id, ledger }: ModelConstructorArgs) {
     super({ id: id || cuid(), ledger });
   }
@@ -32,6 +35,7 @@ export class Transaction extends Model {
     );
     transaction.status = json.status;
     transaction.date = new Date(json.date);
+    transaction.recurringTemplateId = json.recurring_template_id || null;
     // posting.amount = json.amount;
     // posting.note = json.note;
     // posting.payee = json.payee;
@@ -45,6 +49,7 @@ export class Transaction extends Model {
       transaction_posting_ids: this.postings.map((p) => p.id),
       status: this.status,
       date: this.date?.toISOString() || null,
+      recurring_template_id: this.recurringTemplateId,
     }
   }
 

@@ -36,7 +36,9 @@ export const AccountPage = observer(function AccountPage() {
 
   return (
     <PageLayout>
-        <div className="flex justify-between items-center px-8 py-4">
+      <div className="flex flex-col h-full">
+        {/* Fixed header - Account info */}
+        <div className="flex justify-between items-center px-8 py-4 shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold">
               {currentAccount.name}
@@ -73,13 +75,15 @@ export const AccountPage = observer(function AccountPage() {
             </Button>
           </div>
         </div>
-        <div className="flex justify-between items-center px-8 py-4">
+
+        {/* Fixed header - New transaction button */}
+        <div className="flex justify-between items-center px-8 py-4 shrink-0">
           <Button
             onClick={() => {
               if(editingTransaction) {
                 return
               }
-              
+
               const transactionPosting = new TransactionPosting(
                 { ledger: ledger!, id: null },
               );
@@ -105,12 +109,17 @@ export const AccountPage = observer(function AccountPage() {
             New Transaction
           </Button>
         </div>
-        <TransactionsTable
-          currentAccount={currentAccount}
-          ledger={ledger}
-          setEditingTransaction={setEditingTransaction}
-          editingTransaction={editingTransaction || undefined}
-        />
+
+        {/* Scrollable table container */}
+        <div className="flex-1 overflow-auto min-h-0">
+          <TransactionsTable
+            currentAccount={currentAccount}
+            ledger={ledger}
+            setEditingTransaction={setEditingTransaction}
+            editingTransaction={editingTransaction || undefined}
+          />
+        </div>
+      </div>
     </PageLayout>
   );
 })
