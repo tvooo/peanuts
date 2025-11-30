@@ -5,7 +5,8 @@ export function formatCurrency(n: number): string {
   const negative = n < 0
   const abs = Math.abs(n)
   
-  const cents = abs % 100;
+  const centsRaw = abs % 100;
+  const cents = Math.ceil(centsRaw);
   const euros = Math.floor(abs / 100);
   
   return `${negative ? '-' : ''}${euros},${padStart(String(cents), 2, '0')} €`;
