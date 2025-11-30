@@ -1,5 +1,5 @@
 import { useLedger } from "@/utils/useLedger";
-import { Archive, CalendarSync, ChartSpline, ChevronDown, PiggyBank, Save, Users, Wallet } from "lucide-react";
+import { Archive, CalendarSync, ChartSpline, ChevronDown, PiggyBank, Plus, Save, Users, Wallet } from "lucide-react";
 
 import {
   Sidebar,
@@ -18,6 +18,8 @@ import { formatCurrency } from "@/utils/formatting";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@radix-ui/react-collapsible";
 import { Link, NavLink, useLocation } from "react-router";
 import { Button } from "./ui/button";
+import { CreateAccountModal } from "./CreateAccountModal";
+import { useState } from "react";
 
 // Menu items.
 const items = [
@@ -34,8 +36,8 @@ const items = [
   //   indicator: null,
   // },
   {
-    title: "Subscriptions",
-    url: "/subscriptions",
+    title: "Recurring",
+    url: "/recurring",
     icon: CalendarSync,
     indicator: null,
   },
@@ -48,7 +50,8 @@ const items = [
 ];
 
 export function AppSidebar() {
-  const { ledger, openLedger, fileHandle } = useLedger()
+  const { ledger, openLedger, fileHandle } = useLedger();
+  const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
   let location = useLocation();
   return (
     <Sidebar>
@@ -226,6 +229,12 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <Button
+          variant="secondary"
+          onClick={() => setIsCreateAccountOpen(true)}
+        >
+          <Plus size={16} /> New Account
+        </Button>
+        <Button
         variant="secondary"
           onClick={async () => {
             console.log(ledger!.toJSON());
@@ -243,6 +252,10 @@ export function AppSidebar() {
           <Save size={16} /> Save
         </Button>
       </SidebarFooter>
+      <CreateAccountModal
+        open={isCreateAccountOpen}
+        onOpenChange={setIsCreateAccountOpen}
+      />
     </Sidebar>
   );
 }
