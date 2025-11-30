@@ -26,6 +26,8 @@ interface TransactionsTableProps {
   currentAccount: Account;
   editingTransaction?: Transaction;
   setEditingTransaction: (transaction: Transaction | null) => void;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (id: string) => void;
 }
 
 // Discriminated union type for row data
@@ -50,6 +52,8 @@ export const TransactionsTable = observer(function TransactionsTable({
   ledger,
   editingTransaction,
   setEditingTransaction,
+  selectedIds,
+  onToggleSelection,
 }: TransactionsTableProps) {
   // Get and sort data - no useMemo to allow MobX reactivity
   const data = sortBy(
@@ -165,6 +169,8 @@ export const TransactionsTable = observer(function TransactionsTable({
                     setEditingTransaction(rowData);
                   }
                 }}
+                selectedIds={selectedIds}
+                onToggleSelection={onToggleSelection}
               />
             );
           } else if (isTransfer(rowData)) {
@@ -173,6 +179,8 @@ export const TransactionsTable = observer(function TransactionsTable({
                 transfer={rowData}
                 isInbound={rowData.toAccount?.id === currentAccount.id}
                 key={row.id}
+                selectedIds={selectedIds}
+                onToggleSelection={onToggleSelection}
               />
             );
           } else {

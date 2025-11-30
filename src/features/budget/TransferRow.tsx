@@ -8,12 +8,16 @@ interface TransferRowProps {
   transfer: Transfer;
   onClick?: () => void;
   isInbound: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (id: string) => void;
 }
 
 export const TransferRow = ({
   transfer,
   isInbound,
   onClick,
+  selectedIds,
+  onToggleSelection,
 }: TransferRowProps) => {
   return (
     <tr
@@ -24,7 +28,12 @@ export const TransferRow = ({
       onClick={onClick}
     >
       <td className="p-1 pl-8 w-[64px] align-middle">
-        <input type="checkbox" />
+        <input
+          type="checkbox"
+          checked={selectedIds?.has(transfer.id) || false}
+          onChange={() => onToggleSelection?.(transfer.id)}
+          onClick={(e) => e.stopPropagation()}
+        />
       </td>
       <td className="tabular-nums py-2 px-3 pr-2 text-sm">
         {formatDate(transfer.date!)}

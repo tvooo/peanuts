@@ -8,11 +8,15 @@ import { twJoin } from "tailwind-merge";
 interface TransactionRowProps {
   transaction: Transaction;
   onClick?: () => void;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (id: string) => void;
 }
 
 export const TransactionRow = ({
   transaction,
   onClick,
+  selectedIds,
+  onToggleSelection,
 }: TransactionRowProps) => {
   const { ledger } = useLedger();
   return (
@@ -24,7 +28,12 @@ export const TransactionRow = ({
       onClick={onClick}
     >
       <td className="p-1 pl-8 w-[64px] align-middle">
-        <input type="checkbox" />
+        <input
+          type="checkbox"
+          checked={selectedIds?.has(transaction.id) || false}
+          onChange={() => onToggleSelection?.(transaction.id)}
+          onClick={(e) => e.stopPropagation()}
+        />
       </td>
       <td className="tabular-nums py-2 px-3 pr-2 text-sm">
         {formatDate(transaction.date!)}

@@ -11,7 +11,7 @@ export const BalanceAssertionRow = ({ transaction }: BalanceAssertionRowProps) =
   return (
     <tr className="hover:bg-stone-100 rounded-md border-b border-stone-200 bg-lime-50 text-lime-700 italic">
       <td className="p-1 pl-8 w-[64px] align-middle">
-        <input type="checkbox" />
+        <input type="checkbox" disabled />
       </td>
       <td className="tabular-nums py-2 px-3 pr-2 text-sm">{formatDate(transaction.date)}</td>
       <td colSpan={4} className="py-2 px-3 pr-2 text-sm">
