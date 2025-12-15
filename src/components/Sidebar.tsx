@@ -85,7 +85,7 @@ export function AppSidebar() {
               {/* <ChevronsUpDown size={16} className="ml-auto" /> */}
             </SidebarMenuButton>
             {/* </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[--radix-popper-anchor-width]">
+              <DropdownMenuContent className="w-(--radix-popper-anchor-width)">
                 <DropdownMenuItem>
                   <SaveIcon size={16} />
                   <span>Save changes</span>
@@ -148,7 +148,7 @@ export function AppSidebar() {
                                 <span className="truncate" title={account.name}>
                                   {account.name}
                                 </span>
-                                <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 flex-shrink-0">
+                                <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 shrink-0">
                                   {formatCurrency(account.currentBalance)}
                                 </span>
                               </Link>
@@ -192,7 +192,7 @@ export function AppSidebar() {
                                   <span className="truncate" title={account.name}>
                                     {account.name}
                                   </span>
-                                  <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 flex-shrink-0">
+                                  <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 shrink-0">
                                     {formatCurrency(account.currentBalance)}
                                   </span>
                                 </Link>
@@ -240,7 +240,7 @@ export function AppSidebar() {
                                   <span className="truncate" title={account.name}>
                                     {account.name}
                                   </span>
-                                  <span className="text-xs tabular-nums ml-2 flex-shrink-0">
+                                  <span className="text-xs tabular-nums ml-2 shrink-0">
                                     {formatCurrency(account.currentBalance)}
                                   </span>
                                 </Link>
