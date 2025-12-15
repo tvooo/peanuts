@@ -1,9 +1,3 @@
-import { startOfDay } from "date-fns";
-import { ArrowDownToLine } from "lucide-react";
-import { runInAction } from "mobx";
-import { observer } from "mobx-react-lite";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { RRule } from "rrule";
 import { Combobox, type ComboboxGroup } from "@/components/Combobox";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +17,12 @@ import { RecurringTemplate } from "@/models/RecurringTemplate";
 import { formatDateIsoShort } from "@/utils/formatting";
 import { processRecurringTemplates } from "@/utils/recurringTransactions";
 import { useLedger } from "@/utils/useLedger";
+import { startOfDay } from "date-fns";
+import { ArrowDownToLine } from "lucide-react";
+import { runInAction } from "mobx";
+import { observer } from "mobx-react-lite";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { RRule } from "rrule";
 
 type FrequencyType = "weekly" | "biweekly" | "monthly" | "yearly";
 
@@ -110,11 +110,12 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
         if (rule.options.byweekday && rule.options.byweekday.length > 0) {
           // Handle both Weekday objects and plain numbers
           const weekdayValue = rule.options.byweekday[0];
-          const weekdayNum =
-            typeof weekdayValue === "number"
-              ? weekdayValue
-              : (weekdayValue?.weekday ?? RRule.MO.weekday);
-          setDayOfWeek(weekdayNum);
+          // const weekdayNum =
+          //   typeof weekdayValue === "number"
+          //     ? weekdayValue
+          //     : (weekdayValue?.weekday ?? RRule.MO.weekday);
+          // setDayOfWeek(weekdayNum);
+          setDayOfWeek(weekdayValue);
         }
       } else if (freq === RRule.MONTHLY) {
         setFrequency("monthly");
@@ -176,7 +177,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
         label: "",
         options: [
           {
-            id: inflowBudget.id,
+            id: (inflowBudget as Budget).id,
             label: "Inflow",
             budget: inflowBudget,
             icon: <ArrowDownToLine className="mr-1.5" size={14} />,
