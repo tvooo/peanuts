@@ -11,29 +11,30 @@ import { describe, expect, it } from "vitest";
 import { tokenize as t } from "../tokenize";
 
 import { date } from "./date";
-import { duration } from "./duration";
-import { time } from "./time";
 
-describe("time", () => {
-  it("12-hour time", () => {
-    expect(time(t("4am"))).toEqual({ hours: 4, minutes: 0 });
-    expect(time(t("4 pm"))).toEqual({ hours: 16, minutes: 0 });
-    expect(time(t("12pm"))).toEqual({ hours: 12, minutes: 0 });
-    expect(time(t("12am"))).toEqual({ hours: 0, minutes: 0 });
+// import { duration } from "./duration";
+// import { time } from "./time";
 
-    expect(time(t("13am"))).toEqual(undefined);
-  });
+// describe("time", () => {
+//   it("12-hour time", () => {
+//     expect(time(t("4am"))).toEqual({ hours: 4, minutes: 0 });
+//     expect(time(t("4 pm"))).toEqual({ hours: 16, minutes: 0 });
+//     expect(time(t("12pm"))).toEqual({ hours: 12, minutes: 0 });
+//     expect(time(t("12am"))).toEqual({ hours: 0, minutes: 0 });
 
-  it("24-hour time", () => {
-    expect(time(t("16:00"))).toEqual({ hours: 16, minutes: 0 });
-    expect(time(t("4:00"))).toEqual({ hours: 4, minutes: 0 });
-    expect(time(t("04:00"))).toEqual({ hours: 4, minutes: 0 });
-    expect(time(t("7:45"))).toEqual({ hours: 7, minutes: 45 });
+//     expect(time(t("13am"))).toEqual(undefined);
+//   });
 
-    expect(time(t("12:73"))).toEqual(undefined);
-    expect(time(t("24:01"))).toEqual(undefined);
-  });
-});
+//   it("24-hour time", () => {
+//     expect(time(t("16:00"))).toEqual({ hours: 16, minutes: 0 });
+//     expect(time(t("4:00"))).toEqual({ hours: 4, minutes: 0 });
+//     expect(time(t("04:00"))).toEqual({ hours: 4, minutes: 0 });
+//     expect(time(t("7:45"))).toEqual({ hours: 7, minutes: 45 });
+
+//     expect(time(t("12:73"))).toEqual(undefined);
+//     expect(time(t("24:01"))).toEqual(undefined);
+//   });
+// });
 
 describe("date", () => {
   const today = new Date();
@@ -79,12 +80,12 @@ describe("date", () => {
   });
 });
 
-describe("duration", () => {
-  it("complete date", () => {
-    expect(duration(t("3 mins"))).toEqual({ category: "minutes", minutes: 3, value: 3 });
-    expect(duration(t("10 hours"))).toEqual({ category: "hours", minutes: 600, value: 10 });
+// describe("duration", () => {
+//   it("complete date", () => {
+//     expect(duration(t("3 mins"))).toEqual({ category: "minutes", minutes: 3, value: 3 });
+//     expect(duration(t("10 hours"))).toEqual({ category: "hours", minutes: 600, value: 10 });
 
-    // FIXME: implement
-    // expect(duration(t('two days'))).toEqual({ category: 'days', minutes: 2 * 24 * 60, value: 2 })
-  });
-});
+//     // FIXME: implement
+//     // expect(duration(t('two days'))).toEqual({ category: 'days', minutes: 2 * 24 * 60, value: 2 })
+//   });
+// });

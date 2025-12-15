@@ -1,9 +1,9 @@
-import { endOfMonth, isBefore, isSameMonth } from "date-fns";
-import { action, computed, observable } from "mobx";
 import { Account } from "@/models/Account";
 import { Budget, BudgetCategory } from "@/models/Budget";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
 import type { Balance } from "@/utils/types";
+import { endOfMonth, isBefore, isSameMonth } from "date-fns";
+import { action, computed, observable } from "mobx";
 import { Assignment } from "./Assignment";
 import type { BalanceAssertion } from "./BalanceAssertion";
 import { Payee } from "./Payee";
@@ -52,19 +52,19 @@ export class Ledger {
 
     ledger.name = collections.name || "Untitled Ledger";
 
-    collections.accounts.forEach((a) => {
+    collections.accounts.forEach((a: any) => {
       ledger.accounts.push(Account.fromJSON(a, ledger));
     });
 
-    collections.payees.forEach((a) => {
+    collections.payees.forEach((a: any) => {
       ledger.payees.push(Payee.fromJSON(a, ledger));
     });
 
-    collections.budget_categories.forEach((b) => {
+    collections.budget_categories.forEach((b: any) => {
       ledger.budgetCategories.push(BudgetCategory.fromJSON(b, ledger));
     });
 
-    collections.budgets.forEach((b) => {
+    collections.budgets.forEach((b: any) => {
       // const budgetCategory = ledger.budgetCategories.find(
       //   (c) => c.uuid === b.budget_category_uuid
       // );
@@ -74,11 +74,11 @@ export class Ledger {
       ledger._budgets.push(Budget.fromJSON(b, ledger));
     });
 
-    collections.transaction_postings.forEach((p) => {
+    collections.transaction_postings.forEach((p: any) => {
       ledger.transactionPostings.push(TransactionPosting.fromJSON(p, ledger));
     });
 
-    collections.transactions.forEach((t) => {
+    collections.transactions.forEach((t: any) => {
       ledger.transactions.push(Transaction.fromJSON(t, ledger));
     });
 
@@ -88,11 +88,11 @@ export class Ledger {
       });
     }
 
-    collections.assignments.forEach((t) => {
+    collections.assignments.forEach((t: any) => {
       ledger.assignments.push(Assignment.fromJSON(t, ledger));
     });
 
-    collections.transfers.forEach((t) => {
+    collections.transfers.forEach((t: any) => {
       ledger.transfers.push(Transfer.fromJSON(t, ledger));
     });
 
@@ -162,7 +162,7 @@ export class Ledger {
 
   activityForMonth(date: Date): Balance {
     const activity = this.transactions
-      .filter((t) => isBefore(t.date, endOfMonth(date)))
+      .filter((t) => isBefore(t.date!, endOfMonth(date)))
       // Exclude tracking accounts from budget calculations
       .filter((t) => t.account?.type !== "tracking")
       .reduce((sum, t) => sum + t.amount, 0);
@@ -179,7 +179,7 @@ export class Ledger {
   budgetAvailableForMonth(budget: Budget, date: Date): Balance {
     let activity: Balance = 0;
     this.transactions
-      .filter((t) => isBefore(t.date, endOfMonth(date)))
+      .filter((t) => isBefore(t.date!, endOfMonth(date)))
       // Exclude tracking accounts from budget calculations
       .filter((t) => t.account?.type !== "tracking")
       .forEach((t) => {
@@ -197,14 +197,14 @@ export class Ledger {
     let assigned: Balance = 0;
     if (budget.isToBeBudgeted) {
       this.assignments
-        .filter((t) => isBefore(t.date, endOfMonth(date)))
+        .filter((t) => isBefore(t.date!, endOfMonth(date)))
         .filter((p) => p.budget !== budget)
         .forEach((a) => {
           assigned -= a.amount;
         });
     } else {
       this.assignments
-        .filter((t) => isBefore(t.date, endOfMonth(date)))
+        .filter((t) => isBefore(t.date!, endOfMonth(date)))
         .filter((p) => p.budget === budget)
         .forEach((a) => {
           assigned += a.amount;
@@ -217,7 +217,7 @@ export class Ledger {
   budgetActivityForMonth(budget: Budget, date: Date): Balance {
     let activity: Balance = 0;
     this.transactions
-      .filter((t) => isSameMonth(t.date, date))
+      .filter((t) => isSameMonth(t.date!, date))
       // Exclude tracking accounts from budget calculations
       .filter((t) => t.account?.type !== "tracking")
       .forEach((t) => {
@@ -233,7 +233,7 @@ export class Ledger {
   budgetAssignedForMonth(budget: Budget, date: Date): Balance {
     let assigned: Balance = 0;
     this.assignments
-      .filter((t) => isSameMonth(t.date, date))
+      .filter((t) => isSameMonth(t.date!, date))
       .filter((p) => p.budget === budget)
       .forEach((a) => {
         assigned += a.amount;

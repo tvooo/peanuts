@@ -22,7 +22,7 @@ export interface ComboboxGroup<T extends ComboboxOption> {
   options: T[];
 }
 
-interface ComboboxProps<T extends ComboboxOption> {
+interface ComboboxProps<T extends ComboboxOption> extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onSelect'> {
   options?: T[];
   groups?: ComboboxGroup<T>[];
   value: T | null;
@@ -35,22 +35,22 @@ interface ComboboxProps<T extends ComboboxOption> {
   filterFn?: (option: T, search: string) => boolean;
 }
 
-export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<ComboboxOption>>(
-  (
-    {
-      options,
-      groups,
-      value,
-      onValueChange,
-      onCreateNew,
-      placeholder = "Select...",
-      emptyText = "No results found.",
-      className,
-      getLabel = (option) => option.label,
-      filterFn,
-    },
-    ref
-  ) => {
+function ComboboxInner<T extends ComboboxOption>(
+  {
+    options,
+    groups,
+    value,
+    onValueChange,
+    onCreateNew,
+    placeholder = "Select...",
+    emptyText = "No results found.",
+    className,
+    getLabel = (option) => option.label,
+    filterFn,
+    ...inputProps
+  }: ComboboxProps<T>,
+  ref: React.ForwardedRef<HTMLInputElement>
+) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState("");
     const [selectedValue, setSelectedValue] = React.useState("");
@@ -69,7 +69,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<Combobo
 
     // Default filter function
     const defaultFilterFn = React.useCallback(
-      (option: ComboboxOption, search: string) => {
+      (option: T, search: string) => {
         return getLabel(option).toLowerCase().includes(search.toLowerCase());
       },
       [getLabel]
@@ -107,7 +107,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<Combobo
     }, [allOptions, search, onCreateNew, getLabel]);
 
     // Handle option selection
-    const handleSelect = (option: ComboboxOption) => {
+    const handleSelect = (option: T) => {
       onValueChange(option);
       setSearch(getLabel(option));
       setSelectedValue(option.id);
@@ -241,6 +241,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<Combobo
               className
             )}
             placeholder={placeholder}
+            {...inputProps}
           />
         </PopoverAnchor>
         <PopoverContent
@@ -322,7 +323,10 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<Combobo
         </PopoverContent>
       </Popover>
     );
-  }
-);
+}
 
-Combobox.displayName = "Combobox";
+export const Combobox = React.forwardRef(ComboboxInner) as <T extends ComboboxOption>(
+  props: ComboboxProps<T> & { ref?: React.ForwardedRef<HTMLInputElement> }
+) => ReturnType<typeof ComboboxInner>;
+
+(Combobox as any).displayName = "Combobox";
