@@ -6,7 +6,10 @@
     "dev": "vite --port 4434",
     "build": "vite build",
     "start": "vite preview",
-    "lint": "exit 0"
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.1.2",
@@ -19,6 +22,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.4",
     "@tanstack/react-table": "^8.21.3",
+    "@types/d3": "^7.4.3",
     "@types/lodash": "^4.14.195",
     "@types/node": "20.3.3",
     "@types/react": "18.2.14",
@@ -29,6 +33,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^0.2.1",
     "cuid": "^3.0.0",
+    "d3": "^7.9.0",
     "date-fns": "^2.30.0",
     "eslint": "8.44.0",
     "eslint-config-next": "13.4.8",
@@ -52,6 +57,7 @@
     "@babel/plugin-proposal-decorators": "^7.25.9",
     "@babel/plugin-transform-class-properties": "^7.25.9",
     "@babel/plugin-transform-class-static-block": "^7.26.0",
+    "@biomejs/biome": "2.3.8",
     "@vitejs/plugin-react": "^4.3.4",
     "tsx": "^4.19.2",
     "vite": "^6.0.1"
