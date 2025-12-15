@@ -67,7 +67,7 @@ const items = [
 ];
 
 export function AppSidebar() {
-  const { ledger, openLedger, fileHandle } = useLedger();
+  const { ledger, fileHandle } = useLedger();
   const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
   const location = useLocation();
   return (
@@ -136,7 +136,7 @@ export function AppSidebar() {
                     <SidebarMenu>
                       {ledger.accounts
                         .filter((a) => !a.archived && a.type === "budget")
-                        .map((account, idx) => (
+                        .map((account) => (
                           <SidebarMenuItem key={account.name}>
                             <SidebarMenuButton
                               asChild
@@ -179,7 +179,7 @@ export function AppSidebar() {
                       <SidebarMenu>
                         {ledger.accounts
                           .filter((a) => !a.archived && a.type === "tracking")
-                          .map((account, idx) => (
+                          .map((account) => (
                             <SidebarMenuItem key={account.name}>
                               <SidebarMenuButton
                                 asChild
@@ -224,7 +224,7 @@ export function AppSidebar() {
                       <SidebarMenu>
                         {ledger.accounts
                           .filter((a) => a.archived)
-                          .map((account, idx) => (
+                          .map((account) => (
                             <SidebarMenuItem key={account.name}>
                               <SidebarMenuButton
                                 asChild

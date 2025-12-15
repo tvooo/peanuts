@@ -29,7 +29,7 @@ const relativeDate: Parser = apply(
       return;
     }
     const [nextPrev, , weekday] = result;
-    const day = (weekdays.findIndex((w) => w === weekday.value) % 7) as Day;
+    const day = (weekdays.indexOf(weekday.value) % 7) as Day;
     return startOfDay(
       nextPrev.type === TokenType.Next ? nextDay(new Date(), day) : previousDay(new Date(), day)
     );
@@ -40,7 +40,7 @@ const shortRelativeDate: Parser = apply(is(TokenType.Weekday), (weekday: Token) 
   if (!weekday) {
     return;
   }
-  const day = (weekdays.findIndex((w) => w === weekday.value) % 7) as Day;
+  const day = (weekdays.indexOf(weekday.value) % 7) as Day;
   return startOfDay(nextDay(new Date(), day));
 });
 
@@ -95,7 +95,7 @@ const shortDate = apply(
       return;
     }
     const [day, , , monthToken] = result;
-    const month = months.findIndex((m) => m === monthToken.value) % 12;
+    const month = months.indexOf(monthToken.value) % 12;
     const date = startOfDay(
       set(new Date(), {
         date: day.value as number,
@@ -120,7 +120,7 @@ const longDate = apply(
       return;
     }
     const [day, , , monthToken, , year] = result;
-    const month = months.findIndex((m) => m === monthToken.value) % 12;
+    const month = months.indexOf(monthToken.value) % 12;
     const date = startOfDay(
       set(new Date(), {
         date: day.value as number,

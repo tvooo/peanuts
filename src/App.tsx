@@ -1,10 +1,10 @@
+import { get, set } from "idb-keyval";
+import { useEffect, useState } from "react";
+import { BrowserRouter, Route, Routes } from "react-router";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { Ledger } from "@/models/Ledger";
 import { LedgerContext } from "@/utils/useLedger";
-import { get, set } from "idb-keyval";
-import { useEffect, useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router";
 import { AccountPage } from "./pages/AccountPage";
 import BudgetPage from "./pages/BudgetPage";
 import { LedgerPage } from "./pages/LedgerPage";

@@ -264,6 +264,7 @@ export const RecurringTransactionsTable = observer(function RecurringTransaction
             <th className="px-3 pr-2">
               <HeaderCell alignRight>
                 <button
+                  type="button"
                   onClick={toggleSort}
                   className="flex items-center gap-1 ml-auto hover:opacity-70"
                 >

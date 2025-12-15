@@ -15,7 +15,7 @@ import {
 import { useLedger } from "@/utils/useLedger";
 
 export const OpenPage = () => {
-  const { ledger, openLedger, fileHandle } = useLedger();
+  const { ledger, openLedger } = useLedger();
   const navigate = useNavigate();
   const [files, setFiles] = useState<RecentFile[]>([]);
 

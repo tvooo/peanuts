@@ -17,10 +17,9 @@ export const AddPayeeModal = observer(function AddPayeeModal() {
   const { ledger } = useLedger();
   const [newPayee, setNewPayee] = useState<Payee | null>(null);
   const [name, setName] = useState("");
-  const [group, setGroup] = useState("Misc");
   return (
     <div className="flex justify-between items-center px-8 py-4">
-      <Dialog open={!!newPayee} onOpenChange={(open) => setNewPayee(null)}>
+      <Dialog open={!!newPayee} onOpenChange={() => setNewPayee(null)}>
         {/* <DialogTrigger>Open</DialogTrigger> */}
         <DialogContent>
           <DialogHeader>
