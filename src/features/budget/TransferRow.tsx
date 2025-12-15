@@ -1,8 +1,8 @@
-import { AmountCell } from "@/components/Table";
-import { Transfer } from "@/models/Transfer";
-import { formatDate } from "@/utils/formatting";
 import { ArrowLeftRight, CheckCheck } from "lucide-react";
 import { twJoin } from "tailwind-merge";
+import { AmountCell } from "@/components/Table";
+import type { Transfer } from "@/models/Transfer";
+import { formatDate } from "@/utils/formatting";
 
 interface TransferRowProps {
   transfer: Transfer;
@@ -35,24 +35,17 @@ export const TransferRow = ({
           onClick={(e) => e.stopPropagation()}
         />
       </td>
-      <td className="tabular-nums py-2 px-3 pr-2 text-sm">
-        {formatDate(transfer.date!)}
-      </td>
+      <td className="tabular-nums py-2 px-3 pr-2 text-sm">{formatDate(transfer.date!)}</td>
       <td className="py-2 px-3 pr-2 text-sm">
         <div className="flex items-center gap-2">
           <ArrowLeftRight className="text-muted-foreground" size={12} />
           {transfer.toAccount?.name}
         </div>
       </td>
-      <td className="py-2 px-3 pr-2 text-sm text-muted-foreground font-normal italic">
-        Transfer
-      </td>
+      <td className="py-2 px-3 pr-2 text-sm text-muted-foreground font-normal italic">Transfer</td>
       <td className="py-2 px-3 pr-2 text-sm">{transfer.note}</td>
       <td className="py-2 pr-2">
-        <AmountCell
-          amount={(isInbound ? 1 : -1) * transfer.amount}
-          highlightPositiveAmount
-        />
+        <AmountCell amount={(isInbound ? 1 : -1) * transfer.amount} highlightPositiveAmount />
       </td>
       <td className="pr-2 text-center">
         {transfer.fromStatus === "cleared" ? (

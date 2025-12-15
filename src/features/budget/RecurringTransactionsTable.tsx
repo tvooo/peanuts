@@ -1,13 +1,13 @@
-import { AmountCell, HeaderCell } from "@/components/Table";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { Ledger } from "@/models/Ledger";
-import { RecurringTemplate } from "@/models/RecurringTemplate";
-import { formatCurrency } from "@/utils/formatting";
 import { ArrowDown, ArrowDownUp, ArrowUp } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { Fragment, useState } from "react";
 import { RRule } from "rrule";
+import { AmountCell, HeaderCell } from "@/components/Table";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import type { Ledger } from "@/models/Ledger";
+import type { RecurringTemplate } from "@/models/RecurringTemplate";
+import { formatCurrency } from "@/utils/formatting";
 import { RecurringTemplateModal } from "./RecurringTemplateModal";
 
 interface RecurringTransactionsTableProps {

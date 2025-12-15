@@ -1,5 +1,3 @@
-"use client";
-
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { Ledger } from "@/models/Ledger";
@@ -13,6 +11,7 @@ import { LedgerPage } from "./pages/LedgerPage";
 import { OpenPage } from "./pages/OpenPage";
 import { PayeesPage } from "./pages/PayeesPage";
 import { RecurringTransactionsPage } from "./pages/RecurringTransactionsPage";
+import { ReportsPage } from "./pages/ReportsPage";
 
 export interface RecentFile {
   fileHandle: FileSystemFileHandle;
@@ -31,6 +30,7 @@ function AppContent() {
           <Route path="/" element={<OpenPage />} />
           <Route path="/budget" element={<BudgetPage />} />
           <Route path="/recurring" element={<RecurringTransactionsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="/ledger/:accountName" element={<AccountPage />} />
           <Route path="/payees" element={<PayeesPage />} />
@@ -41,9 +41,7 @@ function AppContent() {
 }
 
 export default function App() {
-  const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(
-    null
-  );
+  const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [ledger, setLedger] = useState<Ledger | null>(null);
 
   useEffect(() => {
@@ -82,10 +80,8 @@ export default function App() {
 
         // Update recent files with ledger name
         const recentFiles: RecentFile[] = (await get(`peanuts:recentFileHandles`)) || [];
-        const updated = recentFiles.map(rf =>
-          rf.fileHandle.name === fileHandle.name
-            ? { ...rf, ledgerName: l.name }
-            : rf
+        const updated = recentFiles.map((rf) =>
+          rf.fileHandle.name === fileHandle.name ? { ...rf, ledgerName: l.name } : rf
         );
         await set(`peanuts:recentFileHandles`, updated);
 
@@ -105,8 +101,7 @@ export default function App() {
           if (fh) {
             await verifyPermission(fh, true);
             fileHandleToOpen = fh;
-          }
-          else {
+          } else {
             const result = await window.showOpenFilePicker();
             [fileHandleToOpen] = result;
           }
@@ -114,12 +109,12 @@ export default function App() {
           // Update recent files list
           const recentFiles: RecentFile[] = (await get(`peanuts:recentFileHandles`)) || [];
           // Remove duplicate if exists (compare by name)
-          const filtered = recentFiles.filter(f => f.fileHandle.name !== fileHandleToOpen.name);
+          const filtered = recentFiles.filter((f) => f.fileHandle.name !== fileHandleToOpen.name);
           // Add to front with placeholder name (will be updated after ledger loads)
-          const updated = [
-            { fileHandle: fileHandleToOpen, ledgerName: "" },
-            ...filtered
-          ].slice(0, 10);
+          const updated = [{ fileHandle: fileHandleToOpen, ledgerName: "" }, ...filtered].slice(
+            0,
+            10
+          );
           await set(`peanuts:recentFileHandles`, updated);
 
           setFileHandle(fileHandleToOpen);
@@ -132,10 +127,7 @@ export default function App() {
   );
 }
 
-async function verifyPermission(
-  fileHandle: FileSystemFileHandle,
-  readWrite: boolean
-) {
+async function verifyPermission(fileHandle: FileSystemFileHandle, readWrite: boolean) {
   if (!fileHandle) {
     return false;
   }

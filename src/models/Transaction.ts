@@ -1,12 +1,12 @@
-import { Amount } from "@/utils/types";
 import cuid from "cuid";
 import { endOfToday, isAfter } from "date-fns";
 import { action, computed, observable } from "mobx";
-import { Account } from "./Account";
-import { Budget } from "./Budget";
-import { Ledger } from "./Ledger";
-import { Model, ModelConstructorArgs } from "./Model";
-import { Payee } from "./Payee";
+import type { Amount } from "@/utils/types";
+import type { Account } from "./Account";
+import type { Budget } from "./Budget";
+import type { Ledger } from "./Ledger";
+import { Model, type ModelConstructorArgs } from "./Model";
+import type { Payee } from "./Payee";
 
 export class Transaction extends Model {
   @observable
@@ -50,14 +50,11 @@ export class Transaction extends Model {
       status: this.status,
       date: this.date?.toISOString() || null,
       recurring_template_id: this.recurringTemplateId,
-    }
+    };
   }
 
   addsUp(): boolean {
-    return (
-      this.amount ===
-      this.postings.reduce((sum, posting) => posting.amount + sum, 0)
-    );
+    return this.amount === this.postings.reduce((sum, posting) => posting.amount + sum, 0);
   }
 
   @computed

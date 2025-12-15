@@ -1,6 +1,6 @@
 import { twJoin } from "tailwind-merge";
 
-interface MenuItemProps extends React.ComponentProps<'button'> {
+interface MenuItemProps extends React.ComponentProps<"button"> {
   children: React.ReactNode;
   icon?: React.ReactNode;
   onClick?: () => void;
@@ -8,13 +8,7 @@ interface MenuItemProps extends React.ComponentProps<'button'> {
   badge?: React.ReactNode;
 }
 
-export function MenuItem({
-  children,
-  onClick,
-  icon,
-  isActive,
-  badge = null,
-}: MenuItemProps) {
+export function MenuItem({ children, onClick, icon, isActive, badge = null }: MenuItemProps) {
   return (
     <div
       className={twJoin(

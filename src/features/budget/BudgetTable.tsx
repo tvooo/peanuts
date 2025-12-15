@@ -1,13 +1,13 @@
+import { isSameMonth } from "date-fns";
+import { observer } from "mobx-react-lite";
+import { Fragment, useState } from "react";
 import { AmountCell, HeaderCell } from "@/components/Table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Assignment } from "@/models/Assignment";
-import { Budget } from "@/models/Budget";
-import { Ledger } from "@/models/Ledger";
-import { isSameMonth } from "date-fns";
-import { observer } from "mobx-react-lite";
-import { Fragment, useState } from "react";
+import type { Budget } from "@/models/Budget";
+import type { Ledger } from "@/models/Ledger";
 import { EditBudgetModal } from "./EditBudgetModal";
 
 interface BudgetTableProps {
@@ -15,7 +15,10 @@ interface BudgetTableProps {
   currentMonth: Date;
 }
 
-export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger }: BudgetTableProps) {
+export const BudgetTable = observer(function BudgetTable({
+  currentMonth,
+  ledger,
+}: BudgetTableProps) {
   const [envelope, setEnvelope] = useState<Budget | null>(null);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   return (
@@ -48,7 +51,9 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                 </td>
               </tr>
               {ledger.budgets
-                .filter((budget) => budget.budgetCategory === budgetCategory && !budget.isToBeBudgeted)
+                .filter(
+                  (budget) => budget.budgetCategory === budgetCategory && !budget.isToBeBudgeted
+                )
                 .map((budget, idx) => (
                   <tr
                     className="hover:bg-stone-100 rounded-md border-b border-stone-200 group"
@@ -71,11 +76,10 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                         </Button>
                       </div>
                     </td>
-                    {assignment === ledger.assignments.find(
-                            (a) =>
-                              a.budget === budget &&
-                              isSameMonth(a.date!, currentMonth)
-                          ) ? (
+                    {assignment ===
+                    ledger.assignments.find(
+                      (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
+                    ) ? (
                       <td className="py-2 px-3 pr-2">
                         <Input
                           autoFocus
@@ -94,9 +98,7 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                         className="py-2 px-3 pr-2 text-sm align-middle"
                         onClick={() => {
                           let assignment = ledger.assignments.find(
-                            (a) =>
-                              a.budget === budget &&
-                              isSameMonth(a.date!, currentMonth)
+                            (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
                           );
                           if (!assignment) {
                             assignment = new Assignment({
@@ -111,29 +113,16 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                           setAssignment(assignment);
                         }}
                       >
-                        <AmountCell
-                          amount={ledger.budgetAssignedForMonth(
-                            budget,
-                            currentMonth
-                          )}
-                        />
+                        <AmountCell amount={ledger.budgetAssignedForMonth(budget, currentMonth)} />
                       </td>
                     )}
 
                     <td className="py-2 px-3 pr-2 text-sm">
-                      <AmountCell
-                        amount={ledger.budgetActivityForMonth(
-                          budget,
-                          currentMonth
-                        )}
-                      />
+                      <AmountCell amount={ledger.budgetActivityForMonth(budget, currentMonth)} />
                     </td>
                     <td className="py-2 pr-2">
                       <AmountCell
-                        amount={ledger.budgetAvailableForMonth(
-                          budget,
-                          currentMonth
-                        )}
+                        amount={ledger.budgetAvailableForMonth(budget, currentMonth)}
                         highlightNegativeAmount
                         chip
                       />
@@ -143,7 +132,8 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
             </Fragment>
           ))}
           {/* Uncategorized budgets */}
-          {ledger.budgets.filter((budget) => !budget.budgetCategory && !budget.isToBeBudgeted).length > 0 && (
+          {ledger.budgets.filter((budget) => !budget.budgetCategory && !budget.isToBeBudgeted)
+            .length > 0 && (
             <Fragment>
               <tr className="border-b border-stone-200 bg-stone-50">
                 <td className="p-1 pl-8 w-[64px]" />
@@ -174,11 +164,10 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                         </Button>
                       </div>
                     </td>
-                    {assignment === ledger.assignments.find(
-                            (a) =>
-                              a.budget === budget &&
-                              isSameMonth(a.date!, currentMonth)
-                          ) ? (
+                    {assignment ===
+                    ledger.assignments.find(
+                      (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
+                    ) ? (
                       <td className="py-2 px-3 pr-2">
                         <Input
                           autoFocus
@@ -197,9 +186,7 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                         className="py-2 px-3 pr-2 text-sm align-middle"
                         onClick={() => {
                           let assignment = ledger.assignments.find(
-                            (a) =>
-                              a.budget === budget &&
-                              isSameMonth(a.date!, currentMonth)
+                            (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
                           );
                           if (!assignment) {
                             assignment = new Assignment({
@@ -214,29 +201,16 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
                           setAssignment(assignment);
                         }}
                       >
-                        <AmountCell
-                          amount={ledger.budgetAssignedForMonth(
-                            budget,
-                            currentMonth
-                          )}
-                        />
+                        <AmountCell amount={ledger.budgetAssignedForMonth(budget, currentMonth)} />
                       </td>
                     )}
 
                     <td className="py-2 px-3 pr-2 text-sm">
-                      <AmountCell
-                        amount={ledger.budgetActivityForMonth(
-                          budget,
-                          currentMonth
-                        )}
-                      />
+                      <AmountCell amount={ledger.budgetActivityForMonth(budget, currentMonth)} />
                     </td>
                     <td className="py-2 pr-2">
                       <AmountCell
-                        amount={ledger.budgetAvailableForMonth(
-                          budget,
-                          currentMonth
-                        )}
+                        amount={ledger.budgetAvailableForMonth(budget, currentMonth)}
                         highlightNegativeAmount
                         chip
                       />
@@ -250,4 +224,4 @@ export const BudgetTable = observer(function BudgetTable({ currentMonth, ledger 
       <EditBudgetModal envelope={envelope} setEnvelope={setEnvelope} />
     </>
   );
-})
+});

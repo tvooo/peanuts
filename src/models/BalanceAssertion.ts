@@ -1,6 +1,6 @@
 import { formatDateIsoShort } from "@/utils/formatting";
-import { Balance } from "@/utils/types";
-import { Account } from "./Account";
+import type { Balance } from "@/utils/types";
+import type { Account } from "./Account";
 
 export class BalanceAssertion {
   date: Date;

@@ -24,7 +24,7 @@
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./fonts/InterVariable.woff2') format('woff2');
+  src: url("./fonts/InterVariable.woff2") format("woff2");
 }
 
 @font-face {
@@ -32,9 +32,8 @@
   font-style: italic;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./fonts/InterVariable-Italic.woff2') format('woff2');
+  src: url("./fonts/InterVariable-Italic.woff2") format("woff2");
 }
-
 
 body {
   /* color: rgb(var(--foreground-rgb));
@@ -82,7 +81,7 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
- 
+
   .dark {
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;

@@ -1,10 +1,10 @@
-import { Amount } from "@/utils/types";
 import cuid from "cuid";
 import { endOfToday, isAfter } from "date-fns";
 import { computed, observable } from "mobx";
-import { Account } from "./Account";
-import { Ledger } from "./Ledger";
-import { Model, ModelConstructorArgs } from "./Model";
+import type { Amount } from "@/utils/types";
+import type { Account } from "./Account";
+import type { Ledger } from "./Ledger";
+import { Model, type ModelConstructorArgs } from "./Model";
 
 export class Transfer extends Model {
   @observable
@@ -31,10 +31,8 @@ export class Transfer extends Model {
 
   static fromJSON(json: any, ledger: Ledger) {
     const transfer = new Transfer({ id: json.id, ledger });
-    transfer.fromAccount =
-      ledger.accounts.find((a) => a.id === json.from_account_id) || null;
-    transfer.toAccount =
-      ledger.accounts.find((a) => a.id === json.to_account_id) || null;
+    transfer.fromAccount = ledger.accounts.find((a) => a.id === json.from_account_id) || null;
+    transfer.toAccount = ledger.accounts.find((a) => a.id === json.to_account_id) || null;
     transfer.amount = json.amount;
     transfer.fromStatus = json.from_status;
     transfer.toStatus = json.to_status;
@@ -62,4 +60,3 @@ export class Transfer extends Model {
     return isAfter(this.date, endOfToday());
   }
 }
-

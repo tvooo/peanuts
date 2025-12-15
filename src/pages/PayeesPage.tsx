@@ -1,9 +1,9 @@
-import { AddPayeeModal } from "@/features/budget/AddPayeeModal";
-import { PageLayout } from "@/PageLayout";
-import { useLedger } from "@/utils/useLedger";
 import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
+import { AddPayeeModal } from "@/features/budget/AddPayeeModal";
+import { PageLayout } from "@/PageLayout";
+import { useLedger } from "@/utils/useLedger";
 
 export const PayeesPage = observer(function PayeesPage() {
   const { ledger } = useLedger();
@@ -19,7 +19,6 @@ export const PayeesPage = observer(function PayeesPage() {
   if (!ledger) {
     return null;
   }
-
 
   return (
     <PageLayout>

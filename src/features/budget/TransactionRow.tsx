@@ -1,9 +1,9 @@
-import { AmountCell, BudgetCell } from "@/components/Table";
-import { Transaction } from "@/models/Transaction";
-import { formatDate } from "@/utils/formatting";
-import { useLedger } from "@/utils/useLedger";
 import { ArrowDownToLine, CheckCheck } from "lucide-react";
 import { twJoin } from "tailwind-merge";
+import { AmountCell, BudgetCell } from "@/components/Table";
+import type { Transaction } from "@/models/Transaction";
+import { formatDate } from "@/utils/formatting";
+import { useLedger } from "@/utils/useLedger";
 
 interface TransactionRowProps {
   transaction: Transaction;
@@ -35,12 +35,8 @@ export const TransactionRow = ({
           onClick={(e) => e.stopPropagation()}
         />
       </td>
-      <td className="tabular-nums py-2 px-3 pr-2 text-sm">
-        {formatDate(transaction.date!)}
-      </td>
-      <td className="py-2 px-3 pr-2 text-sm">
-        {transaction.postings[0].payee?.name}
-      </td>
+      <td className="tabular-nums py-2 px-3 pr-2 text-sm">{formatDate(transaction.date!)}</td>
+      <td className="py-2 px-3 pr-2 text-sm">{transaction.postings[0].payee?.name}</td>
       <td className="py-2 px-3 pr-2 text-sm">
         <BudgetCell isInflow={transaction.postings[0].budget?.isToBeBudgeted}>
           {transaction.postings[0].budget?.isToBeBudgeted && (

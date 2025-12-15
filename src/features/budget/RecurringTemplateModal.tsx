@@ -1,5 +1,11 @@
+import { startOfDay } from "date-fns";
+import { ArrowDownToLine } from "lucide-react";
+import { runInAction } from "mobx";
+import { observer } from "mobx-react-lite";
+import { useEffect, useMemo, useState } from "react";
+import { RRule } from "rrule";
+import { Combobox, type ComboboxGroup } from "@/components/Combobox";
 import { Button } from "@/components/ui/button";
-import { Combobox, ComboboxGroup } from "@/components/Combobox";
 import {
   Dialog,
   DialogContent,
@@ -10,25 +16,29 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Account } from "@/models/Account";
+import type { Account } from "@/models/Account";
 import { Budget } from "@/models/Budget";
 import { Payee } from "@/models/Payee";
 import { RecurringTemplate } from "@/models/RecurringTemplate";
 import { formatDateIsoShort } from "@/utils/formatting";
-import { useLedger } from "@/utils/useLedger";
 import { processRecurringTemplates } from "@/utils/recurringTransactions";
-import { ArrowDownToLine } from "lucide-react";
-import { runInAction } from "mobx";
-import { observer } from "mobx-react-lite";
-import { useEffect, useMemo, useState } from "react";
-import { RRule } from "rrule";
-import { startOfDay } from "date-fns";
+import { useLedger } from "@/utils/useLedger";
 
 type FrequencyType = "weekly" | "biweekly" | "monthly" | "yearly";
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const WEEKDAYS = [
@@ -48,7 +58,7 @@ interface RecurringTemplateModalProps {
 
 export const RecurringTemplateModal = observer(function RecurringTemplateModal({
   template: externalTemplate,
-  onOpenChange
+  onOpenChange,
 }: RecurringTemplateModalProps = {}) {
   const { ledger } = useLedger();
   const [internalTemplate, setInternalTemplate] = useState<RecurringTemplate | null>(null);
@@ -75,7 +85,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
   const [endDate, setEndDate] = useState<Date | null>(null);
 
   // Check if we're editing an existing template (it exists in the ledger)
-  const isEditing = template && ledger?.recurringTemplates.some(t => t.id === template.id);
+  const isEditing = template && ledger?.recurringTemplates.some((t) => t.id === template.id);
 
   // When template changes, populate the form
   useEffect(() => {
@@ -100,9 +110,10 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
         if (rule.options.byweekday && rule.options.byweekday.length > 0) {
           // Handle both Weekday objects and plain numbers
           const weekdayValue = rule.options.byweekday[0];
-          const weekdayNum = typeof weekdayValue === 'number'
-            ? weekdayValue
-            : weekdayValue?.weekday ?? RRule.MO.weekday;
+          const weekdayNum =
+            typeof weekdayValue === "number"
+              ? weekdayValue
+              : (weekdayValue?.weekday ?? RRule.MO.weekday);
           setDayOfWeek(weekdayNum);
         }
       } else if (freq === RRule.MONTHLY) {
@@ -163,12 +174,14 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
     if (inflowBudget) {
       groups.push({
         label: "",
-        options: [{
-          id: inflowBudget.id,
-          label: "Inflow",
-          budget: inflowBudget,
-          icon: <ArrowDownToLine className="mr-1.5" size={14} />,
-        }],
+        options: [
+          {
+            id: inflowBudget.id,
+            label: "Inflow",
+            budget: inflowBudget,
+            icon: <ArrowDownToLine className="mr-1.5" size={14} />,
+          },
+        ],
       });
     }
 
@@ -202,7 +215,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
 
   // Generate RRULE string based on current settings
   const generateRRuleString = (): string => {
-    const weekdayStr = WEEKDAYS.find(w => w.value.weekday === dayOfWeek)?.value.toString();
+    const weekdayStr = WEEKDAYS.find((w) => w.value.weekday === dayOfWeek)?.value.toString();
 
     if (frequency === "weekly") {
       return `FREQ=WEEKLY;BYDAY=${weekdayStr}`;
@@ -368,9 +381,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
             "col-span-2 h-9 rounded-md text-sm font-medium transition-colors",
             "hover:bg-accent hover:text-accent-foreground",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            isLastDay
-              ? "bg-primary text-primary-foreground"
-              : "bg-background border border-input"
+            isLastDay ? "bg-primary text-primary-foreground" : "bg-background border border-input"
           )}
         >
           Last day
@@ -393,7 +404,8 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
           <DialogHeader>
             <DialogTitle>{isEditing ? "Edit" : "New"} Recurring Transaction</DialogTitle>
             <DialogDescription>
-              {isEditing ? "Update this" : "Create a"} recurring transaction template that will automatically generate transactions based on a schedule.
+              {isEditing ? "Update this" : "Create a"} recurring transaction template that will
+              automatically generate transactions based on a schedule.
             </DialogDescription>
           </DialogHeader>
 
@@ -412,16 +424,18 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
                   )}
                   value={account?.id || ""}
                   onChange={(e) => {
-                    const acc = ledger?.accounts.find(a => a.id === e.target.value);
+                    const acc = ledger?.accounts.find((a) => a.id === e.target.value);
                     setAccount(acc || null);
                   }}
                 >
                   <option value="">Select account...</option>
-                  {ledger?.accounts.filter(a => !a.archived && a.type === "budget").map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name}
-                    </option>
-                  ))}
+                  {ledger?.accounts
+                    .filter((a) => !a.archived && a.type === "budget")
+                    .map((acc) => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.name}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -429,11 +443,13 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
                 <label className="text-right text-sm">Payee</label>
                 <div className="col-span-3">
                   <Combobox
-                    options={ledger?.payees.map((p) => ({
-                      id: p.id,
-                      label: p.name,
-                      payee: p,
-                    })) || []}
+                    options={
+                      ledger?.payees.map((p) => ({
+                        id: p.id,
+                        label: p.name,
+                        payee: p,
+                      })) || []
+                    }
                     value={
                       payee
                         ? {
@@ -475,7 +491,9 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
                             id: budget.id,
                             label: budget.isToBeBudgeted ? "Inflow" : budget.name,
                             budget: budget,
-                            icon: budget.isToBeBudgeted ? <ArrowDownToLine className="mr-1.5" size={14} /> : undefined,
+                            icon: budget.isToBeBudgeted ? (
+                              <ArrowDownToLine className="mr-1.5" size={14} />
+                            ) : undefined,
                           }
                         : null
                     }
@@ -585,18 +603,14 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
               {(frequency === "weekly" || frequency === "biweekly") && (
                 <div className="grid grid-cols-4 items-start gap-4">
                   <label className="text-right text-sm mt-2">Day of week</label>
-                  <div className="col-span-3">
-                    {renderWeekdaySelector()}
-                  </div>
+                  <div className="col-span-3">{renderWeekdaySelector()}</div>
                 </div>
               )}
 
               {(frequency === "monthly" || frequency === "yearly") && (
                 <div className="grid grid-cols-4 items-start gap-4">
                   <label className="text-right text-sm mt-2">Day of month</label>
-                  <div className="col-span-3">
-                    {renderDaySelector()}
-                  </div>
+                  <div className="col-span-3">{renderDaySelector()}</div>
                 </div>
               )}
 
@@ -658,10 +672,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => resetForm()}
-            >
+            <Button variant="outline" onClick={() => resetForm()}>
               Cancel
             </Button>
             <Button

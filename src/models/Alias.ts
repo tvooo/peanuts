@@ -1,4 +1,3 @@
-
 export class Alias {
   shorthand: string;
   name: string;

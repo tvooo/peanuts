@@ -1,9 +1,9 @@
-import { Balance } from "@/utils/types";
-import cuid from 'cuid';
+import cuid from "cuid";
 import { computed, observable } from "mobx";
-import { Ledger } from "./Ledger";
+import type { Balance } from "@/utils/types";
+import type { Ledger } from "./Ledger";
 import { Model } from "./Model";
-import { Transaction } from "./Transaction";
+import type { Transaction } from "./Transaction";
 
 export class Account extends Model {
   @observable
@@ -17,11 +17,11 @@ export class Account extends Model {
 
   private balance: number = 0;
 
-  constructor({ id, ledger }: { id: string | null, ledger: Ledger }) {
+  constructor({ id, ledger }: { id: string | null; ledger: Ledger }) {
     super({
       id: id || cuid(),
-      ledger
-    })
+      ledger,
+    });
   }
 
   static fromJSON(json: any, ledger: Ledger): Account {
@@ -29,7 +29,7 @@ export class Account extends Model {
     account.name = json.name;
     account.type = json.type || "budget";
     account.archived = json.archived || false;
-    account.balance = 0
+    account.balance = 0;
     return account;
   }
 
@@ -39,7 +39,7 @@ export class Account extends Model {
       name: this.name,
       type: this.type,
       archived: this.archived,
-    }
+    };
   }
 
   toString() {
@@ -47,7 +47,7 @@ export class Account extends Model {
   }
 
   processTransaction(transaction: Transaction) {
-    this.balance += transaction.amount
+    this.balance += transaction.amount;
   }
 
   @computed

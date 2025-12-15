@@ -1,9 +1,9 @@
-import { Amount } from "@/utils/types";
 import cuid from "cuid";
 import { action, observable } from "mobx";
-import { Budget } from "./Budget";
-import { Ledger } from "./Ledger";
-import { Model, ModelConstructorArgs } from "./Model";
+import type { Amount } from "@/utils/types";
+import type { Budget } from "./Budget";
+import type { Ledger } from "./Ledger";
+import { Model, type ModelConstructorArgs } from "./Model";
 
 export class Assignment extends Model {
   @observable

@@ -1,9 +1,9 @@
-import { Ledger } from "@/models/Ledger";
-import { RecurringTemplate } from "@/models/RecurringTemplate";
-import { Transaction, TransactionPosting } from "@/models/Transaction";
 import cuid from "cuid";
 import { isAfter, isSameDay, startOfDay } from "date-fns";
 import { runInAction } from "mobx";
+import type { Ledger } from "@/models/Ledger";
+import type { RecurringTemplate } from "@/models/RecurringTemplate";
+import { Transaction, TransactionPosting } from "@/models/Transaction";
 
 export function processRecurringTemplates(ledger: Ledger) {
   console.log("Processing recurring templates...");
@@ -16,9 +16,11 @@ export function processRecurringTemplates(ledger: Ledger) {
 
       // Check if we have a transaction scheduled for nextScheduledDate or later
       const hasFutureInstance = ledger.transactions.some(
-        t => t.recurringTemplateId === template.id &&
-             t.date &&
-             (isSameDay(t.date, template.nextScheduledDate) || isAfter(t.date, template.nextScheduledDate))
+        (t) =>
+          t.recurringTemplateId === template.id &&
+          t.date &&
+          (isSameDay(t.date, template.nextScheduledDate) ||
+            isAfter(t.date, template.nextScheduledDate))
       );
 
       // If no future instance exists, create one
@@ -57,5 +59,7 @@ function createTransactionFromTemplate(ledger: Ledger, template: RecurringTempla
   transaction.status = "open";
   ledger.transactions.push(transaction);
 
-  console.log(`Created recurring transaction for ${template.account?.name} on ${transaction.date.toDateString()}`);
+  console.log(
+    `Created recurring transaction for ${template.account?.name} on ${transaction.date.toDateString()}`
+  );
 }

@@ -1,6 +1,6 @@
 // export * from './attendees'
-export * from './base'
-export * from './date'
+export * from "./base";
+export * from "./date";
 // export * from './duration'
 // export * from './location'
 // export * from './time'

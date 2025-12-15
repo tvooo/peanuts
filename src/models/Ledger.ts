@@ -1,15 +1,11 @@
+import { endOfMonth, isBefore, isSameMonth } from "date-fns";
+import { action, computed, observable } from "mobx";
 import { Account } from "@/models/Account";
 import { Budget, BudgetCategory } from "@/models/Budget";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
-import { Balance } from "@/utils/types";
-import {
-  endOfMonth,
-  isBefore,
-  isSameMonth
-} from "date-fns";
-import { action, computed, observable } from "mobx";
+import type { Balance } from "@/utils/types";
 import { Assignment } from "./Assignment";
-import { BalanceAssertion } from "./BalanceAssertion";
+import type { BalanceAssertion } from "./BalanceAssertion";
 import { Payee } from "./Payee";
 import { RecurringTemplate } from "./RecurringTemplate";
 import { Transfer } from "./Transfer";
@@ -43,7 +39,7 @@ export class Ledger {
   source: string = "";
   name: string = "";
   fileName: string = "";
-  currency: string = "EUR"
+  currency: string = "EUR";
   currencyFormat = "{amount} {code}";
 
   budgetCategories: BudgetCategory[] = [];
@@ -88,9 +84,7 @@ export class Ledger {
 
     if (collections.recurring_templates) {
       collections.recurring_templates.forEach((t: any) => {
-        ledger.recurringTemplates.push(
-          RecurringTemplate.fromJSON(t, ledger)
-        );
+        ledger.recurringTemplates.push(RecurringTemplate.fromJSON(t, ledger));
       });
     }
 
@@ -131,7 +125,7 @@ export class Ledger {
   getBudgetByID(id: string): Budget | undefined {
     return this._budgets.find((a) => a.id === id);
   }
-  
+
   getBudgetCategoryByID(id: string): BudgetCategory | undefined {
     return this.budgetCategories.find((a) => a.id === id);
   }
@@ -167,7 +161,7 @@ export class Ledger {
   }
 
   activityForMonth(date: Date): Balance {
-    let activity = this.transactions
+    const activity = this.transactions
       .filter((t) => isBefore(t.date, endOfMonth(date)))
       // Exclude tracking accounts from budget calculations
       .filter((t) => t.account?.type !== "tracking")
@@ -207,7 +201,6 @@ export class Ledger {
         .filter((p) => p.budget !== budget)
         .forEach((a) => {
           assigned -= a.amount;
-          
         });
     } else {
       this.assignments

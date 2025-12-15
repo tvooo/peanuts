@@ -1,9 +1,3 @@
-import { HeaderCell } from "@/components/Table";
-import { Account } from "@/models/Account";
-import { BalanceAssertion } from "@/models/BalanceAssertion";
-import { Ledger } from "@/models/Ledger";
-import { Transaction } from "@/models/Transaction";
-import { Transfer } from "@/models/Transfer";
 import {
   createColumnHelper,
   flexRender,
@@ -16,6 +10,12 @@ import { CheckCheck } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useMemo } from "react";
 import { twJoin } from "tailwind-merge";
+import { HeaderCell } from "@/components/Table";
+import type { Account } from "@/models/Account";
+import type { BalanceAssertion } from "@/models/BalanceAssertion";
+import type { Ledger } from "@/models/Ledger";
+import { Transaction } from "@/models/Transaction";
+import { Transfer } from "@/models/Transfer";
 import { BalanceAssertionRow } from "./BalanceAssertionRow";
 import { TransactionFormRow } from "./TransactionFormRow";
 import { TransactionRow } from "./TransactionRow";
@@ -56,10 +56,7 @@ export const TransactionsTable = observer(function TransactionsTable({
   onToggleSelection,
 }: TransactionsTableProps) {
   // Get and sort data - no useMemo to allow MobX reactivity
-  const data = sortBy(
-    ledger.transactionsAndBalancesForAccount(currentAccount),
-    "date"
-  ).reverse();
+  const data = sortBy(ledger.transactionsAndBalancesForAccount(currentAccount), "date").reverse();
 
   // Define columns - we'll use custom row rendering, so columns are mainly for structure
   const columns = useMemo(
@@ -126,19 +123,13 @@ export const TransactionsTable = observer(function TransactionsTable({
                 header.id === "checkbox"
                   ? "p-1 pl-8 w-[64px]"
                   : header.id === "cleared"
-                  ? "pr-2"
-                  : "px-3 pr-2";
+                    ? "pr-2"
+                    : "px-3 pr-2";
               return (
-                <th
-                  key={header.id}
-                  className={twJoin("", headerClasses)}
-                >
+                <th key={header.id} className={twJoin("", headerClasses)}>
                   {header.isPlaceholder
                     ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                    : flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
               );
             })}

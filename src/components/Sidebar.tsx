@@ -1,6 +1,18 @@
-import { useLedger } from "@/utils/useLedger";
-import { Archive, CalendarSync, ChartSpline, ChevronDown, PiggyBank, Plus, Save, Users, Wallet } from "lucide-react";
-
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@radix-ui/react-collapsible";
+import {
+  Archive,
+  BarChart3,
+  CalendarSync,
+  ChartSpline,
+  ChevronDown,
+  PiggyBank,
+  Plus,
+  Save,
+  Users,
+  Wallet,
+} from "lucide-react";
+import { useState } from "react";
+import { Link, NavLink, useLocation } from "react-router";
 import {
   Sidebar,
   SidebarContent,
@@ -12,14 +24,12 @@ import {
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
-  SidebarMenuItem
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { formatCurrency } from "@/utils/formatting";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@radix-ui/react-collapsible";
-import { Link, NavLink, useLocation } from "react-router";
-import { Button } from "./ui/button";
+import { useLedger } from "@/utils/useLedger";
 import { CreateAccountModal } from "./CreateAccountModal";
-import { useState } from "react";
+import { Button } from "./ui/button";
 
 // Menu items.
 const items = [
@@ -28,7 +38,8 @@ const items = [
     url: "/budget",
     icon: Wallet,
     //indicator: <div className="w-2 h-2 rounded-md bg-green-600" />,
-    indicator: null,},
+    indicator: null,
+  },
   // {
   //   title: "Ledger",
   //   url: "/ledger",
@@ -42,6 +53,12 @@ const items = [
     indicator: null,
   },
   {
+    title: "Reports",
+    url: "/reports",
+    icon: BarChart3,
+    indicator: null,
+  },
+  {
     title: "Payees",
     url: "/payees",
     icon: Users,
@@ -52,7 +69,7 @@ const items = [
 export function AppSidebar() {
   const { ledger, openLedger, fileHandle } = useLedger();
   const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
-  let location = useLocation();
+  const location = useLocation();
   return (
     <Sidebar>
       <SidebarHeader>
@@ -60,14 +77,14 @@ export function AppSidebar() {
           <SidebarMenuItem>
             {/* <DropdownMenu>
               <DropdownMenuTrigger asChild> */}
-                <SidebarMenuButton>
-                  <div className="w-7 h-7 my-2 rounded-2xl bg-green-600 flex items-center justify-center">
-                    <PiggyBank size={16} color="white" />
-                  </div>
-                  <strong>{ledger?.name}</strong>
-                  {/* <ChevronsUpDown size={16} className="ml-auto" /> */}
-                </SidebarMenuButton>
-              {/* </DropdownMenuTrigger>
+            <SidebarMenuButton>
+              <div className="w-7 h-7 my-2 rounded-2xl bg-green-600 flex items-center justify-center">
+                <PiggyBank size={16} color="white" />
+              </div>
+              <strong>{ledger?.name}</strong>
+              {/* <ChevronsUpDown size={16} className="ml-auto" /> */}
+            </SidebarMenuButton>
+            {/* </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[--radix-popper-anchor-width]">
                 <DropdownMenuItem>
                   <SaveIcon size={16} />
@@ -88,18 +105,13 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.url}
-                  >
+                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
                     <NavLink to={item.url} end>
                       <item.icon size={16} />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
-                  {item.indicator && (
-                    <SidebarMenuBadge>{item.indicator}</SidebarMenuBadge>
-                  )}
+                  {item.indicator && <SidebarMenuBadge>{item.indicator}</SidebarMenuBadge>}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -122,30 +134,34 @@ export function AppSidebar() {
                 <CollapsibleContent>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {ledger.accounts.filter(a => !a.archived && a.type === "budget").map((account, idx) => (
-                        <SidebarMenuItem key={account.name}>
-                          <SidebarMenuButton
-                            asChild
-                            isActive={
-                              decodeURIComponent(location.pathname) === `/ledger/${account.name}`
-                            }
-                          >
-                            <Link to={`/ledger/${account.name}`} className="justify-between">
-                              <span className="truncate" title={account.name}>{account.name}</span>
-                              <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 flex-shrink-0">
-                                {formatCurrency(account.currentBalance)}
-                              </span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
+                      {ledger.accounts
+                        .filter((a) => !a.archived && a.type === "budget")
+                        .map((account, idx) => (
+                          <SidebarMenuItem key={account.name}>
+                            <SidebarMenuButton
+                              asChild
+                              isActive={
+                                decodeURIComponent(location.pathname) === `/ledger/${account.name}`
+                              }
+                            >
+                              <Link to={`/ledger/${account.name}`} className="justify-between">
+                                <span className="truncate" title={account.name}>
+                                  {account.name}
+                                </span>
+                                <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 flex-shrink-0">
+                                  {formatCurrency(account.currentBalance)}
+                                </span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </CollapsibleContent>
               </SidebarGroup>
             </Collapsible>
             {/* Tracking Accounts */}
-            {ledger.accounts.some(a => !a.archived && a.type === "tracking") && (
+            {ledger.accounts.some((a) => !a.archived && a.type === "tracking") && (
               <Collapsible defaultOpen className="group/collapsible">
                 <SidebarGroup>
                   <SidebarGroupLabel asChild>
@@ -161,23 +177,28 @@ export function AppSidebar() {
                   <CollapsibleContent>
                     <SidebarGroupContent>
                       <SidebarMenu>
-                        {ledger.accounts.filter(a => !a.archived && a.type === "tracking").map((account, idx) => (
-                          <SidebarMenuItem key={account.name}>
-                            <SidebarMenuButton
-                              asChild
-                              isActive={
-                                decodeURIComponent(location.pathname) === `/ledger/${account.name}`
-                              }
-                            >
-                              <Link to={`/ledger/${account.name}`} className="justify-between">
-                                <span className="truncate" title={account.name}>{account.name}</span>
-                                <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 flex-shrink-0">
-                                  {formatCurrency(account.currentBalance)}
-                                </span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
+                        {ledger.accounts
+                          .filter((a) => !a.archived && a.type === "tracking")
+                          .map((account, idx) => (
+                            <SidebarMenuItem key={account.name}>
+                              <SidebarMenuButton
+                                asChild
+                                isActive={
+                                  decodeURIComponent(location.pathname) ===
+                                  `/ledger/${account.name}`
+                                }
+                              >
+                                <Link to={`/ledger/${account.name}`} className="justify-between">
+                                  <span className="truncate" title={account.name}>
+                                    {account.name}
+                                  </span>
+                                  <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 flex-shrink-0">
+                                    {formatCurrency(account.currentBalance)}
+                                  </span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
                       </SidebarMenu>
                     </SidebarGroupContent>
                   </CollapsibleContent>
@@ -185,7 +206,7 @@ export function AppSidebar() {
               </Collapsible>
             )}
             {/* Archived Accounts */}
-            {ledger.accounts.some(a => a.archived) && (
+            {ledger.accounts.some((a) => a.archived) && (
               <Collapsible className="group/collapsible">
                 <SidebarGroup>
                   <SidebarGroupLabel asChild>
@@ -201,23 +222,31 @@ export function AppSidebar() {
                   <CollapsibleContent>
                     <SidebarGroupContent>
                       <SidebarMenu>
-                        {ledger.accounts.filter(a => a.archived).map((account, idx) => (
-                          <SidebarMenuItem key={account.name}>
-                            <SidebarMenuButton
-                              asChild
-                              isActive={
-                                decodeURIComponent(location.pathname) === `/ledger/${account.name}`
-                              }
-                            >
-                              <Link to={`/ledger/${account.name}`} className="text-muted-foreground justify-between">
-                                <span className="truncate" title={account.name}>{account.name}</span>
-                                <span className="text-xs tabular-nums ml-2 flex-shrink-0">
-                                  {formatCurrency(account.currentBalance)}
-                                </span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
+                        {ledger.accounts
+                          .filter((a) => a.archived)
+                          .map((account, idx) => (
+                            <SidebarMenuItem key={account.name}>
+                              <SidebarMenuButton
+                                asChild
+                                isActive={
+                                  decodeURIComponent(location.pathname) ===
+                                  `/ledger/${account.name}`
+                                }
+                              >
+                                <Link
+                                  to={`/ledger/${account.name}`}
+                                  className="text-muted-foreground justify-between"
+                                >
+                                  <span className="truncate" title={account.name}>
+                                    {account.name}
+                                  </span>
+                                  <span className="text-xs tabular-nums ml-2 flex-shrink-0">
+                                    {formatCurrency(account.currentBalance)}
+                                  </span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
                       </SidebarMenu>
                     </SidebarGroupContent>
                   </CollapsibleContent>
@@ -228,14 +257,11 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter>
-        <Button
-          variant="secondary"
-          onClick={() => setIsCreateAccountOpen(true)}
-        >
+        <Button variant="secondary" onClick={() => setIsCreateAccountOpen(true)}>
           <Plus size={16} /> New Account
         </Button>
         <Button
-        variant="secondary"
+          variant="secondary"
           onClick={async () => {
             console.log(ledger!.toJSON());
           }}
@@ -252,10 +278,7 @@ export function AppSidebar() {
           <Save size={16} /> Save
         </Button>
       </SidebarFooter>
-      <CreateAccountModal
-        open={isCreateAccountOpen}
-        onOpenChange={setIsCreateAccountOpen}
-      />
+      <CreateAccountModal open={isCreateAccountOpen} onOpenChange={setIsCreateAccountOpen} />
     </Sidebar>
   );
 }

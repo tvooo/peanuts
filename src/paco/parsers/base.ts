@@ -1,4 +1,4 @@
-import { Parser, Token, TokenType } from "../types";
+import { type Parser, type Token, TokenType } from "../types";
 
 export const apply =
   (p: Parser, fn: Function): Parser =>
@@ -42,14 +42,10 @@ export const seq =
   (...parsers: Parser[]): Parser =>
   (_tokens) => {
     let success = true;
-    let tokens = [..._tokens];
-    let result: Token[] = [];
+    const tokens = [..._tokens];
+    const result: Token[] = [];
 
-    for (
-      let parserPos = 0, tokenPos = 0;
-      parserPos < parsers.length;
-      parserPos++
-    ) {
+    for (let parserPos = 0, tokenPos = 0; parserPos < parsers.length; parserPos++) {
       const token = tokens[tokenPos] as Token;
       if (!token) {
         return undefined;
@@ -63,7 +59,6 @@ export const seq =
         }
         tokenPos++;
         result.push(res);
-        continue;
       } else {
         success = false;
         break;
@@ -78,8 +73,8 @@ export const seq =
 export const until =
   (untilParser: Parser): Parser =>
   (_tokens) => {
-    let tokens = [..._tokens];
-    let result: Token[] = [];
+    const tokens = [..._tokens];
+    const result: Token[] = [];
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i] as Token;
       if (!token) {

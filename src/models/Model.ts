@@ -1,5 +1,5 @@
 import { observable } from "mobx";
-import { Ledger } from "./Ledger";
+import type { Ledger } from "./Ledger";
 
 export interface ModelConstructorArgs {
   id: string | null;
