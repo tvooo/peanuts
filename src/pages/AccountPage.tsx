@@ -1,49 +1,49 @@
-import { Button } from "@/components/ui/button";
-import { TransactionsTable } from "@/features/budget/TransactionsTable";
-import { Transaction, TransactionPosting } from "@/models/Transaction";
-import { PageLayout } from "@/PageLayout";
-import { formatCurrency } from "@/utils/formatting";
-import { useLedger } from "@/utils/useLedger";
 import { startOfToday } from "date-fns";
 import { Archive, Eye } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { Button } from "@/components/ui/button";
+import { TransactionsTable } from "@/features/budget/TransactionsTable";
+import { Transaction, TransactionPosting } from "@/models/Transaction";
+import { PageLayout } from "@/PageLayout";
+import { formatCurrency } from "@/utils/formatting";
+import { useLedger } from "@/utils/useLedger";
 
 export const AccountPage = observer(function AccountPage() {
-  const {ledger} = useLedger();
+  const { ledger } = useLedger();
   const params = useParams();
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
-    const currentAccount = ledger?.getAccount(params.accountName || "");
+  const currentAccount = ledger?.getAccount(params.accountName || "");
 
-    useEffect(() => {
-      if(!ledger) {
-        navigate("/");
-        return
-      }
+  useEffect(() => {
+    if (!ledger) {
+      navigate("/");
+      return;
+    }
 
-      if(!currentAccount) {
-        navigate("/");
-        return
-      }
-    }, [ledger, currentAccount, navigate])
+    if (!currentAccount) {
+      navigate("/");
+      return;
+    }
+  }, [ledger, currentAccount, navigate]);
 
-    // Clear selection when account changes
-    useEffect(() => {
-      setSelectedIds(new Set());
-    }, [currentAccount]);
+  // Clear selection when account changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentAccount]);
 
   if (!ledger || !currentAccount) {
-    return null
+    return null;
   }
 
   // Get all selectable items (transactions + transfers, not balance assertions)
-  const allSelectableItems = ledger.transactionsAndBalancesForAccount(currentAccount)
-    .filter((item) => item instanceof Transaction || item.hasOwnProperty('fromAccount'));
+  const allSelectableItems = ledger
+    .transactionsAndBalancesForAccount(currentAccount)
+    .filter((item) => item instanceof Transaction || Object.hasOwn(item, "fromAccount"));
 
   const allSelectableIds = allSelectableItems
     .map((item) => item.id)
@@ -115,9 +115,7 @@ export const AccountPage = observer(function AccountPage() {
         {/* Fixed header - Account info */}
         <div className="flex justify-between items-center px-8 py-4 shrink-0">
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold">
-              {currentAccount.name}
-            </h2>
+            <h2 className="text-2xl font-bold">{currentAccount.name}</h2>
             {currentAccount.type === "tracking" && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-sm font-medium">
                 <Eye size={14} />
@@ -154,44 +152,31 @@ export const AccountPage = observer(function AccountPage() {
         {/* Fixed header - Bulk actions and new transaction button */}
         <div className="flex justify-between items-center px-8 py-4 shrink-0">
           <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={handleSelectAll}
-            >
+            <Button variant="secondary" onClick={handleSelectAll}>
               Select All
             </Button>
-            <Button
-              variant="destructive"
-              disabled={selectedIds.size === 0}
-              onClick={handleDelete}
-            >
+            <Button variant="destructive" disabled={selectedIds.size === 0} onClick={handleDelete}>
               Delete
             </Button>
           </div>
           <Button
             onClick={() => {
-              if(editingTransaction) {
-                return
+              if (editingTransaction) {
+                return;
               }
 
-              const transactionPosting = new TransactionPosting(
-                { ledger: ledger!, id: null },
-              );
-              transactionPosting.budget = null
+              const transactionPosting = new TransactionPosting({ ledger: ledger!, id: null });
+              transactionPosting.budget = null;
               transactionPosting.amount = 0;
               transactionPosting.note = "";
-              transactionPosting.payee = null
+              transactionPosting.payee = null;
               ledger.transactionPostings.push(transactionPosting);
 
-
-              const transaction = new Transaction(
-                { ledger: ledger!, id: null },
-              );
+              const transaction = new Transaction({ ledger: ledger!, id: null });
               transaction.account = currentAccount;
               transaction.postings.push(transactionPosting);
-              transaction.date = startOfToday()
+              transaction.date = startOfToday();
               ledger.transactions.push(transaction);
-
 
               setEditingTransaction(transaction);
             }}
@@ -214,4 +199,4 @@ export const AccountPage = observer(function AccountPage() {
       </div>
     </PageLayout>
   );
-})
+});

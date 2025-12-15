@@ -1,3 +1,8 @@
+import { del, get, set } from "idb-keyval";
+import { ChevronRight, FolderOpen, Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import type { RecentFile } from "@/App";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,11 +13,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useLedger } from "@/utils/useLedger";
-import { del, get, set } from "idb-keyval";
-import { ChevronRight, FolderOpen, Plus, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
-import { RecentFile } from "@/App";
 
 export const OpenPage = () => {
   const { ledger, openLedger, fileHandle } = useLedger();
@@ -20,7 +20,7 @@ export const OpenPage = () => {
   const [files, setFiles] = useState<RecentFile[]>([]);
 
   const removeFile = async (recentFileToRemove: RecentFile) => {
-    const updated = files.filter(f => f.fileHandle.name !== recentFileToRemove.fileHandle.name);
+    const updated = files.filter((f) => f.fileHandle.name !== recentFileToRemove.fileHandle.name);
     setFiles(updated);
     if (updated.length > 0) {
       await set(`peanuts:recentFileHandles`, updated);
@@ -48,24 +48,17 @@ export const OpenPage = () => {
       <Card className="w-[350px]">
         <CardHeader>
           <CardTitle>Open or Create Ledger</CardTitle>
-          <CardDescription>
-            Manage your budget using the envelope method.
-          </CardDescription>
+          <CardDescription>Manage your budget using the envelope method.</CardDescription>
         </CardHeader>
         <CardContent>
           {files.length > 0 ? (
             <>
               <div className="text-sm font-semibold mb-2">Recently opened</div>
               {files.map((recentFile, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 p-2 hover:bg-muted rounded-md"
-                >
+                <div key={idx} className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
                   <div className="flex-1 min-w-0">
                     {recentFile.ledgerName && (
-                      <div className="text-sm font-medium truncate">
-                        {recentFile.ledgerName}
-                      </div>
+                      <div className="text-sm font-medium truncate">{recentFile.ledgerName}</div>
                     )}
                     <div className="text-xs font-mono text-muted-foreground truncate">
                       {recentFile.fileHandle.name}
@@ -96,7 +89,9 @@ export const OpenPage = () => {
           ) : (
             <div className="text-center py-6 text-muted-foreground text-sm">
               <p>No recent files</p>
-              <p className="text-xs mt-1">Open an existing ledger or create a new one to get started</p>
+              <p className="text-xs mt-1">
+                Open an existing ledger or create a new one to get started
+              </p>
             </div>
           )}
         </CardContent>
@@ -107,7 +102,7 @@ export const OpenPage = () => {
             </Button>
             <Button
               onClick={async () => {
-                await createEmptyLedger()
+                await createEmptyLedger();
               }}
               className="ml-auto"
               variant="secondary"

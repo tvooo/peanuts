@@ -1,57 +1,55 @@
-import { Combobox, ComboboxGroup } from "@/components/Combobox";
-import { cn } from "@/lib/utils";
-import { Budget } from "@/models/Budget";
-import { Payee } from "@/models/Payee";
-import { Transaction } from "@/models/Transaction";
-import { formatDateIsoShort } from "@/utils/formatting";
-import { useLedger } from "@/utils/useLedger";
 import { ArrowDownToLine, Check, X } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
+import { Combobox, type ComboboxGroup } from "@/components/Combobox";
+import { cn } from "@/lib/utils";
+import { Budget } from "@/models/Budget";
+import { Payee } from "@/models/Payee";
+import type { Transaction } from "@/models/Transaction";
+import { formatDateIsoShort } from "@/utils/formatting";
+import { useLedger } from "@/utils/useLedger";
 
 // Form Input component with white background
-const FormInput = React.forwardRef<
-  HTMLInputElement,
-  React.ComponentProps<"input">
->(({ className, ...props }, ref) => {
-  return (
-    <input
-      className={cn(
-        "h-9 w-full rounded-md border border-input bg-white px-3 py-1",
-        "text-sm shadow-sm transition-colors",
-        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
-      ref={ref}
-      {...props}
-    />
-  );
-});
+const FormInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+  ({ className, ...props }, ref) => {
+    return (
+      <input
+        className={cn(
+          "h-9 w-full rounded-md border border-input bg-white px-3 py-1",
+          "text-sm shadow-sm transition-colors",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
 FormInput.displayName = "FormInput";
 
 // Form Select component with white background
-const FormSelect = React.forwardRef<
-  HTMLSelectElement,
-  React.ComponentProps<"select">
->(({ className, children, ...props }, ref) => {
-  return (
-    <select
-      className={cn(
-        "h-9 w-full rounded-md border border-input bg-white px-3 py-1",
-        "text-sm shadow-sm transition-colors",
-        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
-      ref={ref}
-      {...props}
-    >
-      {children}
-    </select>
-  );
-});
+const FormSelect = React.forwardRef<HTMLSelectElement, React.ComponentProps<"select">>(
+  ({ className, children, ...props }, ref) => {
+    return (
+      <select
+        className={cn(
+          "h-9 w-full rounded-md border border-input bg-white px-3 py-1",
+          "text-sm shadow-sm transition-colors",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
+        ref={ref}
+        {...props}
+      >
+        {children}
+      </select>
+    );
+  }
+);
 FormSelect.displayName = "FormSelect";
 
 interface TransactionFormRowProps {
@@ -95,12 +93,14 @@ export const TransactionFormRow = observer(function TransactionFormRow({
     if (inflowBudget) {
       groups.push({
         label: "",
-        options: [{
-          id: inflowBudget.id,
-          label: "Inflow",
-          budget: inflowBudget,
-          icon: <ArrowDownToLine className="mr-1.5" size={14} />,
-        }],
+        options: [
+          {
+            id: inflowBudget.id,
+            label: "Inflow",
+            budget: inflowBudget,
+            icon: <ArrowDownToLine className="mr-1.5" size={14} />,
+          },
+        ],
       });
     }
 
@@ -194,7 +194,9 @@ export const TransactionFormRow = observer(function TransactionFormRow({
                   id: posting.budget.id,
                   label: posting.budget.isToBeBudgeted ? "Inflow" : posting.budget.name,
                   budget: posting.budget,
-                  icon: posting.budget.isToBeBudgeted ? <ArrowDownToLine className="mr-1.5" size={14} /> : undefined,
+                  icon: posting.budget.isToBeBudgeted ? (
+                    <ArrowDownToLine className="mr-1.5" size={14} />
+                  ) : undefined,
                 }
               : null
           }

@@ -1,8 +1,8 @@
-import { Balance } from "@/utils/types";
 import cuid from "cuid";
 import { computed, observable } from "mobx";
-import { Ledger } from "./Ledger";
-import { Model, ModelConstructorArgs } from "./Model";
+import type { Balance } from "@/utils/types";
+import type { Ledger } from "./Ledger";
+import { Model, type ModelConstructorArgs } from "./Model";
 
 export class Budget extends Model {
   @observable
@@ -25,9 +25,7 @@ export class Budget extends Model {
     const budget = new Budget({ id: json.id, ledger });
     budget.name = json.name;
     budget.budgetCategory =
-      budget.ledger.budgetCategories.find(
-        (c) => c.id === json.budget_category_id
-      ) || null;
+      budget.ledger.budgetCategories.find((c) => c.id === json.budget_category_id) || null;
     budget.isToBeBudgeted = json.is_to_be_budgeted;
     return budget;
   }
@@ -37,7 +35,7 @@ export class Budget extends Model {
       id: this.id,
       name: this.name,
       budget_category_id: this.budgetCategory?.id || null,
-      is_to_be_budgeted: this.isToBeBudgeted
+      is_to_be_budgeted: this.isToBeBudgeted,
     };
   }
 
@@ -55,14 +53,14 @@ export class BudgetCategory extends Model {
   @observable
   accessor name: string = "Unnamed budget category";
 
-  constructor({ id, ledger }: { id: string | null, ledger: Ledger }) {
+  constructor({ id, ledger }: { id: string | null; ledger: Ledger }) {
     super({
       id: id || cuid(),
-      ledger
+      ledger,
     });
   }
 
-  static fromJSON(json: any, ledger : Ledger): BudgetCategory {
+  static fromJSON(json: any, ledger: Ledger): BudgetCategory {
     const budgetCategory = new BudgetCategory({ id: json.id, ledger });
     budgetCategory.name = json.name;
     return budgetCategory;
@@ -71,7 +69,7 @@ export class BudgetCategory extends Model {
   toJSON() {
     return {
       id: this.id,
-      name: this.name
-    }
+      name: this.name,
+    };
   }
 }

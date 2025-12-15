@@ -1,6 +1,6 @@
-import { formatCurrency } from "@/utils/formatting";
-import { Amount } from "@/utils/types";
 import { twJoin } from "tailwind-merge";
+import { formatCurrency } from "@/utils/formatting";
+import type { Amount } from "@/utils/types";
 
 export function AmountCell({
   amount,
@@ -31,31 +31,32 @@ export function AmountCell({
   );
 }
 
-interface HeaderCellProps extends React.ComponentProps<'div'> {
-    alignRight?: boolean
+interface HeaderCellProps extends React.ComponentProps<"div"> {
+  alignRight?: boolean;
 }
 
 export const HeaderCell = ({ alignRight, ...props }: HeaderCellProps) => (
   <div
-    className={twJoin("py-1 uppercase text-xs font-bold text-muted-foreground", alignRight ? 'text-right' : 'text-left')}
+    className={twJoin(
+      "py-1 uppercase text-xs font-bold text-muted-foreground",
+      alignRight ? "text-right" : "text-left"
+    )}
     {...props}
   />
 );
 
-interface BudgetCellProps extends React.ComponentProps<'div'> {
-    isInflow?: boolean
+interface BudgetCellProps extends React.ComponentProps<"div"> {
+  isInflow?: boolean;
 }
 
 export const BudgetCell = ({ children, isInflow, ...props }: BudgetCellProps) => (
   <div
-    className={twJoin(
-      "inline-flex items-center",
-      isInflow && "text-emerald-700 font-medium"
-    )}
+    className={twJoin("inline-flex items-center", isInflow && "text-emerald-700 font-medium")}
     {...props}
-  >{children}</div>
+  >
+    {children}
+  </div>
 );
-
 
 export const Cell = (props: React.ComponentProps<"div">) => (
   <div className="px-2 py-1" {...props} />

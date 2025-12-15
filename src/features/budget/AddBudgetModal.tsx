@@ -1,29 +1,31 @@
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Budget } from "@/models/Budget";
-import { useLedger } from "@/utils/useLedger";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Budget } from "@/models/Budget";
+import { useLedger } from "@/utils/useLedger";
 
 export const AddBudgetModal = observer(function AddBudgetModal() {
-    const { ledger } = useLedger();
-    const [newEnvelope, setNewEnvelope] = useState<Budget | null>(null);
-    const [name, setName] = useState("");
-    const [group, setGroup] = useState(ledger?.budgetCategories[0]!);
+  const { ledger } = useLedger();
+  const [newEnvelope, setNewEnvelope] = useState<Budget | null>(null);
+  const [name, setName] = useState("");
+  const [group, setGroup] = useState(ledger?.budgetCategories[0]!);
   return (
     <div className="flex justify-between items-center px-8 py-4">
-      <Dialog
-        open={!!newEnvelope}
-        onOpenChange={(open) => setNewEnvelope(null)}
-      >
+      <Dialog open={!!newEnvelope} onOpenChange={(open) => setNewEnvelope(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New Budget Envelope</DialogTitle>
-            <DialogDescription>
-              Create a new budget envelope.
-            </DialogDescription>
+            <DialogDescription>Create a new budget envelope.</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
@@ -66,7 +68,7 @@ export const AddBudgetModal = observer(function AddBudgetModal() {
               onClick={() => {
                 runInAction(() => {
                   newEnvelope!.name = name;
-                  newEnvelope!.budgetCategory = group
+                  newEnvelope!.budgetCategory = group;
                   ledger!.addBudget(newEnvelope!);
                   setNewEnvelope(null);
                 });

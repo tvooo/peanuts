@@ -1,15 +1,15 @@
 "use client";
 
+import { addMonths, isSameMonth, startOfMonth, subMonths } from "date-fns";
+import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { AddBudgetModal } from "@/features/budget/AddBudgetModal";
 import { BudgetTable } from "@/features/budget/BudgetTable";
 import { PageLayout } from "@/PageLayout";
 import { formatCurrency, formatMonth } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
-import { addMonths, isSameMonth, startOfMonth, subMonths } from "date-fns";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
 
 export default function BudgetPage() {
   const { ledger } = useLedger();
@@ -35,9 +35,7 @@ export default function BudgetPage() {
             <Button
               size="icon"
               variant="secondary"
-              onClick={() =>
-                setCurrentMonth(startOfMonth(subMonths(currentMonth, 1)))
-              }
+              onClick={() => setCurrentMonth(startOfMonth(subMonths(currentMonth, 1)))}
             >
               <ChevronLeft />
             </Button>
@@ -45,9 +43,7 @@ export default function BudgetPage() {
             <Button
               size="icon"
               variant="secondary"
-              onClick={() =>
-                setCurrentMonth(startOfMonth(addMonths(currentMonth, 1)))
-              }
+              onClick={() => setCurrentMonth(startOfMonth(addMonths(currentMonth, 1)))}
             >
               <ChevronRight />
             </Button>
@@ -74,27 +70,17 @@ export default function BudgetPage() {
             <div>
               + inflow this month{" "}
               {formatCurrency(
-                ledger.budgetActivityForMonth(
-                  ledger.getInflowBudget()!,
-                  currentMonth
-                )
+                ledger.budgetActivityForMonth(ledger.getInflowBudget()!, currentMonth)
               )}
             </div>
             <div>- assigned in future</div>
-            <div>
-              - assigned this month {formatCurrency(ledger.assignedForMonth(currentMonth))}
-            </div>
+            <div>- assigned this month {formatCurrency(ledger.assignedForMonth(currentMonth))}</div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground">
-              Available to budget
-            </div>
+            <div className="text-xs text-muted-foreground">Available to budget</div>
             <div className="text-xl font-bold">
               {formatCurrency(
-                ledger.budgetAvailableForMonth(
-                  ledger.getInflowBudget()!,
-                  currentMonth
-                )
+                ledger.budgetAvailableForMonth(ledger.getInflowBudget()!, currentMonth)
               )}
             </div>
           </div>

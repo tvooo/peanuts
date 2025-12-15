@@ -1,3 +1,6 @@
+import { runInAction } from "mobx";
+import { observer } from "mobx-react-lite";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,9 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Account } from "@/models/Account";
 import { useLedger } from "@/utils/useLedger";
-import { runInAction } from "mobx";
-import { observer } from "mobx-react-lite";
-import { useState } from "react";
 
 interface CreateAccountModalProps {
   open: boolean;
@@ -55,9 +55,7 @@ export const CreateAccountModal = observer(function CreateAccountModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create Account</DialogTitle>
-          <DialogDescription>
-            Add a new account to track your finances.
-          </DialogDescription>
+          <DialogDescription>Add a new account to track your finances.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -104,7 +102,8 @@ export const CreateAccountModal = observer(function CreateAccountModal({
               </label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Budget accounts are included in your budget. Tracking accounts are for monitoring balances only.
+              Budget accounts are included in your budget. Tracking accounts are for monitoring
+              balances only.
             </p>
           </div>
         </div>

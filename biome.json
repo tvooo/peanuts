@@ -14,7 +14,8 @@
       "!**/build",
       "!**/*.config.js",
       "!**/*.config.ts",
-      "!*.json"
+      "!*.json",
+      "!src/components/ui/*.tsx"
     ]
   },
   "formatter": {
@@ -47,9 +48,9 @@
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "single",
+      "quoteStyle": "double",
       "jsxQuoteStyle": "double",
-      "semicolons": "asNeeded",
+      "semicolons": "always",
       "trailingCommas": "es5"
     }
   },

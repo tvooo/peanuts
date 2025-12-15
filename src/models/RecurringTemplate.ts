@@ -1,13 +1,13 @@
-import { Amount } from "@/utils/types";
 import cuid from "cuid";
+import { startOfDay } from "date-fns";
 import { computed, observable } from "mobx";
 import { RRule } from "rrule";
-import { startOfDay } from "date-fns";
-import { Account } from "./Account";
-import { Budget } from "./Budget";
-import { Ledger } from "./Ledger";
-import { Model, ModelConstructorArgs } from "./Model";
-import { Payee } from "./Payee";
+import type { Amount } from "@/utils/types";
+import type { Account } from "./Account";
+import type { Budget } from "./Budget";
+import type { Ledger } from "./Ledger";
+import { Model, type ModelConstructorArgs } from "./Model";
+import type { Payee } from "./Payee";
 
 export class RecurringTemplate extends Model {
   @observable

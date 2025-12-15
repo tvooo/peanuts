@@ -1,12 +1,12 @@
-import { PageLayout } from "@/PageLayout";
-import { RecurringTemplateModal } from "@/features/budget/RecurringTemplateModal";
-import { RecurringTransactionsTable } from "@/features/budget/RecurringTransactionsTable";
-import { formatCurrency } from "@/utils/formatting";
-import { useLedger } from "@/utils/useLedger";
 import { observer } from "mobx-react-lite";
-import { RRule } from "rrule";
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
+import { RRule } from "rrule";
+import { RecurringTemplateModal } from "@/features/budget/RecurringTemplateModal";
+import { RecurringTransactionsTable } from "@/features/budget/RecurringTransactionsTable";
+import { PageLayout } from "@/PageLayout";
+import { formatCurrency } from "@/utils/formatting";
+import { useLedger } from "@/utils/useLedger";
 
 export const RecurringTransactionsPage = observer(() => {
   const { ledger } = useLedger();

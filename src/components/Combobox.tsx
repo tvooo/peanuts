@@ -1,5 +1,5 @@
+import { Plus } from "lucide-react";
 import * as React from "react";
-import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -8,8 +8,8 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Plus } from "lucide-react";
 
 export interface ComboboxOption {
   id: string;
@@ -35,10 +35,7 @@ interface ComboboxProps<T extends ComboboxOption> {
   filterFn?: (option: T, search: string) => boolean;
 }
 
-export const Combobox = React.forwardRef<
-  HTMLInputElement,
-  ComboboxProps<ComboboxOption>
->(
+export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<ComboboxOption>>(
   (
     {
       options,
@@ -66,7 +63,7 @@ export const Combobox = React.forwardRef<
     // Flatten groups into a single options array for compatibility
     const allOptions = React.useMemo(() => {
       if (options) return options;
-      if (groups) return groups.flatMap(g => g.options);
+      if (groups) return groups.flatMap((g) => g.options);
       return [];
     }, [options, groups]);
 
@@ -90,11 +87,11 @@ export const Combobox = React.forwardRef<
       const searchLower = search.toLowerCase();
       const filter = filterFn || defaultFilterFn;
       return groups
-        .map(group => ({
+        .map((group) => ({
           ...group,
-          options: group.options.filter(option => filter(option, searchLower))
+          options: group.options.filter((option) => filter(option, searchLower)),
         }))
-        .filter(group => group.options.length > 0);
+        .filter((group) => group.options.length > 0);
     }, [groups, search, filterFn]);
 
     // Check if we should show the "Create" option
@@ -142,7 +139,7 @@ export const Combobox = React.forwardRef<
     React.useEffect(() => {
       if (open && filteredOptions.length > 0) {
         // When opening, if current value is in filtered options, keep it selected
-        if (value && filteredOptions.find(opt => opt.id === value.id)) {
+        if (value && filteredOptions.find((opt) => opt.id === value.id)) {
           setSelectedValue(value.id);
         } else {
           // Otherwise, default to first filtered option

@@ -1,11 +1,17 @@
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Payee } from "@/models/Payee";
-import { useLedger } from "@/utils/useLedger";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Payee } from "@/models/Payee";
+import { useLedger } from "@/utils/useLedger";
 
 export const AddPayeeModal = observer(function AddPayeeModal() {
   const { ledger } = useLedger();
@@ -14,10 +20,7 @@ export const AddPayeeModal = observer(function AddPayeeModal() {
   const [group, setGroup] = useState("Misc");
   return (
     <div className="flex justify-between items-center px-8 py-4">
-      <Dialog
-        open={!!newPayee}
-        onOpenChange={(open) => setNewPayee(null)}
-      >
+      <Dialog open={!!newPayee} onOpenChange={(open) => setNewPayee(null)}>
         {/* <DialogTrigger>Open</DialogTrigger> */}
         <DialogContent>
           <DialogHeader>
@@ -46,11 +49,11 @@ export const AddPayeeModal = observer(function AddPayeeModal() {
             <Button
               type="submit"
               onClick={() => {
-                  runInAction(() => {
-                    newPayee!.name = name;
-                    ledger!.payees.push(newPayee!);
-                  });
-                  setNewPayee(null);
+                runInAction(() => {
+                  newPayee!.name = name;
+                  ledger!.payees.push(newPayee!);
+                });
+                setNewPayee(null);
               }}
             >
               Confirm

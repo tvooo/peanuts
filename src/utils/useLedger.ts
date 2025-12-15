@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
 import { createContext, useContext } from "react";
 
-import { Ledger } from "@/models/Ledger";
+import type { Ledger } from "@/models/Ledger";
 
 interface LedgerContextValue {
   ledger: Ledger | null;
@@ -11,14 +11,13 @@ interface LedgerContextValue {
 }
 
 const LedgerContext = createContext<LedgerContextValue>({
-    ledger: null,
-    openLedger: () => Promise.resolve(),
-    fileHandle: null,
+  ledger: null,
+  openLedger: () => Promise.resolve(),
+  fileHandle: null,
 });
 
-
 const useLedger = () => {
-    return useContext(LedgerContext);
-}
+  return useContext(LedgerContext);
+};
 
 export { LedgerContext, useLedger };
