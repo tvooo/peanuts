@@ -1,9 +1,9 @@
-import type { Ledger } from "@/models/Ledger";
-import { formatCurrency } from "@/utils/formatting";
 import * as d3 from "d3";
 import { eachMonthOfInterval, endOfYear, format, isSameMonth, startOfYear } from "date-fns";
 import { observer } from "mobx-react-lite";
 import { useEffect, useRef } from "react";
+import type { Ledger } from "@/models/Ledger";
+import { formatCurrency } from "@/utils/formatting";
 
 interface InflowOutflowChartProps {
   ledger: Ledger;

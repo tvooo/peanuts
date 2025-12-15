@@ -1,3 +1,7 @@
+import { ArrowDownToLine, Check, X } from "lucide-react";
+import { runInAction } from "mobx";
+import { observer } from "mobx-react-lite";
+import * as React from "react";
 import { Combobox, type ComboboxGroup } from "@/components/Combobox";
 import { cn } from "@/lib/utils";
 import { Budget } from "@/models/Budget";
@@ -5,10 +9,6 @@ import { Payee } from "@/models/Payee";
 import type { Transaction } from "@/models/Transaction";
 import { formatDateIsoShort } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
-import { ArrowDownToLine, Check, X } from "lucide-react";
-import { runInAction } from "mobx";
-import { observer } from "mobx-react-lite";
-import * as React from "react";
 
 // Form Input component with white background
 const FormInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
