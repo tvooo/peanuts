@@ -223,7 +223,9 @@ export const TransactionFormRow = observer(function TransactionFormRow({
         <FormInput
           type="text"
           value={posting.note}
-          onChange={(e) => (posting.note = e.target.value)}
+          onChange={(e) => {
+            posting.note = e.target.value;
+          }}
         />
       </td>
       <td className="pr-2">
@@ -231,7 +233,9 @@ export const TransactionFormRow = observer(function TransactionFormRow({
           type="number"
           className="tabular-nums text-right"
           value={transaction.amount}
-          onChange={(e) => (posting.amount = parseInt(e.target.value, 10))}
+          onChange={(e) => {
+            posting.amount = parseInt(e.target.value, 10);
+          }}
         />
       </td>
       <td className="pr-2 text-center">

@@ -1,11 +1,12 @@
 import { type Parser, type Token, TokenType } from "../types";
 
 export const apply =
-  (p: Parser, fn: Function): Parser =>
-  (tokens: Token[]) => {
-    const result = p(tokens);
-    return fn(result);
-  };
+  // biome-ignore lint/complexity/noBannedTypes: Any Function is allowed here
+    (p: Parser, fn: Function): Parser =>
+    (tokens: Token[]) => {
+      const result = p(tokens);
+      return fn(result);
+    };
 
 export const validate =
   (p: Parser, fn: (r: any) => boolean): Parser =>

@@ -7,7 +7,6 @@ import { Transaction, TransactionPosting } from "@/models/Transaction";
 
 export function processRecurringTemplates(ledger: Ledger) {
   console.log("Processing recurring templates...");
-  const today = startOfDay(new Date());
 
   runInAction(() => {
     for (const template of ledger.recurringTemplates) {

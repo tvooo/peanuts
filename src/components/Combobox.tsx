@@ -68,9 +68,12 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<Combobo
     }, [options, groups]);
 
     // Default filter function
-    const defaultFilterFn = (option: ComboboxOption, search: string) => {
-      return getLabel(option).toLowerCase().includes(search.toLowerCase());
-    };
+    const defaultFilterFn = React.useCallback(
+      (option: ComboboxOption, search: string) => {
+        return getLabel(option).toLowerCase().includes(search.toLowerCase());
+      },
+      [getLabel]
+    );
 
     // Filter options based on search
     const filteredOptions = React.useMemo(() => {
@@ -78,7 +81,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<Combobo
       const searchLower = search.toLowerCase();
       const filter = filterFn || defaultFilterFn;
       return allOptions.filter((option) => filter(option, searchLower));
-    }, [allOptions, search, filterFn]);
+    }, [allOptions, search, filterFn, defaultFilterFn]);
 
     // Filter groups based on search
     const filteredGroups = React.useMemo(() => {
@@ -92,7 +95,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<Combobo
           options: group.options.filter((option) => filter(option, searchLower)),
         }))
         .filter((group) => group.options.length > 0);
-    }, [groups, search, filterFn]);
+    }, [groups, search, filterFn, defaultFilterFn]);
 
     // Check if we should show the "Create" option
     const showCreateOption = React.useMemo(() => {
@@ -146,7 +149,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<Combobo
           setSelectedValue(filteredOptions[0].id);
         }
       }
-    }, [open]);
+    }, [open, filteredOptions, value]);
 
     // Handle keyboard navigation
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -213,7 +216,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps<Combobo
               setOpen(true);
               setSearch(value ? getLabel(value) : "");
             }}
-            onBlur={(e) => {
+            onBlur={() => {
               // Don't close if clicking inside the popover
               if (shouldIgnoreBlur.current) {
                 shouldIgnoreBlur.current = false;

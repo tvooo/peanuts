@@ -31,7 +31,7 @@ export const AccountPage = observer(function AccountPage() {
     }
   }, [ledger, currentAccount, navigate]);
 
-  // Clear selection when account changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Clear selection when account changes. TODO: Claude-generated issue, need to fix later
   useEffect(() => {
     setSelectedIds(new Set());
   }, [currentAccount]);
@@ -165,14 +165,20 @@ export const AccountPage = observer(function AccountPage() {
                 return;
               }
 
-              const transactionPosting = new TransactionPosting({ ledger: ledger!, id: null });
+              const transactionPosting = new TransactionPosting({
+                ledger: ledger!,
+                id: null,
+              });
               transactionPosting.budget = null;
               transactionPosting.amount = 0;
               transactionPosting.note = "";
               transactionPosting.payee = null;
               ledger.transactionPostings.push(transactionPosting);
 
-              const transaction = new Transaction({ ledger: ledger!, id: null });
+              const transaction = new Transaction({
+                ledger: ledger!,
+                id: null,
+              });
               transaction.account = currentAccount;
               transaction.postings.push(transactionPosting);
               transaction.date = startOfToday();

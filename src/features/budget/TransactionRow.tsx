@@ -3,7 +3,6 @@ import { twJoin } from "tailwind-merge";
 import { AmountCell, BudgetCell } from "@/components/Table";
 import type { Transaction } from "@/models/Transaction";
 import { formatDate } from "@/utils/formatting";
-import { useLedger } from "@/utils/useLedger";
 
 interface TransactionRowProps {
   transaction: Transaction;
@@ -18,7 +17,6 @@ export const TransactionRow = ({
   selectedIds,
   onToggleSelection,
 }: TransactionRowProps) => {
-  const { ledger } = useLedger();
   return (
     <tr
       className={twJoin(

@@ -18,10 +18,10 @@ export const AddBudgetModal = observer(function AddBudgetModal() {
   const { ledger } = useLedger();
   const [newEnvelope, setNewEnvelope] = useState<Budget | null>(null);
   const [name, setName] = useState("");
-  const [group, setGroup] = useState(ledger?.budgetCategories[0]!);
+  const [group, setGroup] = useState(ledger?.budgetCategories[0] ?? null);
   return (
     <div className="flex justify-between items-center px-8 py-4">
-      <Dialog open={!!newEnvelope} onOpenChange={(open) => setNewEnvelope(null)}>
+      <Dialog open={!!newEnvelope} onOpenChange={() => setNewEnvelope(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New Budget Envelope</DialogTitle>

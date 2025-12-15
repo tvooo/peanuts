@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * YNAB to Peanuts Converter
  *
@@ -7,17 +8,17 @@
  * Usage: tsx scripts/convert-ynab-export.ts <path-to-ynab-export-folder> <output-file.json>
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import cuid from 'cuid';
+import * as fs from "node:fs";
+import * as path from "node:path";
+import cuid from "cuid";
 
 interface YNABRegisterRow {
   Account: string;
   Flag: string;
   Date: string;
   Payee: string;
-  'Category Group/Category': string;
-  'Category Group': string;
+  "Category Group/Category": string;
+  "Category Group": string;
   Category: string;
   Memo: string;
   Outflow: string;
@@ -27,8 +28,8 @@ interface YNABRegisterRow {
 
 interface YNABPlanRow {
   Month: string;
-  'Category Group/Category': string;
-  'Category Group': string;
+  "Category Group/Category": string;
+  "Category Group": string;
   Category: string;
   Assigned: string;
   Activity: string;
@@ -39,7 +40,7 @@ interface PeanutsJSON {
   accounts: Array<{
     id: string;
     name: string;
-    type: 'budget' | 'tracking';
+    type: "budget" | "tracking";
   }>;
   budget_categories: Array<{
     id: string;
@@ -59,7 +60,7 @@ interface PeanutsJSON {
     id: string;
     account_id: string;
     transaction_posting_ids: string[];
-    status: 'open' | 'cleared';
+    status: "open" | "cleared";
     date: string;
   }>;
   transaction_postings: Array<{
@@ -82,21 +83,21 @@ interface PeanutsJSON {
     from_account_id: string;
     to_account_id: string;
     amount: number;
-    from_status: 'open' | 'cleared';
-    to_status: 'open' | 'cleared';
+    from_status: "open" | "cleared";
+    to_status: "open" | "cleared";
     note: string;
   }>;
 }
 
 function parseTSV(content: string): any[] {
-  const lines = content.trim().split('\n');
-  const headers = lines[0].split('\t').map(h => h.replace(/^"|"$/g, ''));
+  const lines = content.trim().split("\n");
+  const headers = lines[0].split("\t").map((h) => h.replace(/^"|"$/g, ""));
 
-  return lines.slice(1).map(line => {
-    const values = line.split('\t').map(v => v.replace(/^"|"$/g, ''));
+  return lines.slice(1).map((line) => {
+    const values = line.split("\t").map((v) => v.replace(/^"|"$/g, ""));
     const row: any = {};
     headers.forEach((header, i) => {
-      row[header] = values[i] || '';
+      row[header] = values[i] || "";
     });
     return row;
   });
@@ -105,29 +106,39 @@ function parseTSV(content: string): any[] {
 function parseYNABAmount(amount: string): number {
   // Convert "123,45€" to cents (12345)
   // Remove currency symbol and convert comma to dot
-  const cleaned = amount.replace(/[€\s]/g, '').replace(',', '.');
-  return Math.round(parseFloat(cleaned || '0') * 100);
+  const cleaned = amount.replace(/[€\s]/g, "").replace(",", ".");
+  return Math.round(parseFloat(cleaned || "0") * 100);
 }
 
 function parseYNABDate(dateStr: string): Date {
   // Parse "dd.MM.yyyy" format
-  const [day, month, year] = dateStr.split('.');
-  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const [day, month, year] = dateStr.split(".");
+  return new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
 }
 
 function parseYNABMonth(monthStr: string): Date {
   // Parse "Jan 2016" format
-  const [monthName, year] = monthStr.split(' ');
+  const [monthName, year] = monthStr.split(" ");
   const months: Record<string, number> = {
-    'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
-    'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+    Jan: 0,
+    Feb: 1,
+    Mar: 2,
+    Apr: 3,
+    May: 4,
+    Jun: 5,
+    Jul: 6,
+    Aug: 7,
+    Sep: 8,
+    Oct: 9,
+    Nov: 10,
+    Dec: 11,
   };
-  return new Date(parseInt(year), months[monthName], 1);
+  return new Date(parseInt(year, 10), months[monthName], 1);
 }
 
 function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON {
-  const registerContent = fs.readFileSync(registerPath, 'utf-8');
-  const planContent = fs.readFileSync(planPath, 'utf-8');
+  const registerContent = fs.readFileSync(registerPath, "utf-8");
+  const planContent = fs.readFileSync(planPath, "utf-8");
 
   const registerRows = parseTSV(registerContent) as YNABRegisterRow[];
   const planRows = parseTSV(planContent) as YNABPlanRow[];
@@ -153,33 +164,38 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
 
   // First pass: identify tracking accounts (off-budget)
   // Tracking accounts have transactions with no categories
-  registerRows.forEach(row => {
-    if (row.Account && !row.Category && !row['Category Group'] && !row.Payee.startsWith('Transfer :')) {
+  registerRows.forEach((row) => {
+    if (
+      row.Account &&
+      !row.Category &&
+      !row["Category Group"] &&
+      !row.Payee.startsWith("Transfer :")
+    ) {
       trackingAccounts.add(row.Account);
     }
   });
 
   // Extract unique accounts
-  registerRows.forEach(row => {
+  registerRows.forEach((row) => {
     if (row.Account && !accountMap.has(row.Account)) {
       const id = cuid();
       accountMap.set(row.Account, id);
       result.accounts.push({
         id,
         name: row.Account,
-        type: trackingAccounts.has(row.Account) ? 'tracking' : 'budget',
+        type: trackingAccounts.has(row.Account) ? "tracking" : "budget",
       });
     }
   });
 
   // Extract unique category groups
-  planRows.forEach(row => {
-    if (row['Category Group'] && !categoryGroupMap.has(row['Category Group'])) {
+  planRows.forEach((row) => {
+    if (row["Category Group"] && !categoryGroupMap.has(row["Category Group"])) {
       const id = cuid();
-      categoryGroupMap.set(row['Category Group'], id);
+      categoryGroupMap.set(row["Category Group"], id);
       result.budget_categories.push({
         id,
-        name: row['Category Group'],
+        name: row["Category Group"],
       });
     }
   });
@@ -188,17 +204,17 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
   const inflowId = cuid();
   result.budgets.push({
     id: inflowId,
-    name: 'To Be Budgeted',
+    name: "To Be Budgeted",
     budget_category_id: null,
     is_to_be_budgeted: true,
   });
-  budgetMap.set('__INFLOW__', inflowId);
+  budgetMap.set("__INFLOW__", inflowId);
 
   // Extract unique budgets/categories
-  planRows.forEach(row => {
+  planRows.forEach((row) => {
     if (row.Category && !budgetMap.has(row.Category)) {
       const id = cuid();
-      const categoryGroupId = categoryGroupMap.get(row['Category Group']) || null;
+      const categoryGroupId = categoryGroupMap.get(row["Category Group"]) || null;
       budgetMap.set(row.Category, id);
       result.budgets.push({
         id,
@@ -210,7 +226,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
   });
 
   // Extract unique payees
-  registerRows.forEach(row => {
+  registerRows.forEach((row) => {
     if (row.Payee && !payeeMap.has(row.Payee)) {
       const id = cuid();
       payeeMap.set(row.Payee, id);
@@ -222,16 +238,16 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
   });
 
   // Convert transactions
-  registerRows.forEach(row => {
+  registerRows.forEach((row) => {
     const accountId = accountMap.get(row.Account);
     if (!accountId) return;
 
     // Check if this is a transfer
-    const isTransfer = row.Payee.startsWith('Transfer : ');
+    const isTransfer = row.Payee.startsWith("Transfer : ");
 
     if (isTransfer) {
       // Handle transfers
-      const toAccountName = row.Payee.replace('Transfer : ', '');
+      const toAccountName = row.Payee.replace("Transfer : ", "");
       const toAccountId = accountMap.get(toAccountName);
 
       if (toAccountId) {
@@ -247,9 +263,9 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
             from_account_id: accountId,
             to_account_id: toAccountId,
             amount,
-            from_status: row.Cleared === 'Cleared' ? 'cleared' : 'open',
-            to_status: row.Cleared === 'Cleared' ? 'cleared' : 'open',
-            note: row.Memo || '',
+            from_status: row.Cleared === "Cleared" ? "cleared" : "open",
+            to_status: row.Cleared === "Cleared" ? "cleared" : "open",
+            note: row.Memo || "",
           });
         }
       }
@@ -277,7 +293,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
         id: postingId,
         budget_id: budgetId,
         amount,
-        note: row.Memo || '',
+        note: row.Memo || "",
         payee_id: payeeMap.get(row.Payee) || null,
       });
 
@@ -285,14 +301,14 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
         id: transactionId,
         account_id: accountId,
         transaction_posting_ids: [postingId],
-        status: row.Cleared === 'Cleared' ? 'cleared' : 'open',
+        status: row.Cleared === "Cleared" ? "cleared" : "open",
         date: parseYNABDate(row.Date).toISOString(),
       });
     }
   });
 
   // Convert budget assignments (from Plan)
-  planRows.forEach(row => {
+  planRows.forEach((row) => {
     const assigned = parseYNABAmount(row.Assigned);
     if (assigned === 0) return;
 
@@ -313,10 +329,12 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
 // Main execution
 const args = process.argv.slice(2);
 if (args.length < 2) {
-  console.error('Usage: tsx scripts/convert-ynab-export.ts <path-to-extracted-folder> <output.json>');
-  console.error('');
-  console.error('Example:');
-  console.error('  tsx scripts/convert-ynab-export.ts ./ynab-export-temp output.json');
+  console.error(
+    "Usage: tsx scripts/convert-ynab-export.ts <path-to-extracted-folder> <output.json>"
+  );
+  console.error("");
+  console.error("Example:");
+  console.error("  tsx scripts/convert-ynab-export.ts ./ynab-export-temp output.json");
   process.exit(1);
 }
 
@@ -324,18 +342,18 @@ const [inputFolder, outputFile] = args;
 
 // Find Register and Plan files
 const files = fs.readdirSync(inputFolder);
-const registerFile = files.find(f => f.includes('Register.tsv'));
-const planFile = files.find(f => f.includes('Plan.tsv'));
+const registerFile = files.find((f) => f.includes("Register.tsv"));
+const planFile = files.find((f) => f.includes("Plan.tsv"));
 
 if (!registerFile || !planFile) {
-  console.error('Error: Could not find Register.tsv and Plan.tsv in the input folder');
+  console.error("Error: Could not find Register.tsv and Plan.tsv in the input folder");
   process.exit(1);
 }
 
 const registerPath = path.join(inputFolder, registerFile);
 const planPath = path.join(inputFolder, planFile);
 
-console.log('Converting YNAB export...');
+console.log("Converting YNAB export...");
 console.log(`  Register: ${registerFile}`);
 console.log(`  Plan: ${planFile}`);
 

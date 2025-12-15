@@ -10,7 +10,8 @@ interface MenuItemProps extends React.ComponentProps<"button"> {
 
 export function MenuItem({ children, onClick, icon, isActive, badge = null }: MenuItemProps) {
   return (
-    <div
+    <button
+      type="button"
       className={twJoin(
         "mb-0.5 transition-color flex items-center gap-2 px-2 py-1 hover:bg-stone-200 rounded-md w-full",
         isActive && "bg-stone-200 font-semibold"
@@ -21,6 +22,6 @@ export function MenuItem({ children, onClick, icon, isActive, badge = null }: Me
       {icon}
       <div>{children}</div>
       {badge}
-    </div>
+    </button>
   );
 }

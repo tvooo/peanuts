@@ -94,26 +94,31 @@ export const BudgetTable = observer(function BudgetTable({
                         />
                       </td>
                     ) : (
-                      <td
-                        className="py-2 px-3 pr-2 text-sm align-middle"
-                        onClick={() => {
-                          let assignment = ledger.assignments.find(
-                            (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
-                          );
-                          if (!assignment) {
-                            assignment = new Assignment({
-                              ledger: ledger!,
-                              id: null,
-                            });
-                            assignment.budget = budget;
-                            assignment.date = currentMonth;
-                            assignment.amount = 0;
-                            ledger.assignments.push(assignment);
-                          }
-                          setAssignment(assignment);
-                        }}
-                      >
-                        <AmountCell amount={ledger.budgetAssignedForMonth(budget, currentMonth)} />
+                      <td className="align-middle">
+                        <button
+                          type="button"
+                          className="py-2 px-3 pr-2 text-sm "
+                          onClick={() => {
+                            let assignment = ledger.assignments.find(
+                              (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
+                            );
+                            if (!assignment) {
+                              assignment = new Assignment({
+                                ledger: ledger!,
+                                id: null,
+                              });
+                              assignment.budget = budget;
+                              assignment.date = currentMonth;
+                              assignment.amount = 0;
+                              ledger.assignments.push(assignment);
+                            }
+                            setAssignment(assignment);
+                          }}
+                        >
+                          <AmountCell
+                            amount={ledger.budgetAssignedForMonth(budget, currentMonth)}
+                          />
+                        </button>
                       </td>
                     )}
 
@@ -182,26 +187,31 @@ export const BudgetTable = observer(function BudgetTable({
                         />
                       </td>
                     ) : (
-                      <td
-                        className="py-2 px-3 pr-2 text-sm align-middle"
-                        onClick={() => {
-                          let assignment = ledger.assignments.find(
-                            (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
-                          );
-                          if (!assignment) {
-                            assignment = new Assignment({
-                              ledger: ledger!,
-                              id: null,
-                            });
-                            assignment.budget = budget;
-                            assignment.date = currentMonth;
-                            assignment.amount = 0;
-                            ledger.assignments.push(assignment);
-                          }
-                          setAssignment(assignment);
-                        }}
-                      >
-                        <AmountCell amount={ledger.budgetAssignedForMonth(budget, currentMonth)} />
+                      <td className="align-middle">
+                        <button
+                          type="button"
+                          className="py-2 px-3 pr-2 text-sm"
+                          onClick={() => {
+                            let assignment = ledger.assignments.find(
+                              (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
+                            );
+                            if (!assignment) {
+                              assignment = new Assignment({
+                                ledger: ledger!,
+                                id: null,
+                              });
+                              assignment.budget = budget;
+                              assignment.date = currentMonth;
+                              assignment.amount = 0;
+                              ledger.assignments.push(assignment);
+                            }
+                            setAssignment(assignment);
+                          }}
+                        >
+                          <AmountCell
+                            amount={ledger.budgetAssignedForMonth(budget, currentMonth)}
+                          />
+                        </button>
                       </td>
                     )}
 

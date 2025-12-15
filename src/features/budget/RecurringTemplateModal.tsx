@@ -2,7 +2,7 @@ import { startOfDay } from "date-fns";
 import { ArrowDownToLine } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RRule } from "rrule";
 import { Combobox, type ComboboxGroup } from "@/components/Combobox";
 import { Button } from "@/components/ui/button";
@@ -89,7 +89,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
 
   // When template changes, populate the form
   useEffect(() => {
-    if (template && template.id) {
+    if (template?.id) {
       // Editing existing template
       setAccount(template.account);
       setPayee(template.payee);
@@ -214,7 +214,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
   }, [ledger]);
 
   // Generate RRULE string based on current settings
-  const generateRRuleString = (): string => {
+  const generateRRuleString = useCallback((): string => {
     const weekdayStr = WEEKDAYS.find((w) => w.value.weekday === dayOfWeek)?.value.toString();
 
     if (frequency === "weekly") {
@@ -235,7 +235,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
         return `FREQ=YEARLY;BYMONTH=${month};BYMONTHDAY=${dayOfMonth}`;
       }
     }
-  };
+  }, [dayOfWeek, dayOfMonth, frequency, isLastDay, month]);
 
   // Calculate preview information
   const previewInfo = useMemo(() => {
@@ -252,14 +252,14 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
         nextDate: nextOccurrence,
         isValid: true,
       };
-    } catch (e) {
+    } catch (_e) {
       return {
         text: "Invalid schedule",
         nextDate: null,
         isValid: false,
       };
     }
-  }, [frequency, dayOfWeek, dayOfMonth, isLastDay, month, startDate]);
+  }, [startDate, generateRRuleString]);
 
   const resetForm = () => {
     setTemplate(null);
@@ -415,8 +415,11 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
               <h3 className="font-semibold text-sm">Transaction Details</h3>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-right text-sm">Account</label>
+                <label className="text-right text-sm" htmlFor="account">
+                  Account
+                </label>
                 <select
+                  id="account"
                   className={cn(
                     "col-span-3 h-9 rounded-md border border-input bg-white px-3 py-1",
                     "text-sm shadow-sm transition-colors",
@@ -440,9 +443,12 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-right text-sm">Payee</label>
+                <label className="text-right text-sm" htmlFor="payee">
+                  Payee
+                </label>
                 <div className="col-span-3">
                   <Combobox
+                    id="payee"
                     options={
                       ledger?.payees.map((p) => ({
                         id: p.id,
@@ -481,9 +487,12 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-right text-sm">Category</label>
+                <label htmlFor="category" className="text-right text-sm">
+                  Category
+                </label>
                 <div className="col-span-3">
                   <Combobox
+                    id="category"
                     groups={budgetGroups}
                     value={
                       budget
@@ -519,8 +528,11 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-right text-sm">Amount (cents)</label>
+                <label htmlFor="amount" className="text-right text-sm">
+                  Amount (cents)
+                </label>
                 <Input
+                  id="amount"
                   type="number"
                   className="col-span-3 tabular-nums"
                   value={amount}
@@ -530,8 +542,11 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-right text-sm">Note</label>
+                <label htmlFor="note" className="text-right text-sm">
+                  Note
+                </label>
                 <Input
+                  id="note"
                   type="text"
                   className="col-span-3"
                   value={note}
@@ -546,7 +561,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
               <h3 className="font-semibold text-sm">Schedule</h3>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-right text-sm">Frequency</label>
+                <div className="text-right text-sm">Frequency</div>
                 <div className="col-span-3 grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -581,8 +596,11 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
 
               {frequency === "yearly" && (
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label className="text-right text-sm">Month</label>
+                  <label htmlFor="month" className="text-right text-sm">
+                    Month
+                  </label>
                   <select
+                    id="month"
                     className={cn(
                       "col-span-3 h-9 rounded-md border border-input bg-white px-3 py-1",
                       "text-sm shadow-sm transition-colors",
@@ -602,20 +620,20 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
 
               {(frequency === "weekly" || frequency === "biweekly") && (
                 <div className="grid grid-cols-4 items-start gap-4">
-                  <label className="text-right text-sm mt-2">Day of week</label>
+                  <div className="text-right text-sm mt-2">Day of week</div>
                   <div className="col-span-3">{renderWeekdaySelector()}</div>
                 </div>
               )}
 
               {(frequency === "monthly" || frequency === "yearly") && (
                 <div className="grid grid-cols-4 items-start gap-4">
-                  <label className="text-right text-sm mt-2">Day of month</label>
+                  <div className="text-right text-sm mt-2">Day of month</div>
                   <div className="col-span-3">{renderDaySelector()}</div>
                 </div>
               )}
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-right text-sm">Start date</label>
+                <div className="text-right text-sm">Start date</div>
                 <Input
                   type="date"
                   className="col-span-3"
@@ -625,7 +643,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-right text-sm">End date</label>
+                <div className="text-right text-sm">End date</div>
                 <div className="col-span-3 flex items-center gap-2">
                   <input
                     type="checkbox"

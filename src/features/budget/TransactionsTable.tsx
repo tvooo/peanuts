@@ -41,9 +41,9 @@ function isTransfer(tr: TableRow): tr is Transfer {
   return tr instanceof Transfer;
 }
 
-function isBalanceAssertion(tr: TableRow): tr is BalanceAssertion {
-  return !isTransaction(tr) && !isTransfer(tr);
-}
+// function isBalanceAssertion(tr: TableRow): tr is BalanceAssertion {
+//   return !isTransaction(tr) && !isTransfer(tr);
+// }
 
 const columnHelper = createColumnHelper<TableRow>();
 
