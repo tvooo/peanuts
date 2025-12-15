@@ -25,7 +25,7 @@ function AppContent() {
 
   return (
     <SidebarProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<OpenPage />} />
           <Route path="/budget" element={<BudgetPage />} />
@@ -102,7 +102,7 @@ export default function App() {
             await verifyPermission(fh, true);
             fileHandleToOpen = fh;
           } else {
-            const result = await window.showOpenFilePicker();
+            const result = await (window as any).showOpenFilePicker();
             [fileHandleToOpen] = result;
           }
 
@@ -131,16 +131,16 @@ async function verifyPermission(fileHandle: FileSystemFileHandle, readWrite: boo
   if (!fileHandle) {
     return false;
   }
-  const options: FileSystemHandlePermissionDescriptor = {};
+  const options = { mode: "read" };
   if (readWrite) {
     options.mode = "readwrite";
   }
   // Check if permission was already granted. If so, return true.
-  if ((await fileHandle.queryPermission(options)) === "granted") {
+  if ((await (fileHandle as any).queryPermission(options)) === "granted") {
     return true;
   }
   // Request permission. If the user grants permission, return true.
-  if ((await fileHandle.requestPermission(options)) === "granted") {
+  if ((await (fileHandle as any).requestPermission(options)) === "granted") {
     return true;
   }
   // The user didn't grant permission, so return false.
