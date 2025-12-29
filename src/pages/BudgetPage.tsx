@@ -29,8 +29,9 @@ export default function BudgetPage() {
 
   return (
     <PageLayout>
-      <div className="">
-        <div className="flex justify-between items-center mb-6 p-8">
+      <div className="flex flex-col h-full">
+        {/* Fixed header - Month navigation and budget summary */}
+        <div className="flex justify-between items-center px-8 py-4 shrink-0">
           <div className="flex justify-around items-center gap-2">
             <Button
               size="icon"
@@ -85,8 +86,16 @@ export default function BudgetPage() {
             </div>
           </div>
         </div>
-        <AddBudgetModal />
-        <BudgetTable currentMonth={currentMonth} ledger={ledger} />
+
+        {/* Fixed header - Actions */}
+        <div className="flex justify-between items-center px-8 py-4 shrink-0">
+          <AddBudgetModal />
+        </div>
+
+        {/* Scrollable table container */}
+        <div className="flex-1 overflow-auto min-h-0">
+          <BudgetTable currentMonth={currentMonth} ledger={ledger} />
+        </div>
       </div>
     </PageLayout>
   );

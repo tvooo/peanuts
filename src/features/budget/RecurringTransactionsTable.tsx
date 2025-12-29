@@ -1,10 +1,15 @@
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import { ArrowDown, ArrowDownUp, ArrowUp } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { Fragment, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { RRule } from "rrule";
 import { AmountCell, HeaderCell } from "@/components/Table";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type { Ledger } from "@/models/Ledger";
 import type { RecurringTemplate } from "@/models/RecurringTemplate";
 import { formatCurrency } from "@/utils/formatting";
@@ -12,11 +17,20 @@ import { RecurringTemplateModal } from "./RecurringTemplateModal";
 
 interface RecurringTransactionsTableProps {
   ledger: Ledger;
+  groupBy: GroupBy;
+  sortOrder: SortOrder;
+  recurrenceFilter: RecurrenceFilter;
+  categoryFilter: string;
+  onSortChange: () => void;
 }
 
-type GroupBy = "recurrence" | "category" | "account" | "flow";
-type SortOrder = "asc" | "desc" | "none";
-type RecurrenceFilter = "all" | "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
+export type GroupBy = "recurrence" | "category" | "account" | "flow";
+export type SortOrder = "asc" | "desc" | "none";
+export type RecurrenceFilter = "all" | "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
+
+type RecurringRow = RecurringTemplate;
+
+const columnHelper = createColumnHelper<RecurringRow>();
 
 // Helper to calculate monthly equivalent
 const calculateMonthlyAmount = (template: RecurringTemplate): number => {
@@ -69,14 +83,15 @@ const getRecurrenceType = (template: RecurringTemplate): string => {
 
 export const RecurringTransactionsTable = observer(function RecurringTransactionsTable({
   ledger,
+  groupBy,
+  sortOrder,
+  recurrenceFilter,
+  categoryFilter,
+  onSortChange,
 }: RecurringTransactionsTableProps) {
   const [editingTemplate, setEditingTemplate] = useState<RecurringTemplate | null>(null);
-  const [groupBy, setGroupBy] = useState<GroupBy>("recurrence");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("none");
-  const [recurrenceFilter, setRecurrenceFilter] = useState<RecurrenceFilter>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
-  // Filter templates
+  // Filter and sort templates
   let filteredTemplates = [...ledger.recurringTemplates];
 
   if (recurrenceFilter !== "all") {
@@ -157,127 +172,100 @@ export const RecurringTransactionsTable = observer(function RecurringTransaction
     }
   });
 
-  const toggleSort = () => {
-    if (sortOrder === "none") {
-      setSortOrder("desc");
-    } else if (sortOrder === "desc") {
-      setSortOrder("asc");
-    } else {
-      setSortOrder("none");
-    }
-  };
-
-  const getSortIcon = () => {
+  const getSortIcon = useCallback(() => {
     if (sortOrder === "none") return <ArrowDownUp className="w-4 h-4" />;
     if (sortOrder === "asc") return <ArrowUp className="w-4 h-4" />;
     return <ArrowDown className="w-4 h-4" />;
-  };
+  }, [sortOrder]);
 
-  // Get unique budgets for category filter
-  const uniqueBudgets = Array.from(
-    new Set(ledger.recurringTemplates.map((t) => t.budget).filter(Boolean))
-  ) as NonNullable<RecurringTemplate["budget"]>[];
+  // Use filteredTemplates as table data
+  const data = filteredTemplates;
+
+  // Define columns
+  const columns = useMemo(
+    () => [
+      columnHelper.display({
+        id: "payee",
+        header: () => <HeaderCell>Payee</HeaderCell>,
+        cell: () => null,
+      }),
+      columnHelper.display({
+        id: "account",
+        header: () => <HeaderCell>Account</HeaderCell>,
+        cell: () => null,
+      }),
+      columnHelper.display({
+        id: "category",
+        header: () => <HeaderCell>Category</HeaderCell>,
+        cell: () => null,
+      }),
+      columnHelper.display({
+        id: "schedule",
+        header: () => <HeaderCell>Schedule</HeaderCell>,
+        cell: () => null,
+      }),
+      columnHelper.display({
+        id: "amount",
+        header: () => <HeaderCell alignRight>Amount</HeaderCell>,
+        cell: () => null,
+      }),
+      columnHelper.display({
+        id: "monthlyAvg",
+        header: () => (
+          <HeaderCell alignRight>
+            <button
+              type="button"
+              onClick={onSortChange}
+              className="flex items-center gap-1 ml-auto hover:opacity-70"
+            >
+              Monthly avg {getSortIcon()}
+            </button>
+          </HeaderCell>
+        ),
+        cell: () => null,
+      }),
+      columnHelper.display({
+        id: "nextDate",
+        header: () => <HeaderCell>Next date</HeaderCell>,
+        cell: () => null,
+      }),
+    ],
+    [onSortChange, getSortIcon]
+  );
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    autoResetAll: false,
+  });
 
   return (
     <>
-      <div className="px-8 py-4 flex gap-4 items-center border-b border-stone-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Group by:</span>
-          <select
-            className={cn(
-              "h-9 rounded-md border border-input bg-white px-3 py-1",
-              "text-sm shadow-sm transition-colors",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "w-[150px]"
-            )}
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-          >
-            <option value="recurrence">Recurrence</option>
-            <option value="category">Category</option>
-            <option value="account">Bank account</option>
-            <option value="flow">Inflow/Outflow</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Filter by recurrence:</span>
-          <select
-            className={cn(
-              "h-9 rounded-md border border-input bg-white px-3 py-1",
-              "text-sm shadow-sm transition-colors",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "w-[150px]"
-            )}
-            value={recurrenceFilter}
-            onChange={(e) => setRecurrenceFilter(e.target.value as RecurrenceFilter)}
-          >
-            <option value="all">All</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="biweekly">Biweekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Filter by category:</span>
-          <select
-            className={cn(
-              "h-9 rounded-md border border-input bg-white px-3 py-1",
-              "text-sm shadow-sm transition-colors",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "w-[200px]"
-            )}
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            <option value="all">All</option>
-            {uniqueBudgets.map((budget) => (
-              <option key={budget.id} value={budget.id}>
-                {budget.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       <table className="table w-full">
-        <thead>
-          <tr className="border-b border-stone-300">
-            <th className="px-3 pl-8 pr-2">
-              <HeaderCell>Payee</HeaderCell>
-            </th>
-            <th className="px-3 pr-2">
-              <HeaderCell>Account</HeaderCell>
-            </th>
-            <th className="px-3 pr-2">
-              <HeaderCell>Category</HeaderCell>
-            </th>
-            <th className="px-3 pr-2">
-              <HeaderCell>Schedule</HeaderCell>
-            </th>
-            <th className="px-3 pr-2">
-              <HeaderCell alignRight>Amount</HeaderCell>
-            </th>
-            <th className="px-3 pr-2">
-              <HeaderCell alignRight>
-                <button
-                  type="button"
-                  onClick={toggleSort}
-                  className="flex items-center gap-1 ml-auto hover:opacity-70"
-                >
-                  Monthly avg {getSortIcon()}
-                </button>
-              </HeaderCell>
-            </th>
-            <th className="pr-2 px-3">
-              <HeaderCell>Next date</HeaderCell>
-            </th>
-          </tr>
+        <thead className="sticky top-0 bg-white z-10">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id} className="border-b border-stone-300">
+              {headerGroup.headers.map((header) => {
+                const headerClasses =
+                  header.id === "payee"
+                    ? "px-3 pl-8 pr-2"
+                    : header.id === "nextDate"
+                      ? "pr-2 px-3"
+                      : "px-3 pr-2";
+                return (
+                  <th key={header.id} className={headerClasses}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                );
+              })}
+            </tr>
+          ))}
         </thead>
         <tbody>
+          {/* Render templates grouped by the selected grouping */}
           {sortedGroupKeys.length === 0 ? (
             <tr>
               <td colSpan={7} className="text-center py-12 text-muted-foreground">
