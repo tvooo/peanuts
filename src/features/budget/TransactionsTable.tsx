@@ -8,7 +8,7 @@ import {
 import { sortBy } from "lodash";
 import { CheckCheck } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { twJoin } from "tailwind-merge";
 import { HeaderCell } from "@/components/Table";
 import type { Account } from "@/models/Account";
@@ -17,8 +17,10 @@ import type { Ledger } from "@/models/Ledger";
 import { Transaction } from "@/models/Transaction";
 import { Transfer } from "@/models/Transfer";
 import { BalanceAssertionRow } from "./BalanceAssertionRow";
+import { SplitTransactionFormRow } from "./SplitTransactionFormRow";
 import { TransactionFormRow } from "./TransactionFormRow";
 import { TransactionRow } from "./TransactionRow";
+import { TransferFormRow } from "./TransferFormRow";
 import { TransferRow } from "./TransferRow";
 
 interface TransactionsTableProps {
@@ -26,8 +28,12 @@ interface TransactionsTableProps {
   currentAccount: Account;
   editingTransaction?: Transaction;
   setEditingTransaction: (transaction: Transaction | null) => void;
+  editingTransfer?: Transfer;
+  setEditingTransfer: (transfer: Transfer | null) => void;
   selectedIds?: Set<string>;
   onToggleSelection?: (id: string) => void;
+  onConvertTransactionToTransfer?: (transaction: Transaction, accountId: string) => void;
+  onConvertTransferToTransaction?: (transfer: Transfer) => void;
 }
 
 // Discriminated union type for row data
@@ -52,9 +58,28 @@ export const TransactionsTable = observer(function TransactionsTable({
   ledger,
   editingTransaction,
   setEditingTransaction,
+  editingTransfer,
+  setEditingTransfer,
   selectedIds,
   onToggleSelection,
+  onConvertTransactionToTransfer,
+  onConvertTransferToTransaction,
 }: TransactionsTableProps) {
+  // Expand/collapse state for split transactions
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const handleToggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   // Get and sort data - no useMemo to allow MobX reactivity
   const data = sortBy(ledger.transactionsAndBalancesForAccount(currentAccount), "date").reverse();
 
@@ -143,33 +168,74 @@ export const TransactionsTable = observer(function TransactionsTable({
           // Use existing row components for rendering
           if (isTransaction(rowData)) {
             if (rowData === editingTransaction) {
-              return (
-                <TransactionFormRow
-                  transaction={rowData}
-                  key={row.id}
-                  onDone={() => setEditingTransaction(null)}
-                />
-              );
+              // Use SplitTransactionFormRow for split transactions, TransactionFormRow for regular
+              if (rowData.isSplit) {
+                return (
+                  <SplitTransactionFormRow
+                    transaction={rowData}
+                    key={row.id}
+                    onDone={() => setEditingTransaction(null)}
+                    onConvertToTransfer={(accountId) =>
+                      onConvertTransactionToTransfer?.(rowData, accountId)
+                    }
+                  />
+                );
+              } else {
+                return (
+                  <TransactionFormRow
+                    transaction={rowData}
+                    key={row.id}
+                    onDone={() => setEditingTransaction(null)}
+                    onConvertToTransfer={(accountId) =>
+                      onConvertTransactionToTransfer?.(rowData, accountId)
+                    }
+                  />
+                );
+              }
             }
             return (
               <TransactionRow
                 transaction={rowData}
                 key={row.id}
                 onClick={() => {
-                  if (!editingTransaction) {
+                  if (!editingTransaction && !editingTransfer) {
+                    // Auto-collapse when entering edit mode
+                    setExpandedIds((prev) => {
+                      const next = new Set(prev);
+                      next.delete(rowData.id);
+                      return next;
+                    });
                     setEditingTransaction(rowData);
                   }
                 }}
                 selectedIds={selectedIds}
                 onToggleSelection={onToggleSelection}
+                isExpanded={expandedIds.has(rowData.id)}
+                onToggleExpand={handleToggleExpand}
               />
             );
           } else if (isTransfer(rowData)) {
+            if (rowData === editingTransfer) {
+              return (
+                <TransferFormRow
+                  transfer={rowData}
+                  currentAccountId={currentAccount.id}
+                  key={row.id}
+                  onDone={() => setEditingTransfer(null)}
+                  onConvertToTransaction={() => onConvertTransferToTransaction?.(rowData)}
+                />
+              );
+            }
             return (
               <TransferRow
                 transfer={rowData}
                 isInbound={rowData.toAccount?.id === currentAccount.id}
                 key={row.id}
+                onClick={() => {
+                  if (!editingTransaction && !editingTransfer) {
+                    setEditingTransfer(rowData);
+                  }
+                }}
                 selectedIds={selectedIds}
                 onToggleSelection={onToggleSelection}
               />

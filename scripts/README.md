@@ -1,4 +1,38 @@
-# YNAB to Peanuts Converter
+# Peanuts Scripts
+
+This directory contains utility scripts for Peanuts Budget.
+
+## Migration Scripts
+
+### Payee Migration (migrate-payee-to-transaction.ts)
+
+Migrates Peanuts Budget JSON files from the old format where `payee` was stored on each `TransactionPosting` to the new format where `payee` is stored on the `Transaction` itself.
+
+**Usage:**
+```bash
+npm run migrate-payee <input-file.json> [output-file.json]
+```
+
+If output-file is not specified, creates a backup with `.bak` extension and overwrites the input file.
+
+**Example:**
+```bash
+# Migrate in-place (creates backup)
+npm run migrate-payee my-budget.json
+
+# Migrate to new file
+npm run migrate-payee my-budget.json my-budget-migrated.json
+```
+
+**What it does:**
+- Takes the `payee_id` from the first posting of each transaction
+- Moves it to the transaction's `payee_id` field
+- Removes `payee_id` from all postings
+- Warns if a transaction has postings with different payees
+
+---
+
+## YNAB to Peanuts Converter
 
 This script converts YNAB (You Need A Budget) export files to the Peanuts JSON format.
 
@@ -51,9 +85,11 @@ rm -rf ynab-export
 - **Recurring Transaction Templates** - Scheduled transaction instances appear as future-dated transactions, but recurrence patterns/templates are not included
 - **Account Closed/Archived Status** - No information about whether accounts are closed or archived
 
+### ✅ Recently Added
+- **Split Transactions** - Transactions with multiple budget allocations are now fully supported! The script detects consecutive rows with the same account, date, and payee, and groups them into a single transaction with multiple postings.
+
 ### ❌ Not Yet Supported (In Export, Not Implemented)
 - **Flags/Colors** - Transaction flags are included but ignored
-- **Split Transactions** - Only single-posting transactions supported
 - **Budget Notes** - Category notes not imported
 - **Account Notes** - Account notes not imported
 - **Hidden/Archived Categories** - All categories imported as active
