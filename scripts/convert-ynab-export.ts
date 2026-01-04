@@ -59,6 +59,7 @@ interface PeanutsJSON {
   transactions: Array<{
     id: string;
     account_id: string;
+    payee_id: string | null;
     transaction_posting_ids: string[];
     status: "open" | "cleared";
     date: string;
@@ -68,7 +69,6 @@ interface PeanutsJSON {
     budget_id: string | null;
     amount: number;
     note: string;
-    payee_id: string | null;
   }>;
   recurring_transactions: Array<any>;
   assignments: Array<{
@@ -237,75 +237,132 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
     }
   });
 
-  // Convert transactions
-  registerRows.forEach((row) => {
-    const accountId = accountMap.get(row.Account);
+  // Group consecutive rows that form split transactions
+  // Split transactions have the same account, date, and payee
+  const transactionGroups: YNABRegisterRow[][] = [];
+  let currentGroup: YNABRegisterRow[] = [];
+
+  for (let i = 0; i < registerRows.length; i++) {
+    const row = registerRows[i];
+    const prevRow = i > 0 ? registerRows[i - 1] : null;
+
+    // Check if this row continues a split transaction
+    // Split transactions must have matching account, date, payee AND contain "Split (x/y)" in memo
+    const isContinuation =
+      prevRow &&
+      row.Account === prevRow.Account &&
+      row.Date === prevRow.Date &&
+      row.Payee === prevRow.Payee &&
+      !row.Payee.startsWith("Transfer :") && // Transfers are never split
+      /Split \(\d+\/\d+\)/.test(row.Memo); // Must have "Split (x/y)" pattern in memo
+
+    if (isContinuation) {
+      // Add to current group
+      currentGroup.push(row);
+    } else {
+      // Start new group
+      if (currentGroup.length > 0) {
+        transactionGroups.push(currentGroup);
+      }
+      currentGroup = [row];
+    }
+  }
+
+  // Don't forget the last group
+  if (currentGroup.length > 0) {
+    transactionGroups.push(currentGroup);
+  }
+
+  // Convert transaction groups
+  let splitCount = 0;
+  transactionGroups.forEach((group) => {
+    const firstRow = group[0];
+    const accountId = accountMap.get(firstRow.Account);
     if (!accountId) return;
 
     // Check if this is a transfer
-    const isTransfer = row.Payee.startsWith("Transfer : ");
+    const isTransfer = firstRow.Payee.startsWith("Transfer : ");
 
     if (isTransfer) {
       // Handle transfers
-      const toAccountName = row.Payee.replace("Transfer : ", "");
+      const toAccountName = firstRow.Payee.replace("Transfer : ", "");
       const toAccountId = accountMap.get(toAccountName);
 
       if (toAccountId) {
-        const inflow = parseYNABAmount(row.Inflow);
-        const outflow = parseYNABAmount(row.Outflow);
+        const inflow = parseYNABAmount(firstRow.Inflow);
+        const outflow = parseYNABAmount(firstRow.Outflow);
         const amount = inflow > 0 ? inflow : outflow;
 
         // Only create transfer once (from the outflow side)
         if (outflow > 0) {
           result.transfers.push({
             id: cuid(),
-            date: parseYNABDate(row.Date).toISOString(),
+            date: parseYNABDate(firstRow.Date).toISOString(),
             from_account_id: accountId,
             to_account_id: toAccountId,
             amount,
-            from_status: row.Cleared === "Cleared" ? "cleared" : "open",
-            to_status: row.Cleared === "Cleared" ? "cleared" : "open",
-            note: row.Memo || "",
+            from_status:
+              firstRow.Cleared === "Cleared" || firstRow.Cleared === "Reconciled"
+                ? "cleared"
+                : "open",
+            to_status:
+              firstRow.Cleared === "Cleared" || firstRow.Cleared === "Reconciled"
+                ? "cleared"
+                : "open",
+            note: firstRow.Memo || "",
           });
         }
       }
     } else {
-      // Handle regular transactions
-      const postingId = cuid();
+      // Handle regular transactions (including splits)
       const transactionId = cuid();
+      const postingIds: string[] = [];
 
-      const inflow = parseYNABAmount(row.Inflow);
-      const outflow = parseYNABAmount(row.Outflow);
+      // Create a posting for each row in the group
+      group.forEach((row) => {
+        const postingId = cuid();
+        postingIds.push(postingId);
 
-      // In Peanuts, negative is outflow, positive is inflow
-      const amount = inflow > 0 ? inflow : -outflow;
+        const inflow = parseYNABAmount(row.Inflow);
+        const outflow = parseYNABAmount(row.Outflow);
 
-      // Determine budget
-      let budgetId: string | null = null;
-      if (row.Category) {
-        budgetId = budgetMap.get(row.Category) || null;
-      } else if (inflow > 0) {
-        // Inflow without category goes to "To Be Budgeted"
-        budgetId = inflowId;
-      }
+        // In Peanuts, negative is outflow, positive is inflow
+        const amount = inflow > 0 ? inflow : -outflow;
 
-      result.transaction_postings.push({
-        id: postingId,
-        budget_id: budgetId,
-        amount,
-        note: row.Memo || "",
-        payee_id: payeeMap.get(row.Payee) || null,
+        // Determine budget
+        let budgetId: string | null = null;
+        if (row.Category) {
+          budgetId = budgetMap.get(row.Category) || null;
+        } else if (inflow > 0) {
+          // Inflow without category goes to "To Be Budgeted"
+          budgetId = inflowId;
+        }
+
+        result.transaction_postings.push({
+          id: postingId,
+          budget_id: budgetId,
+          amount,
+          note: row.Memo || "",
+        });
       });
 
       result.transactions.push({
         id: transactionId,
         account_id: accountId,
-        transaction_posting_ids: [postingId],
-        status: row.Cleared === "Cleared" ? "cleared" : "open",
-        date: parseYNABDate(row.Date).toISOString(),
+        payee_id: payeeMap.get(firstRow.Payee) || null,
+        transaction_posting_ids: postingIds,
+        status:
+          firstRow.Cleared === "Cleared" || firstRow.Cleared === "Reconciled" ? "cleared" : "open",
+        date: parseYNABDate(firstRow.Date).toISOString(),
       });
+
+      if (group.length > 1) {
+        splitCount++;
+      }
     }
   });
+
+  console.log(`Found ${splitCount} split transactions`);
 
   // Convert budget assignments (from Plan)
   planRows.forEach((row) => {
@@ -374,7 +431,6 @@ console.log(`   Assignments: ${result.assignments.length}`);
 
 console.log(`\n⚠️  Missing Features (not yet supported in Peanuts):`);
 console.log(`   - Flags/colors on transactions`);
-console.log(`   - Split transactions (multiple postings per transaction)`);
 console.log(`   - Goals on budgets`);
 console.log(`   - Reconciliation/balance assertions`);
 console.log(`   - Scheduled/recurring transactions`);

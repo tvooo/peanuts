@@ -7,7 +7,7 @@ import { useNavigate, useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { TransactionsTable } from "@/features/budget/TransactionsTable";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
-import type { Transfer } from "@/models/Transfer";
+import { Transfer } from "@/models/Transfer";
 import { PageLayout } from "@/PageLayout";
 import { formatCurrency } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
@@ -16,6 +16,7 @@ export const AccountPage = observer(function AccountPage() {
   const { ledger } = useLedger();
   const params = useParams();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransfer, setEditingTransfer] = useState<Transfer | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const currentAccount = ledger?.getAccount(params.accountName || "");
@@ -98,6 +99,95 @@ export const AccountPage = observer(function AccountPage() {
     });
   };
 
+  const handleConvertTransactionToTransfer = (
+    transaction: Transaction,
+    targetAccountId: string
+  ) => {
+    if (!ledger) return;
+
+    // Check if transaction has multiple postings
+    if (transaction.isSplit) {
+      const confirmed = window.confirm(
+        "This split transaction has multiple budget categories. Converting to transfer will lose this split information. Continue?"
+      );
+      if (!confirmed) return;
+    }
+
+    runInAction(() => {
+      // Get the posting and target account
+      const posting = transaction.postings[0];
+      const targetAccount = ledger.accounts.find((a) => a.id === targetAccountId);
+      if (!posting || !targetAccount) return;
+
+      // Create a new transfer
+      const transfer = new Transfer({ ledger, id: null });
+      transfer.date = transaction.date;
+      transfer.amount = Math.abs(posting.amount);
+      transfer.note = posting.note;
+
+      // Set from/to accounts based on amount sign
+      if (posting.amount >= 0) {
+        // Positive amount = money coming in = transfer TO this account FROM target
+        transfer.fromAccount = targetAccount;
+        transfer.toAccount = currentAccount;
+      } else {
+        // Negative amount = money going out = transfer FROM this account TO target
+        transfer.fromAccount = currentAccount;
+        transfer.toAccount = targetAccount;
+      }
+
+      // Add transfer to ledger
+      ledger.transfers.push(transfer);
+
+      // Remove the transaction and its posting
+      const postingIndex = ledger.transactionPostings.findIndex((p) => p.id === posting.id);
+      if (postingIndex !== -1) {
+        ledger.transactionPostings.splice(postingIndex, 1);
+      }
+      const transactionIndex = ledger.transactions.findIndex((t) => t.id === transaction.id);
+      if (transactionIndex !== -1) {
+        ledger.transactions.splice(transactionIndex, 1);
+      }
+
+      // Set editing to the new transfer
+      setEditingTransaction(null);
+      setEditingTransfer(transfer);
+    });
+  };
+
+  const handleConvertTransferToTransaction = (transfer: Transfer) => {
+    if (!ledger) return;
+
+    runInAction(() => {
+      // Create a new transaction
+      const transaction = new Transaction({ ledger, id: null });
+      transaction.account = currentAccount;
+      transaction.date = transfer.date;
+
+      // Create a posting
+      const posting = new TransactionPosting({ ledger, id: null });
+      posting.note = transfer.note;
+
+      // Determine amount based on whether this is from or to the current account
+      const isFromAccount = transfer.fromAccount?.id === currentAccount.id;
+      posting.amount = isFromAccount ? -Math.abs(transfer.amount) : Math.abs(transfer.amount);
+
+      transaction.postings.push(posting);
+      ledger.transactionPostings.push(posting);
+      ledger.transactions.push(transaction);
+
+      // Remove the transfer
+      const transferIndex = ledger.transfers.findIndex((t) => t.id === transfer.id);
+      if (transferIndex !== -1) {
+        ledger.transfers.splice(transferIndex, 1);
+      }
+
+      // Set editing to the new transaction
+      setEditingTransfer(null);
+      setEditingTransaction(transaction);
+    });
+  };
+
   const handleToggleSelection = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -162,7 +252,7 @@ export const AccountPage = observer(function AccountPage() {
           </div>
           <Button
             onClick={() => {
-              if (editingTransaction) {
+              if (editingTransaction || editingTransfer) {
                 return;
               }
 
@@ -173,7 +263,6 @@ export const AccountPage = observer(function AccountPage() {
               transactionPosting.budget = null;
               transactionPosting.amount = 0;
               transactionPosting.note = "";
-              transactionPosting.payee = null;
               ledger.transactionPostings.push(transactionPosting);
 
               const transaction = new Transaction({
@@ -183,6 +272,7 @@ export const AccountPage = observer(function AccountPage() {
               transaction.account = currentAccount;
               transaction.postings.push(transactionPosting);
               transaction.date = startOfToday();
+              transaction.payee = null;
               ledger.transactions.push(transaction);
 
               setEditingTransaction(transaction);
@@ -197,10 +287,14 @@ export const AccountPage = observer(function AccountPage() {
           <TransactionsTable
             currentAccount={currentAccount}
             ledger={ledger}
-            setEditingTransaction={setEditingTransaction}
             editingTransaction={editingTransaction || undefined}
+            setEditingTransaction={setEditingTransaction}
+            editingTransfer={editingTransfer || undefined}
+            setEditingTransfer={setEditingTransfer}
             selectedIds={selectedIds}
             onToggleSelection={handleToggleSelection}
+            onConvertTransactionToTransfer={handleConvertTransactionToTransfer}
+            onConvertTransferToTransaction={handleConvertTransferToTransaction}
           />
         </div>
       </div>

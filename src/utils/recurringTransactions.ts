@@ -45,7 +45,6 @@ function createTransactionFromTemplate(ledger: Ledger, template: RecurringTempla
   const posting = new TransactionPosting({ ledger, id: cuid() });
   posting.amount = template.amount;
   posting.budget = template.budget;
-  posting.payee = template.payee;
   posting.note = template.note;
   ledger.transactionPostings.push(posting);
 
@@ -53,6 +52,7 @@ function createTransactionFromTemplate(ledger: Ledger, template: RecurringTempla
   const transaction = new Transaction({ ledger, id: cuid() });
   transaction.date = startOfDay(template.nextScheduledDate);
   transaction.account = template.account;
+  transaction.payee = template.payee;
   transaction.postings.push(posting);
   transaction.recurringTemplateId = template.id;
   transaction.status = "open";
