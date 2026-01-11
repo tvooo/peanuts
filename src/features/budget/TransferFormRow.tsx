@@ -2,6 +2,7 @@ import { Check, X } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { Combobox, type ComboboxGroup } from "@/components/Combobox";
+import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
 import type { Transfer } from "@/models/Transfer";
 import { formatDateIsoShort } from "@/utils/formatting";
@@ -46,6 +47,43 @@ export const TransferFormRow = observer(function TransferFormRow({
   const isFromAccount = transfer.fromAccount?.id === currentAccountId;
   const otherAccount = isFromAccount ? transfer.toAccount : transfer.fromAccount;
 
+  // Refs for required fields
+  const dateInputRef = React.useRef<HTMLInputElement>(null);
+  const accountComboboxRef = React.useRef<HTMLInputElement>(null);
+  const amountInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Use keyboard handling hook
+  const { handleKeyDown, handleCancel, handleSave } = useTransactionFormKeyboard({
+    onDone,
+    getSnapshot: () => ({
+      date: transfer.date,
+      fromAccount: transfer.fromAccount,
+      toAccount: transfer.toAccount,
+      amount: transfer.amount,
+      note: transfer.note,
+    }),
+    restoreSnapshot: (snapshot) => {
+      transfer.date = snapshot.date;
+      transfer.fromAccount = snapshot.fromAccount;
+      transfer.toAccount = snapshot.toAccount;
+      transfer.amount = snapshot.amount;
+      transfer.note = snapshot.note;
+    },
+    validate: () => {
+      // Check required fields: date, other account, amount
+      if (!transfer.date) {
+        return dateInputRef.current;
+      }
+      if (!otherAccount) {
+        return accountComboboxRef.current;
+      }
+      if (transfer.amount === 0 || Number.isNaN(transfer.amount)) {
+        return amountInputRef.current;
+      }
+      return null;
+    },
+  });
+
   // Create account/payee groups
   const accountPayeeGroups = React.useMemo(() => {
     const groups: ComboboxGroup<any>[] = [];
@@ -81,12 +119,16 @@ export const TransferFormRow = observer(function TransferFormRow({
   }, [ledger, currentAccountId]);
 
   return (
-    <tr className="bg-amber-50/50 border-t-2 border-b-2 border-amber-200 group">
+    <tr
+      className="bg-amber-50/50 border-t-2 border-b-2 border-amber-200 group"
+      onKeyDown={handleKeyDown}
+    >
       <td className="p-1 pl-8 w-[64px] align-middle">
         <input type="checkbox" className="rounded" />
       </td>
       <td className="py-2 pr-2">
         <FormInput
+          ref={dateInputRef}
           type="date"
           className="tabular-nums"
           value={transfer.date ? formatDateIsoShort(transfer.date) : ""}
@@ -98,6 +140,7 @@ export const TransferFormRow = observer(function TransferFormRow({
 
       <td className="pr-2">
         <Combobox
+          ref={accountComboboxRef}
           groups={accountPayeeGroups}
           value={
             otherAccount
@@ -142,6 +185,7 @@ export const TransferFormRow = observer(function TransferFormRow({
       </td>
       <td className="pr-2">
         <FormInput
+          ref={amountInputRef}
           type="number"
           className="tabular-nums text-right"
           value={transfer.amount}
@@ -154,7 +198,7 @@ export const TransferFormRow = observer(function TransferFormRow({
         <div className="flex items-center justify-center gap-1">
           <button
             type="button"
-            onClick={() => onDone()}
+            onClick={handleCancel}
             className={cn(
               "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
               "bg-primary text-primary-foreground shadow-sm",
@@ -166,7 +210,7 @@ export const TransferFormRow = observer(function TransferFormRow({
           </button>
           <button
             type="button"
-            onClick={() => onDone()}
+            onClick={handleSave}
             className={cn(
               "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
               "bg-primary text-primary-foreground shadow-sm",

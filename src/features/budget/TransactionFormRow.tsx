@@ -3,6 +3,7 @@ import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { Combobox, type ComboboxGroup } from "@/components/Combobox";
+import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
 import { Budget } from "@/models/Budget";
 import { Payee } from "@/models/Payee";
@@ -65,6 +66,47 @@ export const TransactionFormRow = observer(function TransactionFormRow({
 }: TransactionFormRowProps) {
   const { ledger } = useLedger();
   const posting = transaction.postings[0]!;
+
+  // Refs for required fields
+  const dateInputRef = React.useRef<HTMLInputElement>(null);
+  const payeeComboboxRef = React.useRef<HTMLInputElement>(null);
+  const budgetComboboxRef = React.useRef<HTMLInputElement>(null);
+  const amountInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Use keyboard handling hook
+  const { handleKeyDown, handleCancel, handleSave } = useTransactionFormKeyboard({
+    onDone,
+    getSnapshot: () => ({
+      date: transaction.date,
+      payee: transaction.payee,
+      budget: posting.budget,
+      note: posting.note,
+      amount: posting.amount,
+    }),
+    restoreSnapshot: (snapshot) => {
+      transaction.date = snapshot.date;
+      transaction.payee = snapshot.payee;
+      posting.budget = snapshot.budget;
+      posting.note = snapshot.note;
+      posting.amount = snapshot.amount;
+    },
+    validate: () => {
+      // Check required fields: date, payee, budget, amount
+      if (!transaction.date) {
+        return dateInputRef.current;
+      }
+      if (!transaction.payee) {
+        return payeeComboboxRef.current;
+      }
+      if (!posting.budget) {
+        return budgetComboboxRef.current;
+      }
+      if (posting.amount === 0 || Number.isNaN(posting.amount)) {
+        return amountInputRef.current;
+      }
+      return null;
+    },
+  });
 
   // Create payee/account groups
   const payeeGroups = React.useMemo(() => {
@@ -178,12 +220,16 @@ export const TransactionFormRow = observer(function TransactionFormRow({
 
   return (
     <>
-      <tr className="bg-amber-50/50 border-t-2 border-b-2 border-amber-200 group">
+      <tr
+        className="bg-amber-50/50 border-t-2 border-b-2 border-amber-200 group"
+        onKeyDown={handleKeyDown}
+      >
         <td className="p-1 pl-8 w-16 align-middle">
           <input type="checkbox" className="rounded" />
         </td>
         <td className="py-2 pr-2">
           <FormInput
+            ref={dateInputRef}
             type="date"
             className="tabular-nums"
             value={transaction.date ? formatDateIsoShort(transaction.date) : ""}
@@ -195,6 +241,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
 
         <td className="pr-2">
           <Combobox
+            ref={payeeComboboxRef}
             groups={payeeGroups}
             value={
               transaction.payee
@@ -235,6 +282,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
         </td>
         <td className="pr-2">
           <Combobox
+            ref={budgetComboboxRef}
             groups={budgetGroups}
             value={
               posting.budget
@@ -285,6 +333,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
         </td>
         <td className="pr-2">
           <FormInput
+            ref={amountInputRef}
             type="number"
             className="tabular-nums text-right"
             value={transaction.amount}
@@ -297,7 +346,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
           <div className="flex items-center justify-center gap-1">
             <button
               type="button"
-              onClick={() => onDone()}
+              onClick={handleCancel}
               className={cn(
                 "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
                 "bg-primary text-primary-foreground shadow-sm",
@@ -309,7 +358,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
             </button>
             <button
               type="button"
-              onClick={() => onDone()}
+              onClick={handleSave}
               className={cn(
                 "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
                 "bg-primary text-primary-foreground shadow-sm",
