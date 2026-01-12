@@ -179,6 +179,7 @@ export class Ledger {
   budgetAvailableForMonth(budget: Budget, date: Date): Balance {
     let activity: Balance = 0;
     this.transactions
+      // Exclude future transactions
       .filter((t) => isBefore(t.date!, endOfMonth(date)))
       // Exclude tracking accounts from budget calculations
       .filter((t) => t.account?.type !== "tracking")
@@ -193,6 +194,19 @@ export class Ledger {
             activity += p.amount;
           });
       });
+
+    if (budget.isToBeBudgeted) {
+      this.transfers
+        .filter((t) => isBefore(t.date!, endOfMonth(date)))
+        .filter((t) => t.toAccount?.type !== t.fromAccount?.type)
+        .forEach((t) => {
+          if (t.toAccount?.type === "budget") {
+            activity += t.amount;
+          } else {
+            activity -= t.amount;
+          }
+        });
+    }
 
     let assigned: Balance = 0;
     if (budget.isToBeBudgeted) {

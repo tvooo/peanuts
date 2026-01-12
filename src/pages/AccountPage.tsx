@@ -15,9 +15,8 @@ import { useLedger } from "@/utils/useLedger";
 export const AccountPage = observer(function AccountPage() {
   const { ledger } = useLedger();
   const params = useParams();
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [editingTransfer, setEditingTransfer] = useState<Transfer | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [autoEditTransactionId, setAutoEditTransactionId] = useState<string | null>(null);
   const navigate = useNavigate();
   const currentAccount = ledger?.getAccount(params.accountName || "");
 
@@ -33,9 +32,10 @@ export const AccountPage = observer(function AccountPage() {
     }
   }, [ledger, currentAccount, navigate]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Clear selection when account changes. TODO: Claude-generated issue, need to fix later
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Clear selection and auto-edit state when account changes. TODO: Claude-generated issue, need to fix later
   useEffect(() => {
     setSelectedIds(new Set());
+    setAutoEditTransactionId(null);
   }, [currentAccount]);
 
   if (!ledger || !currentAccount) {
@@ -148,10 +148,6 @@ export const AccountPage = observer(function AccountPage() {
       if (transactionIndex !== -1) {
         ledger.transactions.splice(transactionIndex, 1);
       }
-
-      // Set editing to the new transfer
-      setEditingTransaction(null);
-      setEditingTransfer(transfer);
     });
   };
 
@@ -181,10 +177,6 @@ export const AccountPage = observer(function AccountPage() {
       if (transferIndex !== -1) {
         ledger.transfers.splice(transferIndex, 1);
       }
-
-      // Set editing to the new transaction
-      setEditingTransfer(null);
-      setEditingTransaction(transaction);
     });
   };
 
@@ -252,30 +244,29 @@ export const AccountPage = observer(function AccountPage() {
           </div>
           <Button
             onClick={() => {
-              if (editingTransaction || editingTransfer) {
-                return;
-              }
+              let newTransactionId: string | null = null;
+              runInAction(() => {
+                const transactionPosting = new TransactionPosting({
+                  ledger: ledger!,
+                  id: null,
+                });
+                transactionPosting.budget = null;
+                transactionPosting.amount = 0;
+                transactionPosting.note = "";
+                ledger.transactionPostings.push(transactionPosting);
 
-              const transactionPosting = new TransactionPosting({
-                ledger: ledger!,
-                id: null,
+                const transaction = new Transaction({
+                  ledger: ledger!,
+                  id: null,
+                });
+                transaction.account = currentAccount;
+                transaction.postings.push(transactionPosting);
+                transaction.date = startOfToday();
+                transaction.payee = null;
+                ledger.transactions.push(transaction);
+                newTransactionId = transaction.id;
               });
-              transactionPosting.budget = null;
-              transactionPosting.amount = 0;
-              transactionPosting.note = "";
-              ledger.transactionPostings.push(transactionPosting);
-
-              const transaction = new Transaction({
-                ledger: ledger!,
-                id: null,
-              });
-              transaction.account = currentAccount;
-              transaction.postings.push(transactionPosting);
-              transaction.date = startOfToday();
-              transaction.payee = null;
-              ledger.transactions.push(transaction);
-
-              setEditingTransaction(transaction);
+              setAutoEditTransactionId(newTransactionId);
             }}
           >
             New Transaction
@@ -287,14 +278,12 @@ export const AccountPage = observer(function AccountPage() {
           <TransactionsTable
             currentAccount={currentAccount}
             ledger={ledger}
-            editingTransaction={editingTransaction || undefined}
-            setEditingTransaction={setEditingTransaction}
-            editingTransfer={editingTransfer || undefined}
-            setEditingTransfer={setEditingTransfer}
             selectedIds={selectedIds}
             onToggleSelection={handleToggleSelection}
             onConvertTransactionToTransfer={handleConvertTransactionToTransfer}
             onConvertTransferToTransaction={handleConvertTransferToTransaction}
+            autoEditTransactionId={autoEditTransactionId}
+            onAutoEditProcessed={() => setAutoEditTransactionId(null)}
           />
         </div>
       </div>

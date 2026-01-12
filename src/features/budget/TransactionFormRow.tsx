@@ -3,12 +3,12 @@ import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { Combobox, type ComboboxGroup } from "@/components/Combobox";
+import { DatePicker } from "@/components/DatePicker";
 import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
 import { Budget } from "@/models/Budget";
 import { Payee } from "@/models/Payee";
 import type { Transaction } from "@/models/Transaction";
-import { formatDateIsoShort } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
 
 // Form Input component with white background
@@ -55,13 +55,15 @@ FormSelect.displayName = "FormSelect";
 
 interface TransactionFormRowProps {
   transaction: Transaction;
-  onDone: () => void;
+  onSave: () => void;
+  onCancel: () => void;
   onConvertToTransfer?: (accountId: string) => void;
 }
 
 export const TransactionFormRow = observer(function TransactionFormRow({
   transaction,
-  onDone,
+  onSave,
+  onCancel,
   onConvertToTransfer,
 }: TransactionFormRowProps) {
   const { ledger } = useLedger();
@@ -75,21 +77,8 @@ export const TransactionFormRow = observer(function TransactionFormRow({
 
   // Use keyboard handling hook
   const { handleKeyDown, handleCancel, handleSave } = useTransactionFormKeyboard({
-    onDone,
-    getSnapshot: () => ({
-      date: transaction.date,
-      payee: transaction.payee,
-      budget: posting.budget,
-      note: posting.note,
-      amount: posting.amount,
-    }),
-    restoreSnapshot: (snapshot) => {
-      transaction.date = snapshot.date;
-      transaction.payee = snapshot.payee;
-      posting.budget = snapshot.budget;
-      posting.note = snapshot.note;
-      posting.amount = snapshot.amount;
-    },
+    onSave,
+    onCancel,
     validate: () => {
       // Check required fields: date, payee, budget, amount
       if (!transaction.date) {
@@ -228,13 +217,12 @@ export const TransactionFormRow = observer(function TransactionFormRow({
           <input type="checkbox" className="rounded" />
         </td>
         <td className="py-2 pr-2">
-          <FormInput
+          <DatePicker
             ref={dateInputRef}
-            type="date"
             className="tabular-nums"
-            value={transaction.date ? formatDateIsoShort(transaction.date) : ""}
-            onChange={(e) => {
-              transaction.date = new Date(e.target.value);
+            value={transaction.date}
+            onChange={(date) => {
+              transaction.date = date;
             }}
           />
         </td>
