@@ -1,6 +1,6 @@
 import cuid from "cuid";
 import { endOfToday, isAfter } from "date-fns";
-import { computed, observable } from "mobx";
+import { action, computed, observable } from "mobx";
 import type { Amount } from "@/utils/types";
 import type { Account } from "./Account";
 import type { Ledger } from "./Ledger";
@@ -58,5 +58,34 @@ export class Transfer extends Model {
   get isFuture(): boolean {
     if (!this.date) return false;
     return isAfter(this.date, endOfToday());
+  }
+
+  /**
+   * Creates a draft copy of this transfer for editing.
+   */
+  clone(): Transfer {
+    const draft = new Transfer({ id: this.id, ledger: this.ledger! });
+    draft.date = this.date;
+    draft.fromAccount = this.fromAccount;
+    draft.toAccount = this.toAccount;
+    draft.amount = this.amount;
+    draft.note = this.note;
+    draft.fromStatus = this.fromStatus;
+    draft.toStatus = this.toStatus;
+    return draft;
+  }
+
+  /**
+   * Copies properties from a draft transfer to this transfer.
+   */
+  @action
+  copyFrom(draft: Transfer) {
+    this.date = draft.date;
+    this.fromAccount = draft.fromAccount;
+    this.toAccount = draft.toAccount;
+    this.amount = draft.amount;
+    this.note = draft.note;
+    this.fromStatus = draft.fromStatus;
+    this.toStatus = draft.toStatus;
   }
 }

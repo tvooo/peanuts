@@ -2,10 +2,10 @@ import { Check, X } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { Combobox, type ComboboxGroup } from "@/components/Combobox";
+import { DatePicker } from "@/components/DatePicker";
 import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
 import type { Transfer } from "@/models/Transfer";
-import { formatDateIsoShort } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
 
 // Form Input component with white background
@@ -31,14 +31,16 @@ FormInput.displayName = "FormInput";
 interface TransferFormRowProps {
   transfer: Transfer;
   currentAccountId: string;
-  onDone: () => void;
+  onSave: () => void;
+  onCancel: () => void;
   onConvertToTransaction?: () => void;
 }
 
 export const TransferFormRow = observer(function TransferFormRow({
   transfer,
   currentAccountId,
-  onDone,
+  onSave,
+  onCancel,
   onConvertToTransaction,
 }: TransferFormRowProps) {
   const { ledger } = useLedger();
@@ -54,21 +56,8 @@ export const TransferFormRow = observer(function TransferFormRow({
 
   // Use keyboard handling hook
   const { handleKeyDown, handleCancel, handleSave } = useTransactionFormKeyboard({
-    onDone,
-    getSnapshot: () => ({
-      date: transfer.date,
-      fromAccount: transfer.fromAccount,
-      toAccount: transfer.toAccount,
-      amount: transfer.amount,
-      note: transfer.note,
-    }),
-    restoreSnapshot: (snapshot) => {
-      transfer.date = snapshot.date;
-      transfer.fromAccount = snapshot.fromAccount;
-      transfer.toAccount = snapshot.toAccount;
-      transfer.amount = snapshot.amount;
-      transfer.note = snapshot.note;
-    },
+    onSave,
+    onCancel,
     validate: () => {
       // Check required fields: date, other account, amount
       if (!transfer.date) {
@@ -127,13 +116,12 @@ export const TransferFormRow = observer(function TransferFormRow({
         <input type="checkbox" className="rounded" />
       </td>
       <td className="py-2 pr-2">
-        <FormInput
+        <DatePicker
           ref={dateInputRef}
-          type="date"
           className="tabular-nums"
-          value={transfer.date ? formatDateIsoShort(transfer.date) : ""}
-          onChange={(e) => {
-            transfer.date = new Date(e.target.value);
+          value={transfer.date}
+          onChange={(date) => {
+            transfer.date = date;
           }}
         />
       </td>

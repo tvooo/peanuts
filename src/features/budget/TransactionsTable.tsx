@@ -7,7 +7,9 @@ import {
 } from "@tanstack/react-table";
 import { sortBy } from "lodash";
 import { CheckCheck } from "lucide-react";
+import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
+import * as React from "react";
 import { useMemo, useState } from "react";
 import { twJoin } from "tailwind-merge";
 import { HeaderCell } from "@/components/Table";
@@ -26,14 +28,16 @@ import { TransferRow } from "./TransferRow";
 interface TransactionsTableProps {
   ledger: Ledger;
   currentAccount: Account;
-  editingTransaction?: Transaction;
-  setEditingTransaction: (transaction: Transaction | null) => void;
-  editingTransfer?: Transfer;
-  setEditingTransfer: (transfer: Transfer | null) => void;
   selectedIds?: Set<string>;
   onToggleSelection?: (id: string) => void;
   onConvertTransactionToTransfer?: (transaction: Transaction, accountId: string) => void;
   onConvertTransferToTransaction?: (transfer: Transfer) => void;
+  /** ID of transaction to automatically enter edit mode for (e.g., newly created) */
+  autoEditTransactionId?: string | null;
+  /** ID of transfer to automatically enter edit mode for (e.g., newly created) */
+  autoEditTransferId?: string | null;
+  /** Called when auto-edit is processed so parent can clear the ID */
+  onAutoEditProcessed?: () => void;
 }
 
 // Discriminated union type for row data
@@ -56,17 +60,54 @@ const columnHelper = createColumnHelper<TableRow>();
 export const TransactionsTable = observer(function TransactionsTable({
   currentAccount,
   ledger,
-  editingTransaction,
-  setEditingTransaction,
-  editingTransfer,
-  setEditingTransfer,
   selectedIds,
   onToggleSelection,
   onConvertTransactionToTransfer,
   onConvertTransferToTransaction,
+  autoEditTransactionId,
+  autoEditTransferId,
+  onAutoEditProcessed,
 }: TransactionsTableProps) {
   // Expand/collapse state for split transactions
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  // Draft editing state - tracks which original is being edited and its draft
+  const [editingState, setEditingState] = useState<
+    | { type: "transaction"; original: Transaction; draft: Transaction; isNew?: boolean }
+    | { type: "transfer"; original: Transfer; draft: Transfer; isNew?: boolean }
+    | null
+  >(null);
+
+  // Auto-enter edit mode for newly created transactions/transfers
+  React.useEffect(() => {
+    if (autoEditTransactionId && !editingState) {
+      const transaction = ledger.transactions.find((t) => t.id === autoEditTransactionId);
+      if (transaction) {
+        setEditingState({
+          type: "transaction",
+          original: transaction,
+          draft: transaction.clone(),
+          isNew: true, // Mark as new so we can delete on cancel
+        });
+        onAutoEditProcessed?.();
+      }
+    }
+  }, [autoEditTransactionId, editingState, ledger.transactions, onAutoEditProcessed]);
+
+  React.useEffect(() => {
+    if (autoEditTransferId && !editingState) {
+      const transfer = ledger.transfers.find((t) => t.id === autoEditTransferId);
+      if (transfer) {
+        setEditingState({
+          type: "transfer",
+          original: transfer,
+          draft: transfer.clone(),
+          isNew: true, // Mark as new so we can delete on cancel
+        });
+        onAutoEditProcessed?.();
+      }
+    }
+  }, [autoEditTransferId, editingState, ledger.transfers, onAutoEditProcessed]);
 
   const handleToggleExpand = (id: string) => {
     setExpandedIds((prev) => {
@@ -167,28 +208,94 @@ export const TransactionsTable = observer(function TransactionsTable({
 
           // Use existing row components for rendering
           if (isTransaction(rowData)) {
-            if (rowData === editingTransaction) {
+            // Check if this transaction is being edited
+            if (editingState?.type === "transaction" && editingState.original === rowData) {
+              const draft = editingState.draft;
               // Use SplitTransactionFormRow for split transactions, TransactionFormRow for regular
-              if (rowData.isSplit) {
+              if (draft.isSplit) {
                 return (
                   <SplitTransactionFormRow
-                    transaction={rowData}
+                    transaction={draft}
                     key={row.id}
-                    onDone={() => setEditingTransaction(null)}
-                    onConvertToTransfer={(accountId) =>
-                      onConvertTransactionToTransfer?.(rowData, accountId)
-                    }
+                    onSave={() => {
+                      // Copy draft back to original
+                      rowData.copyFrom(draft);
+                      setEditingState(null);
+                    }}
+                    onCancel={() => {
+                      // If this is a new transaction, delete it from the ledger
+                      if (editingState.isNew) {
+                        runInAction(() => {
+                          // Remove associated postings
+                          rowData.postings.forEach((posting) => {
+                            const postingIndex = ledger.transactionPostings.findIndex(
+                              (p) => p.id === posting.id
+                            );
+                            if (postingIndex !== -1) {
+                              ledger.transactionPostings.splice(postingIndex, 1);
+                            }
+                          });
+                          // Remove transaction
+                          const transactionIndex = ledger.transactions.findIndex(
+                            (t) => t.id === rowData.id
+                          );
+                          if (transactionIndex !== -1) {
+                            ledger.transactions.splice(transactionIndex, 1);
+                          }
+                        });
+                      }
+                      // Discard draft
+                      setEditingState(null);
+                    }}
+                    onConvertToTransfer={(accountId) => {
+                      // Copy draft to original first, then convert
+                      rowData.copyFrom(draft);
+                      setEditingState(null);
+                      onConvertTransactionToTransfer?.(rowData, accountId);
+                    }}
                   />
                 );
               } else {
                 return (
                   <TransactionFormRow
-                    transaction={rowData}
+                    transaction={draft}
                     key={row.id}
-                    onDone={() => setEditingTransaction(null)}
-                    onConvertToTransfer={(accountId) =>
-                      onConvertTransactionToTransfer?.(rowData, accountId)
-                    }
+                    onSave={() => {
+                      // Copy draft back to original
+                      rowData.copyFrom(draft);
+                      setEditingState(null);
+                    }}
+                    onCancel={() => {
+                      // If this is a new transaction, delete it from the ledger
+                      if (editingState.isNew) {
+                        runInAction(() => {
+                          // Remove associated postings
+                          rowData.postings.forEach((posting) => {
+                            const postingIndex = ledger.transactionPostings.findIndex(
+                              (p) => p.id === posting.id
+                            );
+                            if (postingIndex !== -1) {
+                              ledger.transactionPostings.splice(postingIndex, 1);
+                            }
+                          });
+                          // Remove transaction
+                          const transactionIndex = ledger.transactions.findIndex(
+                            (t) => t.id === rowData.id
+                          );
+                          if (transactionIndex !== -1) {
+                            ledger.transactions.splice(transactionIndex, 1);
+                          }
+                        });
+                      }
+                      // Discard draft
+                      setEditingState(null);
+                    }}
+                    onConvertToTransfer={(accountId) => {
+                      // Copy draft to original first, then convert
+                      rowData.copyFrom(draft);
+                      setEditingState(null);
+                      onConvertTransactionToTransfer?.(rowData, accountId);
+                    }}
                   />
                 );
               }
@@ -198,14 +305,19 @@ export const TransactionsTable = observer(function TransactionsTable({
                 transaction={rowData}
                 key={row.id}
                 onClick={() => {
-                  if (!editingTransaction && !editingTransfer) {
+                  if (!editingState) {
                     // Auto-collapse when entering edit mode
                     setExpandedIds((prev) => {
                       const next = new Set(prev);
                       next.delete(rowData.id);
                       return next;
                     });
-                    setEditingTransaction(rowData);
+                    // Create draft
+                    setEditingState({
+                      type: "transaction",
+                      original: rowData,
+                      draft: rowData.clone(),
+                    });
                   }
                 }}
                 selectedIds={selectedIds}
@@ -215,14 +327,41 @@ export const TransactionsTable = observer(function TransactionsTable({
               />
             );
           } else if (isTransfer(rowData)) {
-            if (rowData === editingTransfer) {
+            // Check if this transfer is being edited
+            if (editingState?.type === "transfer" && editingState.original === rowData) {
+              const draft = editingState.draft;
               return (
                 <TransferFormRow
-                  transfer={rowData}
+                  transfer={draft}
                   currentAccountId={currentAccount.id}
                   key={row.id}
-                  onDone={() => setEditingTransfer(null)}
-                  onConvertToTransaction={() => onConvertTransferToTransaction?.(rowData)}
+                  onSave={() => {
+                    // Copy draft back to original
+                    rowData.copyFrom(draft);
+                    setEditingState(null);
+                  }}
+                  onCancel={() => {
+                    // If this is a new transfer, delete it from the ledger
+                    if (editingState.isNew) {
+                      runInAction(() => {
+                        // Remove transfer
+                        const transferIndex = ledger.transfers.findIndex(
+                          (t) => t.id === rowData.id
+                        );
+                        if (transferIndex !== -1) {
+                          ledger.transfers.splice(transferIndex, 1);
+                        }
+                      });
+                    }
+                    // Discard draft
+                    setEditingState(null);
+                  }}
+                  onConvertToTransaction={() => {
+                    // Copy draft to original first, then convert
+                    rowData.copyFrom(draft);
+                    setEditingState(null);
+                    onConvertTransferToTransaction?.(rowData);
+                  }}
                 />
               );
             }
@@ -232,8 +371,13 @@ export const TransactionsTable = observer(function TransactionsTable({
                 isInbound={rowData.toAccount?.id === currentAccount.id}
                 key={row.id}
                 onClick={() => {
-                  if (!editingTransaction && !editingTransfer) {
-                    setEditingTransfer(rowData);
+                  if (!editingState) {
+                    // Create draft
+                    setEditingState({
+                      type: "transfer",
+                      original: rowData,
+                      draft: rowData.clone(),
+                    });
                   }
                 }}
                 selectedIds={selectedIds}

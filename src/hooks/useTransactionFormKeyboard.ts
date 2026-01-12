@@ -1,13 +1,10 @@
-import { runInAction } from "mobx";
 import * as React from "react";
 
-interface UseTransactionFormKeyboardOptions<T> {
-  /** Callback to call when form is closed (either saved or cancelled) */
-  onDone: () => void;
-  /** Function that returns a snapshot of the current form state */
-  getSnapshot: () => T;
-  /** Function that restores the form state from a snapshot */
-  restoreSnapshot: (snapshot: T) => void;
+interface UseTransactionFormKeyboardOptions {
+  /** Callback to call when form is saved (Enter or Check button) - only called if validation passes */
+  onSave: () => void;
+  /** Callback to call when form is cancelled (Escape or X button) */
+  onCancel: () => void;
   /**
    * Validation function that checks if all required fields are filled.
    * Should return the first empty field's ref/element to focus, or null if all fields are valid.
@@ -18,42 +15,30 @@ interface UseTransactionFormKeyboardOptions<T> {
 interface UseTransactionFormKeyboardResult {
   /** Handler for keyboard events (Escape to cancel, Enter to save) */
   handleKeyDown: (e: React.KeyboardEvent) => void;
-  /** Handler to cancel and restore original values */
+  /** Handler to cancel (discard draft) */
   handleCancel: () => void;
-  /** Handler to validate and save */
+  /** Handler to validate and save (copy draft to original) */
   handleSave: () => void;
 }
 
 /**
  * Hook for handling keyboard interactions in transaction form rows.
- * Provides Escape to cancel (restore original data) and Enter to save (with validation).
+ * Provides Escape to cancel (discard draft) and Enter to save (with validation).
+ *
+ * Note: This hook works with the draft pattern - the parent component is responsible
+ * for creating drafts and copying them back to originals on save.
  */
-export function useTransactionFormKeyboard<T>(
-  options: UseTransactionFormKeyboardOptions<T>
+export function useTransactionFormKeyboard(
+  options: UseTransactionFormKeyboardOptions
 ): UseTransactionFormKeyboardResult {
-  const { onDone, getSnapshot, restoreSnapshot, validate } = options;
+  const { onSave, onCancel, validate } = options;
 
-  // Store original values for reset on Escape
-  const originalSnapshot = React.useRef<T | null>(null);
-
-  // Initialize snapshot on mount
-  React.useEffect(() => {
-    if (!originalSnapshot.current) {
-      originalSnapshot.current = getSnapshot();
-    }
-  }, [getSnapshot]);
-
-  // Restore original values and close form
+  // Cancel: just call onCancel (parent handles draft discard)
   const handleCancel = React.useCallback(() => {
-    if (originalSnapshot.current) {
-      runInAction(() => {
-        restoreSnapshot(originalSnapshot.current!);
-      });
-    }
-    onDone();
-  }, [restoreSnapshot, onDone]);
+    onCancel();
+  }, [onCancel]);
 
-  // Validate required fields and either save or focus next empty field
+  // Save: validate first, then call onSave if valid
   const handleSave = React.useCallback(() => {
     const invalidField = validate();
     if (invalidField) {
@@ -62,8 +47,8 @@ export function useTransactionFormKeyboard<T>(
     }
 
     // All required fields are filled, save
-    onDone();
-  }, [validate, onDone]);
+    onSave();
+  }, [validate, onSave]);
 
   // Handle keyboard events
   const handleKeyDown = React.useCallback(
