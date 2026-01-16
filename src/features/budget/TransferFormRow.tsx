@@ -73,6 +73,11 @@ export const TransferFormRow = observer(function TransferFormRow({
     },
   });
 
+  // Auto-focus date input when entering edit mode
+  React.useEffect(() => {
+    dateInputRef.current?.focus();
+  }, []);
+
   // Create account/payee groups
   const accountPayeeGroups = React.useMemo(() => {
     const groups: ComboboxGroup<any>[] = [];
