@@ -72,6 +72,11 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
     },
   });
 
+  // Auto-focus date input when entering edit mode
+  React.useEffect(() => {
+    dateInputRef.current?.focus();
+  }, []);
+
   // Create payee/account groups
   const payeeGroups = React.useMemo(() => {
     const groups: ComboboxGroup<any>[] = [];
