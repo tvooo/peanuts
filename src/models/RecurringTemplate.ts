@@ -8,6 +8,22 @@ import type { Ledger } from "./Ledger";
 import { Model } from "./Model";
 import type { Payee } from "./Payee";
 
+/**
+ * Convert a local date to a UTC date with the same year/month/day values.
+ * RRule works best with UTC dates - using local dates can cause off-by-one
+ * day errors when the local timezone is ahead of UTC.
+ */
+function toUTCDate(date: Date): Date {
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
+
+/**
+ * Convert a UTC date back to a local date with the same year/month/day values.
+ */
+function fromUTCDate(date: Date): Date {
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
 export class RecurringTemplate extends Model {
   @observable
   accessor rruleString: string = "FREQ=MONTHLY;BYMONTHDAY=1"; // Default: monthly on 1st
@@ -41,14 +57,36 @@ export class RecurringTemplate extends Model {
   @computed
   get rrule(): RRule {
     try {
-      const rule = RRule.fromString(this.rruleString);
-      // Set dtstart to properly handle interval-based recurrences (like biweekly)
-      rule.options.dtstart = this.startDate;
-      return rule;
+      const parsed = RRule.fromString(this.rruleString);
+      const opts = parsed.options;
+      // Create a NEW RRule with the correct dtstart - mutating options.dtstart
+      // after parsing doesn't properly affect interval-based calculations.
+      // Use UTC date to avoid timezone-related off-by-one day errors.
+      // Reset byhour/byminute/bysecond to midnight to avoid time-of-day issues.
+      // Note: RRule separates BYMONTHDAY into bymonthday (positive) and bynmonthday (negative),
+      // but the constructor expects them combined in bymonthday, so we recombine them.
+      const combinedBymonthday = [...(opts.bymonthday || []), ...(opts.bynmonthday || [])];
+      return new RRule({
+        freq: opts.freq,
+        interval: opts.interval,
+        wkst: opts.wkst,
+        count: opts.count,
+        until: opts.until,
+        bysetpos: opts.bysetpos,
+        bymonth: opts.bymonth,
+        bymonthday: combinedBymonthday.length > 0 ? combinedBymonthday : undefined,
+        byyearday: opts.byyearday,
+        byweekno: opts.byweekno,
+        byweekday: opts.byweekday,
+        dtstart: toUTCDate(this.startDate),
+        byhour: [0],
+        byminute: [0],
+        bysecond: [0],
+      });
     } catch (e) {
       console.error("Invalid RRULE string:", this.rruleString, e);
       // Return a default monthly rule
-      return new RRule({ freq: RRule.MONTHLY, bymonthday: 1, dtstart: this.startDate });
+      return new RRule({ freq: RRule.MONTHLY, bymonthday: 1, dtstart: toUTCDate(this.startDate) });
     }
   }
 
@@ -64,9 +102,19 @@ export class RecurringTemplate extends Model {
   calculateNextOccurrence(fromDate: Date): Date {
     try {
       const rule = this.rrule;
-      // Get next occurrence after fromDate - normalize to start of day
-      const next = rule.after(startOfDay(fromDate), false); // not inclusive
-      return next ? startOfDay(next) : startOfDay(fromDate); // fallback if no next occurrence
+      // Convert to UTC for RRule calculation to avoid timezone issues
+      const fromUTC = toUTCDate(fromDate);
+      const next = rule.after(fromUTC, false); // not inclusive
+      if (!next) {
+        // This indicates the rule is exhausted (e.g., COUNT limit reached)
+        // or there's a configuration issue. Log for debugging.
+        console.warn(
+          `No next occurrence found for recurring template after ${fromDate.toISOString()}`
+        );
+        return startOfDay(fromDate);
+      }
+      // Convert back from UTC to local date
+      return fromUTCDate(next);
     } catch (e) {
       console.error("Error calculating next occurrence:", e);
       return startOfDay(fromDate);
