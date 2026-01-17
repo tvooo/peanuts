@@ -2,7 +2,7 @@ import { startOfToday } from "date-fns";
 import { Archive, Eye } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { TransactionsTable } from "@/features/budget/TransactionsTable";
@@ -38,6 +38,34 @@ export const AccountPage = observer(function AccountPage() {
     setAutoEditTransactionId(null);
   }, [currentAccount]);
 
+  const handleCreateNewTransaction = useCallback(() => {
+    if (!ledger || !currentAccount) return;
+
+    let newTransactionId: string | null = null;
+    runInAction(() => {
+      const transactionPosting = new TransactionPosting({
+        ledger: ledger,
+        id: null,
+      });
+      transactionPosting.budget = null;
+      transactionPosting.amount = 0;
+      transactionPosting.note = "";
+      ledger.transactionPostings.push(transactionPosting);
+
+      const transaction = new Transaction({
+        ledger: ledger,
+        id: null,
+      });
+      transaction.account = currentAccount;
+      transaction.postings.push(transactionPosting);
+      transaction.date = startOfToday();
+      transaction.payee = null;
+      ledger.transactions.push(transaction);
+      newTransactionId = transaction.id;
+    });
+    setAutoEditTransactionId(newTransactionId);
+  }, [ledger, currentAccount]);
+
   if (!ledger || !currentAccount) {
     return null;
   }
@@ -69,28 +97,14 @@ export const AccountPage = observer(function AccountPage() {
         // Check if it's a transaction
         const transaction = ledger.transactions.find((t) => t.id === id);
         if (transaction) {
-          // Remove associated postings
-          transaction.postings.forEach((posting) => {
-            const postingIndex = ledger.transactionPostings.findIndex((p) => p.id === posting.id);
-            if (postingIndex !== -1) {
-              ledger.transactionPostings.splice(postingIndex, 1);
-            }
-          });
-          // Remove transaction
-          const transactionIndex = ledger.transactions.findIndex((t) => t.id === id);
-          if (transactionIndex !== -1) {
-            ledger.transactions.splice(transactionIndex, 1);
-          }
+          ledger.deleteTransaction(transaction);
           return;
         }
 
         // Check if it's a transfer
         const transfer = ledger.transfers.find((t) => t.id === id);
         if (transfer) {
-          const transferIndex = ledger.transfers.findIndex((t) => t.id === id);
-          if (transferIndex !== -1) {
-            ledger.transfers.splice(transferIndex, 1);
-          }
+          ledger.deleteTransfer(transfer);
         }
       });
 
@@ -103,8 +117,6 @@ export const AccountPage = observer(function AccountPage() {
     transaction: Transaction,
     targetAccountId: string
   ) => {
-    if (!ledger) return;
-
     // Check if transaction has multiple postings
     if (transaction.isSplit) {
       const confirmed = window.confirm(
@@ -139,21 +151,12 @@ export const AccountPage = observer(function AccountPage() {
       // Add transfer to ledger
       ledger.transfers.push(transfer);
 
-      // Remove the transaction and its posting
-      const postingIndex = ledger.transactionPostings.findIndex((p) => p.id === posting.id);
-      if (postingIndex !== -1) {
-        ledger.transactionPostings.splice(postingIndex, 1);
-      }
-      const transactionIndex = ledger.transactions.findIndex((t) => t.id === transaction.id);
-      if (transactionIndex !== -1) {
-        ledger.transactions.splice(transactionIndex, 1);
-      }
+      // Remove the transaction and its postings
+      ledger.deleteTransaction(transaction);
     });
   };
 
   const handleConvertTransferToTransaction = (transfer: Transfer) => {
-    if (!ledger) return;
-
     runInAction(() => {
       // Create a new transaction
       const transaction = new Transaction({ ledger, id: null });
@@ -173,10 +176,7 @@ export const AccountPage = observer(function AccountPage() {
       ledger.transactions.push(transaction);
 
       // Remove the transfer
-      const transferIndex = ledger.transfers.findIndex((t) => t.id === transfer.id);
-      if (transferIndex !== -1) {
-        ledger.transfers.splice(transferIndex, 1);
-      }
+      ledger.deleteTransfer(transfer);
     });
   };
 
@@ -242,35 +242,7 @@ export const AccountPage = observer(function AccountPage() {
               Delete
             </Button>
           </div>
-          <Button
-            onClick={() => {
-              let newTransactionId: string | null = null;
-              runInAction(() => {
-                const transactionPosting = new TransactionPosting({
-                  ledger: ledger!,
-                  id: null,
-                });
-                transactionPosting.budget = null;
-                transactionPosting.amount = 0;
-                transactionPosting.note = "";
-                ledger.transactionPostings.push(transactionPosting);
-
-                const transaction = new Transaction({
-                  ledger: ledger!,
-                  id: null,
-                });
-                transaction.account = currentAccount;
-                transaction.postings.push(transactionPosting);
-                transaction.date = startOfToday();
-                transaction.payee = null;
-                ledger.transactions.push(transaction);
-                newTransactionId = transaction.id;
-              });
-              setAutoEditTransactionId(newTransactionId);
-            }}
-          >
-            New Transaction
-          </Button>
+          <Button onClick={handleCreateNewTransaction}>New Transaction</Button>
         </div>
 
         {/* Scrollable table container */}
@@ -284,6 +256,7 @@ export const AccountPage = observer(function AccountPage() {
             onConvertTransferToTransaction={handleConvertTransferToTransaction}
             autoEditTransactionId={autoEditTransactionId}
             onAutoEditProcessed={() => setAutoEditTransactionId(null)}
+            onRequestNewTransaction={handleCreateNewTransaction}
           />
         </div>
       </div>

@@ -16,6 +16,6 @@ export class BalanceAssertion {
   }
 
   toString() {
-    return `${formatDateIsoShort(this.date)}} = ${this.account.name} ${this.balance}`;
+    return `${formatDateIsoShort(this.date)} = ${this.account.name} ${this.balance}`;
   }
 }

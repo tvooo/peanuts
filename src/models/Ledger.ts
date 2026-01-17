@@ -143,6 +143,48 @@ export class Ledger {
     this._budgets.push(budget);
   }
 
+  @action
+  deleteTransaction(transaction: Transaction) {
+    // Remove associated postings
+    transaction.postings.forEach((posting) => {
+      const postingIndex = this.transactionPostings.findIndex((p) => p.id === posting.id);
+      if (postingIndex !== -1) {
+        this.transactionPostings.splice(postingIndex, 1);
+      }
+    });
+    // Remove transaction
+    const transactionIndex = this.transactions.findIndex((t) => t.id === transaction.id);
+    if (transactionIndex !== -1) {
+      this.transactions.splice(transactionIndex, 1);
+    }
+  }
+
+  @action
+  deleteTransfer(transfer: Transfer) {
+    const transferIndex = this.transfers.findIndex((t) => t.id === transfer.id);
+    if (transferIndex !== -1) {
+      this.transfers.splice(transferIndex, 1);
+    }
+  }
+
+  /**
+   * Returns transactions up to and including the given month, excluding tracking accounts.
+   */
+  budgetTransactionsThroughMonth(date: Date): Transaction[] {
+    return this.transactions
+      .filter((t) => isBefore(t.date!, endOfMonth(date)))
+      .filter((t) => t.account?.type !== "tracking");
+  }
+
+  /**
+   * Returns transactions in the given month, excluding tracking accounts.
+   */
+  budgetTransactionsInMonth(date: Date): Transaction[] {
+    return this.transactions
+      .filter((t) => isSameMonth(t.date!, date))
+      .filter((t) => t.account?.type !== "tracking");
+  }
+
   @computed
   get budgets(): Budget[] {
     return this._budgets.filter((b) => !b.isToBeBudgeted);

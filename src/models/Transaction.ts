@@ -1,11 +1,10 @@
-import cuid from "cuid";
 import { endOfToday, isAfter } from "date-fns";
 import { action, computed, observable } from "mobx";
 import type { Amount } from "@/utils/types";
 import type { Account } from "./Account";
 import type { Budget } from "./Budget";
 import type { Ledger } from "./Ledger";
-import { Model, type ModelConstructorArgs } from "./Model";
+import { Model } from "./Model";
 import type { Payee } from "./Payee";
 
 export class Transaction extends Model {
@@ -24,10 +23,6 @@ export class Transaction extends Model {
 
   @observable
   accessor recurringTemplateId: string | null = null;
-
-  constructor({ id, ledger }: ModelConstructorArgs) {
-    super({ id: id || cuid(), ledger });
-  }
 
   static fromJSON(json: any, ledger: Ledger) {
     const transaction = new Transaction({ id: json.id, ledger });
@@ -170,10 +165,6 @@ export class TransactionPosting extends Model {
 
   @observable
   accessor note: string = "";
-
-  constructor({ id, ledger }: ModelConstructorArgs) {
-    super({ id: id || cuid(), ledger });
-  }
 
   static fromJSON(json: any, ledger: Ledger) {
     const posting = new TransactionPosting({ id: json.id, ledger });

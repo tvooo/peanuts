@@ -2,34 +2,17 @@ import { ArrowDownToLine, Check, Plus, X } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
-import { Combobox, type ComboboxGroup } from "@/components/Combobox";
+import { Combobox } from "@/components/Combobox";
 import { DatePicker } from "@/components/DatePicker";
+import { FormInput } from "@/components/FormInput";
+import { useBudgetGroups } from "@/hooks/useBudgetGroups";
+import { usePayeeAccountGroups } from "@/hooks/usePayeeAccountGroups";
 import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
 import { Budget } from "@/models/Budget";
 import { Payee } from "@/models/Payee";
 import type { Transaction } from "@/models/Transaction";
 import { useLedger } from "@/utils/useLedger";
-
-// Form Input component with white background
-const FormInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, ...props }, ref) => {
-    return (
-      <input
-        className={cn(
-          "h-9 w-full rounded-md border border-input bg-white px-3 py-1",
-          "text-sm shadow-sm transition-colors",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
-);
-FormInput.displayName = "FormInput";
 
 interface SplitTransactionFormRowProps {
   transaction: Transaction;
@@ -78,108 +61,10 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
   }, []);
 
   // Create payee/account groups
-  const payeeGroups = React.useMemo(() => {
-    const groups: ComboboxGroup<any>[] = [];
+  const payeeGroups = usePayeeAccountGroups(ledger!, transaction.account?.id);
 
-    // Get non-tracking accounts that aren't the current transaction's account
-    const otherAccounts = ledger!.accounts.filter(
-      (acc) => !acc.archived && acc.id !== transaction.account?.id
-    );
-
-    // Add accounts group at the top
-    if (otherAccounts.length > 0) {
-      groups.push({
-        label: "Transfer to/from",
-        options: otherAccounts.map((acc) => ({
-          id: `account-${acc.id}`,
-          label: acc.name,
-          account: acc,
-        })),
-      });
-    }
-
-    // Add payees group
-    groups.push({
-      label: "Payees",
-      options: ledger!.payees.map((p) => ({
-        id: `payee-${p.id}`,
-        label: p.name,
-        payee: p,
-      })),
-    });
-
-    return groups;
-  }, [ledger, transaction.account]);
-
-  // Group budgets by category
-  const budgetGroups = React.useMemo(() => {
-    const groups: ComboboxGroup<any>[] = [];
-    const categorizedBudgets = new Map<string, Budget[]>();
-    const uncategorized: Budget[] = [];
-    let inflowBudget: Budget | null = null;
-
-    // Group budgets by their category, filtering out the inflow budget
-    ledger!._budgets.forEach((budget) => {
-      if (budget.isToBeBudgeted) {
-        inflowBudget = budget;
-        return;
-      }
-
-      if (budget.budgetCategory) {
-        const categoryId = budget.budgetCategory.id;
-        if (!categorizedBudgets.has(categoryId)) {
-          categorizedBudgets.set(categoryId, []);
-        }
-        categorizedBudgets.get(categoryId)!.push(budget);
-      } else {
-        uncategorized.push(budget);
-      }
-    });
-
-    // Add Inflow budget as first group (without a category header)
-    if (inflowBudget) {
-      groups.push({
-        label: "",
-        options: [
-          {
-            id: (inflowBudget as Budget).id,
-            label: "Inflow",
-            budget: inflowBudget,
-            icon: <ArrowDownToLine className="mr-1.5" size={14} />,
-          },
-        ],
-      });
-    }
-
-    // Create groups from categorized budgets
-    ledger!.budgetCategories.forEach((category) => {
-      const budgets = categorizedBudgets.get(category.id);
-      if (budgets && budgets.length > 0) {
-        groups.push({
-          label: category.name,
-          options: budgets.map((b) => ({
-            id: b.id,
-            label: b.name,
-            budget: b,
-          })),
-        });
-      }
-    });
-
-    // Add uncategorized group if there are any
-    if (uncategorized.length > 0) {
-      groups.push({
-        label: "Uncategorized",
-        options: uncategorized.map((b) => ({
-          id: b.id,
-          label: b.name,
-          budget: b,
-        })),
-      });
-    }
-
-    return groups;
-  }, [ledger]);
+  // Group budgets by category (without split option - already in split mode)
+  const budgetGroups = useBudgetGroups(ledger!);
 
   return (
     <>

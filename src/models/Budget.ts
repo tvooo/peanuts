@@ -1,8 +1,7 @@
-import cuid from "cuid";
 import { computed, observable } from "mobx";
 import type { Balance } from "@/utils/types";
 import type { Ledger } from "./Ledger";
-import { Model, type ModelConstructorArgs } from "./Model";
+import { Model } from "./Model";
 
 export class Budget extends Model {
   @observable
@@ -13,13 +12,6 @@ export class Budget extends Model {
   budgetCategory: BudgetCategory | null = null;
 
   isToBeBudgeted: boolean = false;
-
-  constructor({ id, ledger }: ModelConstructorArgs) {
-    super({
-      id: id || cuid(),
-      ledger,
-    });
-  }
 
   static fromJSON(json: any, ledger: Ledger): Budget {
     const budget = new Budget({ id: json.id, ledger });
@@ -52,13 +44,6 @@ export class Budget extends Model {
 export class BudgetCategory extends Model {
   @observable
   accessor name: string = "Unnamed budget category";
-
-  constructor({ id, ledger }: { id: string | null; ledger: Ledger }) {
-    super({
-      id: id || cuid(),
-      ledger,
-    });
-  }
 
   static fromJSON(json: any, ledger: Ledger): BudgetCategory {
     const budgetCategory = new BudgetCategory({ id: json.id, ledger });

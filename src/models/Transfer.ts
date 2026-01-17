@@ -1,10 +1,9 @@
-import cuid from "cuid";
 import { endOfToday, isAfter } from "date-fns";
 import { action, computed, observable } from "mobx";
 import type { Amount } from "@/utils/types";
 import type { Account } from "./Account";
 import type { Ledger } from "./Ledger";
-import { Model, type ModelConstructorArgs } from "./Model";
+import { Model } from "./Model";
 
 export class Transfer extends Model {
   @observable
@@ -24,10 +23,6 @@ export class Transfer extends Model {
 
   fromStatus: "open" | "cleared" = "open";
   toStatus: "open" | "cleared" = "open";
-
-  constructor({ id, ledger }: ModelConstructorArgs) {
-    super({ id: id || cuid(), ledger });
-  }
 
   static fromJSON(json: any, ledger: Ledger) {
     const transfer = new Transfer({ id: json.id, ledger });

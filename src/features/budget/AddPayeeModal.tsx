@@ -20,26 +20,21 @@ export const AddPayeeModal = observer(function AddPayeeModal() {
   return (
     <div className="flex justify-between items-center px-8 py-4">
       <Dialog open={!!newPayee} onOpenChange={() => setNewPayee(null)}>
-        {/* <DialogTrigger>Open</DialogTrigger> */}
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Budget Envelope</DialogTitle>
-            {/* <DialogDescription>
-              This action cannot be undone. This will permanently delete your
-              account and remove your data from our servers.
-            </DialogDescription> */}
+            <DialogTitle>New Payee</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <label htmlFor="name" className="text-right">
-                Budget name
+                Payee name
               </label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="col-span-3"
-                placeholder="Car repair"
+                placeholder="Amazon, Grocery Store, etc."
               />
             </div>
           </div>

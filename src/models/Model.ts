@@ -1,3 +1,4 @@
+import cuid from "cuid";
 import { observable } from "mobx";
 import type { Ledger } from "./Ledger";
 
@@ -12,8 +13,8 @@ export abstract class Model {
 
   ledger: Ledger;
 
-  constructor({ id, ledger }: { id: string; ledger: Ledger }) {
-    this.id = id;
+  constructor({ id, ledger }: { id: string | null; ledger: Ledger }) {
+    this.id = id || cuid();
     this.ledger = ledger;
   }
 }

@@ -4,7 +4,7 @@ import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RRule } from "rrule";
-import { Combobox, type ComboboxGroup } from "@/components/Combobox";
+import { Combobox } from "@/components/Combobox";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useBudgetGroups } from "@/hooks/useBudgetGroups";
 import { cn } from "@/lib/utils";
 import type { Account } from "@/models/Account";
 import { Budget } from "@/models/Budget";
@@ -147,72 +148,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
   }, [template]);
 
   // Group budgets by category
-  const budgetGroups = useMemo(() => {
-    if (!ledger) return [];
-
-    const groups: ComboboxGroup<any>[] = [];
-    const categorizedBudgets = new Map<string, Budget[]>();
-    const uncategorized: Budget[] = [];
-    let inflowBudget: Budget | null = null;
-
-    ledger._budgets.forEach((budget) => {
-      if (budget.isToBeBudgeted) {
-        inflowBudget = budget;
-        return;
-      }
-
-      if (budget.budgetCategory) {
-        const categoryId = budget.budgetCategory.id;
-        if (!categorizedBudgets.has(categoryId)) {
-          categorizedBudgets.set(categoryId, []);
-        }
-        categorizedBudgets.get(categoryId)!.push(budget);
-      } else {
-        uncategorized.push(budget);
-      }
-    });
-
-    if (inflowBudget) {
-      groups.push({
-        label: "",
-        options: [
-          {
-            id: (inflowBudget as Budget).id,
-            label: "Inflow",
-            budget: inflowBudget,
-            icon: <ArrowDownToLine className="mr-1.5" size={14} />,
-          },
-        ],
-      });
-    }
-
-    ledger.budgetCategories.forEach((category) => {
-      const budgets = categorizedBudgets.get(category.id);
-      if (budgets && budgets.length > 0) {
-        groups.push({
-          label: category.name,
-          options: budgets.map((b) => ({
-            id: b.id,
-            label: b.name,
-            budget: b,
-          })),
-        });
-      }
-    });
-
-    if (uncategorized.length > 0) {
-      groups.push({
-        label: "Uncategorized",
-        options: uncategorized.map((b) => ({
-          id: b.id,
-          label: b.name,
-          budget: b,
-        })),
-      });
-    }
-
-    return groups;
-  }, [ledger]);
+  const budgetGroups = useBudgetGroups(ledger);
 
   // Generate RRULE string based on current settings
   const generateRRuleString = useCallback((): string => {
