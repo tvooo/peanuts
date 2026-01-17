@@ -1,9 +1,8 @@
-import cuid from "cuid";
 import { action, observable } from "mobx";
 import type { Amount } from "@/utils/types";
 import type { Budget } from "./Budget";
 import type { Ledger } from "./Ledger";
-import { Model, type ModelConstructorArgs } from "./Model";
+import { Model } from "./Model";
 
 export class Assignment extends Model {
   @observable
@@ -14,10 +13,6 @@ export class Assignment extends Model {
 
   @observable
   accessor amount: Amount = 0;
-
-  constructor({ id, ledger }: ModelConstructorArgs) {
-    super({ id: id || cuid(), ledger });
-  }
 
   static fromJSON(json: any, ledger: Ledger) {
     const assignment = new Assignment({ id: json.id, ledger });

@@ -1,32 +1,14 @@
 import { Check, X } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
-import { Combobox, type ComboboxGroup } from "@/components/Combobox";
+import { Combobox } from "@/components/Combobox";
 import { DatePicker } from "@/components/DatePicker";
+import { FormInput } from "@/components/FormInput";
+import { usePayeeAccountGroups } from "@/hooks/usePayeeAccountGroups";
 import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
 import type { Transfer } from "@/models/Transfer";
 import { useLedger } from "@/utils/useLedger";
-
-// Form Input component with white background
-const FormInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, ...props }, ref) => {
-    return (
-      <input
-        className={cn(
-          "h-9 w-full rounded-md border border-input bg-white px-3 py-1",
-          "text-sm shadow-sm transition-colors",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
-);
-FormInput.displayName = "FormInput";
 
 interface TransferFormRowProps {
   transfer: Transfer;
@@ -79,38 +61,7 @@ export const TransferFormRow = observer(function TransferFormRow({
   }, []);
 
   // Create account/payee groups
-  const accountPayeeGroups = React.useMemo(() => {
-    const groups: ComboboxGroup<any>[] = [];
-
-    // Get accounts that aren't the current account
-    const otherAccounts = ledger!.accounts.filter(
-      (acc) => !acc.archived && acc.id !== currentAccountId
-    );
-
-    // Add accounts group
-    if (otherAccounts.length > 0) {
-      groups.push({
-        label: "Transfer to/from",
-        options: otherAccounts.map((acc) => ({
-          id: `account-${acc.id}`,
-          label: acc.name,
-          account: acc,
-        })),
-      });
-    }
-
-    // Add payees group
-    groups.push({
-      label: "Payees",
-      options: ledger!.payees.map((p) => ({
-        id: `payee-${p.id}`,
-        label: p.name,
-        payee: p,
-      })),
-    });
-
-    return groups;
-  }, [ledger, currentAccountId]);
+  const accountPayeeGroups = usePayeeAccountGroups(ledger!, currentAccountId);
 
   return (
     <tr

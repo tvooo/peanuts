@@ -38,6 +38,8 @@ interface TransactionsTableProps {
   autoEditTransferId?: string | null;
   /** Called when auto-edit is processed so parent can clear the ID */
   onAutoEditProcessed?: () => void;
+  /** Called after saving a new transaction to enable rapid entry */
+  onRequestNewTransaction?: () => void;
 }
 
 // Discriminated union type for row data
@@ -67,6 +69,7 @@ export const TransactionsTable = observer(function TransactionsTable({
   autoEditTransactionId,
   autoEditTransferId,
   onAutoEditProcessed,
+  onRequestNewTransaction,
 }: TransactionsTableProps) {
   // Expand/collapse state for split transactions
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -220,29 +223,17 @@ export const TransactionsTable = observer(function TransactionsTable({
                     onSave={() => {
                       // Copy draft back to original
                       rowData.copyFrom(draft);
+                      const wasNew = editingState.isNew;
                       setEditingState(null);
+                      // If this was a new transaction, create another for rapid entry
+                      if (wasNew) {
+                        onRequestNewTransaction?.();
+                      }
                     }}
                     onCancel={() => {
                       // If this is a new transaction, delete it from the ledger
                       if (editingState.isNew) {
-                        runInAction(() => {
-                          // Remove associated postings
-                          rowData.postings.forEach((posting) => {
-                            const postingIndex = ledger.transactionPostings.findIndex(
-                              (p) => p.id === posting.id
-                            );
-                            if (postingIndex !== -1) {
-                              ledger.transactionPostings.splice(postingIndex, 1);
-                            }
-                          });
-                          // Remove transaction
-                          const transactionIndex = ledger.transactions.findIndex(
-                            (t) => t.id === rowData.id
-                          );
-                          if (transactionIndex !== -1) {
-                            ledger.transactions.splice(transactionIndex, 1);
-                          }
-                        });
+                        ledger.deleteTransaction(rowData);
                       }
                       // Discard draft
                       setEditingState(null);
@@ -263,29 +254,17 @@ export const TransactionsTable = observer(function TransactionsTable({
                     onSave={() => {
                       // Copy draft back to original
                       rowData.copyFrom(draft);
+                      const wasNew = editingState.isNew;
                       setEditingState(null);
+                      // If this was a new transaction, create another for rapid entry
+                      if (wasNew) {
+                        onRequestNewTransaction?.();
+                      }
                     }}
                     onCancel={() => {
                       // If this is a new transaction, delete it from the ledger
                       if (editingState.isNew) {
-                        runInAction(() => {
-                          // Remove associated postings
-                          rowData.postings.forEach((posting) => {
-                            const postingIndex = ledger.transactionPostings.findIndex(
-                              (p) => p.id === posting.id
-                            );
-                            if (postingIndex !== -1) {
-                              ledger.transactionPostings.splice(postingIndex, 1);
-                            }
-                          });
-                          // Remove transaction
-                          const transactionIndex = ledger.transactions.findIndex(
-                            (t) => t.id === rowData.id
-                          );
-                          if (transactionIndex !== -1) {
-                            ledger.transactions.splice(transactionIndex, 1);
-                          }
-                        });
+                        ledger.deleteTransaction(rowData);
                       }
                       // Discard draft
                       setEditingState(null);
@@ -338,7 +317,12 @@ export const TransactionsTable = observer(function TransactionsTable({
                   onSave={() => {
                     // Copy draft back to original
                     rowData.copyFrom(draft);
+                    const wasNew = editingState.isNew;
                     setEditingState(null);
+                    // If this was a new transfer, create a new transaction for rapid entry
+                    if (wasNew) {
+                      onRequestNewTransaction?.();
+                    }
                   }}
                   onCancel={() => {
                     // If this is a new transfer, delete it from the ledger
