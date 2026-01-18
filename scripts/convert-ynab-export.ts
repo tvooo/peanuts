@@ -10,7 +10,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import cuid from "cuid";
+import { createId } from "@paralleldrive/cuid2";
 
 interface YNABRegisterRow {
   Account: string;
@@ -178,7 +178,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
   // Extract unique accounts
   registerRows.forEach((row) => {
     if (row.Account && !accountMap.has(row.Account)) {
-      const id = cuid();
+      const id = createId();
       accountMap.set(row.Account, id);
       result.accounts.push({
         id,
@@ -191,7 +191,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
   // Extract unique category groups
   planRows.forEach((row) => {
     if (row["Category Group"] && !categoryGroupMap.has(row["Category Group"])) {
-      const id = cuid();
+      const id = createId();
       categoryGroupMap.set(row["Category Group"], id);
       result.budget_categories.push({
         id,
@@ -201,7 +201,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
   });
 
   // Create "To Be Budgeted" budget (Inflow)
-  const inflowId = cuid();
+  const inflowId = createId();
   result.budgets.push({
     id: inflowId,
     name: "To Be Budgeted",
@@ -213,7 +213,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
   // Extract unique budgets/categories
   planRows.forEach((row) => {
     if (row.Category && !budgetMap.has(row.Category)) {
-      const id = cuid();
+      const id = createId();
       const categoryGroupId = categoryGroupMap.get(row["Category Group"]) || null;
       budgetMap.set(row.Category, id);
       result.budgets.push({
@@ -228,7 +228,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
   // Extract unique payees
   registerRows.forEach((row) => {
     if (row.Payee && !payeeMap.has(row.Payee)) {
-      const id = cuid();
+      const id = createId();
       payeeMap.set(row.Payee, id);
       result.payees.push({
         id,
@@ -296,7 +296,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
         // Only create transfer once (from the outflow side)
         if (outflow > 0) {
           result.transfers.push({
-            id: cuid(),
+            id: createId(),
             date: parseYNABDate(firstRow.Date).toISOString(),
             from_account_id: accountId,
             to_account_id: toAccountId,
@@ -315,12 +315,12 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
       }
     } else {
       // Handle regular transactions (including splits)
-      const transactionId = cuid();
+      const transactionId = createId();
       const postingIds: string[] = [];
 
       // Create a posting for each row in the group
       group.forEach((row) => {
-        const postingId = cuid();
+        const postingId = createId();
         postingIds.push(postingId);
 
         const inflow = parseYNABAmount(row.Inflow);
@@ -373,7 +373,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
     if (!budgetId) return;
 
     result.assignments.push({
-      id: cuid(),
+      id: createId(),
       date: parseYNABMonth(row.Month).toISOString(),
       budget_id: budgetId,
       amount: assigned,
