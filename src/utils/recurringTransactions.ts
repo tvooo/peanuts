@@ -1,4 +1,4 @@
-import cuid from "cuid";
+import { createId } from "@paralleldrive/cuid2";
 import { isAfter, isSameDay, startOfDay } from "date-fns";
 import { runInAction } from "mobx";
 import type { Ledger } from "@/models/Ledger";
@@ -42,14 +42,14 @@ export function processRecurringTemplates(ledger: Ledger) {
 
 function createTransactionFromTemplate(ledger: Ledger, template: RecurringTemplate) {
   // Create posting
-  const posting = new TransactionPosting({ ledger, id: cuid() });
+  const posting = new TransactionPosting({ ledger, id: createId() });
   posting.amount = template.amount;
   posting.budget = template.budget;
   posting.note = template.note;
   ledger.transactionPostings.push(posting);
 
   // Create transaction with date normalized to start of day
-  const transaction = new Transaction({ ledger, id: cuid() });
+  const transaction = new Transaction({ ledger, id: createId() });
   transaction.date = startOfDay(template.nextScheduledDate);
   transaction.account = template.account;
   transaction.payee = template.payee;
