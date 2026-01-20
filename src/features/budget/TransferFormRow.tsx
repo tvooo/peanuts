@@ -59,6 +59,30 @@ export const TransferFormRow = observer(function TransferFormRow({
       if (!otherAccount) {
         return accountComboboxRef.current;
       }
+      // Sync amount from input fields before checking (Enter may fire before blur)
+      if (outValue) {
+        const parsed = parseCurrencyInput(outValue);
+        if (parsed > 0) {
+          transfer.amount = parsed;
+          // If entering in Out, ensure current account is the fromAccount
+          if (!isFromAccount && otherAccount) {
+            const currentAccount = ledger!.accounts.find((a) => a.id === currentAccountId);
+            transfer.fromAccount = currentAccount ?? null;
+            transfer.toAccount = otherAccount;
+          }
+        }
+      } else if (inValue) {
+        const parsed = parseCurrencyInput(inValue);
+        if (parsed > 0) {
+          transfer.amount = parsed;
+          // If entering in In, ensure current account is the toAccount
+          if (isFromAccount && otherAccount) {
+            const currentAccount = ledger!.accounts.find((a) => a.id === currentAccountId);
+            transfer.toAccount = currentAccount ?? null;
+            transfer.fromAccount = otherAccount;
+          }
+        }
+      }
       if (transfer.amount === 0 || Number.isNaN(transfer.amount)) {
         return outInputRef.current;
       }

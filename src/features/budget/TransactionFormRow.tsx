@@ -61,6 +61,18 @@ export const TransactionFormRow = observer(function TransactionFormRow({
       if (!posting.budget) {
         return budgetComboboxRef.current;
       }
+      // Sync amount from input fields before checking (Enter may fire before blur)
+      if (outValue) {
+        const parsed = parseCurrencyInput(outValue);
+        if (parsed > 0) {
+          posting.amount = -parsed;
+        }
+      } else if (inValue) {
+        const parsed = parseCurrencyInput(inValue);
+        if (parsed > 0) {
+          posting.amount = parsed;
+        }
+      }
       if (posting.amount === 0 || Number.isNaN(posting.amount)) {
         return outInputRef.current;
       }

@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: TODO: fix later */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: TODO: fix later */
 
-import { ArrowDownToLine, CheckCheck, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowDownToLine, CheckCheck, ChevronDown, ChevronRight, Repeat } from "lucide-react";
 import { twJoin } from "tailwind-merge";
 import { AmountCell, BudgetCell } from "@/components/Table";
 import type { Transaction } from "@/models/Transaction";
@@ -42,7 +42,16 @@ export const TransactionRow = ({
             onClick={(e) => e.stopPropagation()}
           />
         </td>
-        <td className="tabular-nums py-2 px-3 pr-2 text-sm">{formatDate(transaction.date!)}</td>
+        <td className="tabular-nums py-2 px-3 pr-2 text-sm">
+          <span className="inline-flex items-center gap-1.5">
+            {formatDate(transaction.date!)}
+            {transaction.recurringTemplateId && (
+              <span title="Created from recurring template">
+                <Repeat size={12} className="text-stone-400" />
+              </span>
+            )}
+          </span>
+        </td>
         <td className="py-2 px-3 pr-2 text-sm">{transaction.payee?.name}</td>
         <td className="py-2 px-3 pr-2 text-sm">
           <BudgetCell isInflow={transaction.postings[0]?.budget?.isToBeBudgeted}>
@@ -89,7 +98,16 @@ export const TransactionRow = ({
             onClick={(e) => e.stopPropagation()}
           />
         </td>
-        <td className="tabular-nums py-2 px-3 pr-2 text-sm">{formatDate(transaction.date!)}</td>
+        <td className="tabular-nums py-2 px-3 pr-2 text-sm">
+          <span className="inline-flex items-center gap-1.5">
+            {formatDate(transaction.date!)}
+            {transaction.recurringTemplateId && (
+              <span title="Created from recurring template">
+                <Repeat size={12} className="text-stone-400" />
+              </span>
+            )}
+          </span>
+        </td>
         <td className="py-2 px-3 pr-2 text-sm">{transaction.payee?.name}</td>
         <td className="py-2 px-3 pr-2 text-sm">
           <div className="flex items-center gap-1.5 text-stone-600">
@@ -134,7 +152,16 @@ export const TransactionRow = ({
             onClick={(e) => e.stopPropagation()}
           />
         </td>
-        <td className="tabular-nums py-2 px-3 pr-2 text-sm">{formatDate(transaction.date!)}</td>
+        <td className="tabular-nums py-2 px-3 pr-2 text-sm">
+          <span className="inline-flex items-center gap-1.5">
+            {formatDate(transaction.date!)}
+            {transaction.recurringTemplateId && (
+              <span title="Created from recurring template">
+                <Repeat size={12} className="text-stone-400" />
+              </span>
+            )}
+          </span>
+        </td>
         <td className="py-2 px-3 pr-2 text-sm">{transaction.payee?.name}</td>
         <td className="py-2 px-3 pr-2 text-sm">
           <div
