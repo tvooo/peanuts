@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Budget } from "@/models/Budget";
 import { Payee } from "@/models/Payee";
 import type { Transaction } from "@/models/Transaction";
+import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
 
 interface TransactionFormRowProps {
@@ -34,7 +35,16 @@ export const TransactionFormRow = observer(function TransactionFormRow({
   const dateInputRef = React.useRef<HTMLInputElement>(null);
   const payeeComboboxRef = React.useRef<HTMLInputElement>(null);
   const budgetComboboxRef = React.useRef<HTMLInputElement>(null);
-  const amountInputRef = React.useRef<HTMLInputElement>(null);
+  const outInputRef = React.useRef<HTMLInputElement>(null);
+  const inInputRef = React.useRef<HTMLInputElement>(null);
+
+  // State for amount inputs (text-based for better UX)
+  const [outValue, setOutValue] = React.useState(() =>
+    posting.amount < 0 ? formatCurrencyInput(Math.abs(posting.amount)) : ""
+  );
+  const [inValue, setInValue] = React.useState(() =>
+    posting.amount > 0 ? formatCurrencyInput(posting.amount) : ""
+  );
 
   // Use keyboard handling hook
   const { handleKeyDown, handleCancel, handleSave } = useTransactionFormKeyboard({
@@ -52,7 +62,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
         return budgetComboboxRef.current;
       }
       if (posting.amount === 0 || Number.isNaN(posting.amount)) {
-        return amountInputRef.current;
+        return outInputRef.current;
       }
       return null;
     },
@@ -183,13 +193,56 @@ export const TransactionFormRow = observer(function TransactionFormRow({
         </td>
         <td className="pr-2">
           <FormInput
-            ref={amountInputRef}
-            type="number"
+            ref={outInputRef}
+            type="text"
             className="tabular-nums text-right"
-            value={transaction.amount}
+            value={outValue}
             onChange={(e) => {
-              posting.amount = parseInt(e.target.value, 10);
+              setOutValue(e.target.value);
+              // Clear the other field when typing here
+              if (e.target.value) {
+                setInValue("");
+              }
             }}
+            onBlur={() => {
+              const parsed = parseCurrencyInput(outValue);
+              if (parsed > 0) {
+                posting.amount = -parsed;
+                setOutValue(formatCurrencyInput(parsed));
+              } else if (!outValue) {
+                // Field is empty, don't change anything
+              } else {
+                setOutValue("");
+              }
+            }}
+            placeholder="0,00"
+          />
+        </td>
+        <td className="pr-2">
+          <FormInput
+            ref={inInputRef}
+            type="text"
+            className="tabular-nums text-right"
+            value={inValue}
+            onChange={(e) => {
+              setInValue(e.target.value);
+              // Clear the other field when typing here
+              if (e.target.value) {
+                setOutValue("");
+              }
+            }}
+            onBlur={() => {
+              const parsed = parseCurrencyInput(inValue);
+              if (parsed > 0) {
+                posting.amount = parsed;
+                setInValue(formatCurrencyInput(parsed));
+              } else if (!inValue) {
+                // Field is empty, don't change anything
+              } else {
+                setInValue("");
+              }
+            }}
+            placeholder="0,00"
           />
         </td>
         <td className="pr-2 text-center">
@@ -223,7 +276,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
       </tr>
       {/* Split button row */}
       <tr className="bg-amber-50/50 border-b-2 border-amber-200">
-        <td colSpan={7} className="py-1 pl-8 pr-2">
+        <td colSpan={8} className="py-1 pl-8 pr-2">
           <button
             type="button"
             onClick={() => transaction.addPosting()}

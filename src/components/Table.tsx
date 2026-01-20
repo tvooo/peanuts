@@ -1,5 +1,5 @@
 import { twJoin } from "tailwind-merge";
-import { formatCurrency } from "@/utils/formatting";
+import { formatCurrencyInput } from "@/utils/formatting";
 import type { Amount } from "@/utils/types";
 
 export function AmountCell({
@@ -13,21 +13,42 @@ export function AmountCell({
   highlightPositiveAmount?: boolean;
   chip?: boolean;
 }) {
+  const outAmount = amount < 0 ? Math.abs(amount) : 0;
+  const inAmount = amount > 0 ? amount : 0;
+
   return (
-    <div className="text-right px-3">
-      <span
-        className={twJoin(
-          "font-mono text-right self-end text-sm",
-          amount > 0 && "text-foreground",
-          highlightNegativeAmount && amount < 0 && "text-red-600",
-          highlightPositiveAmount && amount > 0 && "text-green-700",
-          amount === 0 && "text-muted-foreground",
-          chip && "bg-stone-50 rounded-full py-1 px-2 ring-1 ring-stone-200"
-        )}
-      >
-        {formatCurrency(amount)}
-      </span>
-    </div>
+    <>
+      <td className="py-2 pr-2">
+        <div className="text-right px-3">
+          <span
+            className={twJoin(
+              "font-mono text-right self-end text-sm",
+              outAmount > 0 && "text-foreground",
+              highlightNegativeAmount && outAmount > 0 && "text-red-600",
+              outAmount === 0 && "text-muted-foreground",
+              chip && "bg-stone-50 rounded-full py-1 px-2 ring-1 ring-stone-200"
+            )}
+          >
+            {outAmount > 0 ? formatCurrencyInput(outAmount) : ""}
+          </span>
+        </div>
+      </td>
+      <td className="py-2 pr-2">
+        <div className="text-right px-3">
+          <span
+            className={twJoin(
+              "font-mono text-right self-end text-sm",
+              inAmount > 0 && "text-foreground",
+              highlightPositiveAmount && inAmount > 0 && "text-green-700",
+              inAmount === 0 && "text-muted-foreground",
+              chip && "bg-stone-50 rounded-full py-1 px-2 ring-1 ring-stone-200"
+            )}
+          >
+            {inAmount > 0 ? formatCurrencyInput(inAmount) : ""}
+          </span>
+        </div>
+      </td>
+    </>
   );
 }
 

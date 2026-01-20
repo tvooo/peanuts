@@ -44,9 +44,7 @@ export const TransferRow = ({
       </td>
       <td className="py-2 px-3 pr-2 text-sm text-muted-foreground font-normal italic">Transfer</td>
       <td className="py-2 px-3 pr-2 text-sm">{transfer.note}</td>
-      <td className="py-2 pr-2">
-        <AmountCell amount={(isInbound ? 1 : -1) * transfer.amount} highlightPositiveAmount />
-      </td>
+      <AmountCell amount={(isInbound ? 1 : -1) * transfer.amount} highlightPositiveAmount />
       <td className="pr-2 text-center">
         {transfer.fromStatus === "cleared" ? (
           <CheckCheck width={20} className="inline-block" />

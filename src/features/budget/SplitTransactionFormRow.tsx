@@ -2,7 +2,7 @@ import { ArrowDownToLine, Check, Plus, X } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
-import { Combobox } from "@/components/Combobox";
+import { Combobox, type ComboboxGroup } from "@/components/Combobox";
 import { DatePicker } from "@/components/DatePicker";
 import { FormInput } from "@/components/FormInput";
 import { useBudgetGroups } from "@/hooks/useBudgetGroups";
@@ -10,9 +10,148 @@ import { usePayeeAccountGroups } from "@/hooks/usePayeeAccountGroups";
 import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
 import { Budget } from "@/models/Budget";
+import type { Ledger } from "@/models/Ledger";
 import { Payee } from "@/models/Payee";
-import type { Transaction } from "@/models/Transaction";
+import type { Transaction, TransactionPosting } from "@/models/Transaction";
+import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
+
+// Inner component for posting rows to manage local state
+interface PostingRowProps {
+  posting: TransactionPosting;
+  transaction: Transaction;
+  budgetGroups: ComboboxGroup<any>[];
+  ledger: Ledger;
+  handleKeyDown: (e: React.KeyboardEvent) => void;
+}
+
+const PostingRow = observer(function PostingRow({
+  posting,
+  transaction,
+  budgetGroups,
+  ledger,
+  handleKeyDown,
+}: PostingRowProps) {
+  // State for amount inputs (text-based for better UX)
+  const [outValue, setOutValue] = React.useState(() =>
+    posting.amount < 0 ? formatCurrencyInput(Math.abs(posting.amount)) : ""
+  );
+  const [inValue, setInValue] = React.useState(() =>
+    posting.amount > 0 ? formatCurrencyInput(posting.amount) : ""
+  );
+
+  return (
+    <tr className="bg-amber-50/50 border-amber-200" onKeyDown={handleKeyDown}>
+      <td colSpan={2} />
+      <td className="py-1 pr-2">
+        <Combobox
+          groups={budgetGroups}
+          value={
+            posting.budget
+              ? {
+                  id: posting.budget.id,
+                  label: posting.budget.isToBeBudgeted ? "Inflow" : posting.budget.name,
+                  budget: posting.budget,
+                  icon: posting.budget.isToBeBudgeted ? (
+                    <ArrowDownToLine className="mr-1.5" size={14} />
+                  ) : undefined,
+                }
+              : null
+          }
+          onValueChange={(option: any) => posting.setBudget(option.budget)}
+          onCreateNew={(name) => {
+            return new Promise<any>((resolve) => {
+              runInAction(() => {
+                const newBudget = new Budget({ ledger, id: null });
+                newBudget.name = name;
+                ledger._budgets.push(newBudget);
+                resolve({
+                  id: newBudget.id,
+                  label: newBudget.name,
+                  budget: newBudget,
+                });
+              });
+            });
+          }}
+          placeholder="Category..."
+          emptyText="No categories found."
+        />
+      </td>
+      <td className="py-1 pr-2">
+        <FormInput
+          type="text"
+          value={posting.note}
+          onChange={(e) => {
+            posting.note = e.target.value;
+          }}
+          placeholder="Note..."
+        />
+      </td>
+      <td className="py-1 pr-2">
+        <FormInput
+          type="text"
+          className="tabular-nums text-right"
+          value={outValue}
+          onChange={(e) => {
+            setOutValue(e.target.value);
+            if (e.target.value) {
+              setInValue("");
+            }
+          }}
+          onBlur={() => {
+            const parsed = parseCurrencyInput(outValue);
+            if (parsed > 0) {
+              posting.setAmount(-parsed);
+              setOutValue(formatCurrencyInput(parsed));
+            } else if (!outValue) {
+              // Field is empty
+            } else {
+              setOutValue("");
+            }
+          }}
+          placeholder="0,00"
+        />
+      </td>
+      <td className="py-1 pr-2">
+        <FormInput
+          type="text"
+          className="tabular-nums text-right"
+          value={inValue}
+          onChange={(e) => {
+            setInValue(e.target.value);
+            if (e.target.value) {
+              setOutValue("");
+            }
+          }}
+          onBlur={() => {
+            const parsed = parseCurrencyInput(inValue);
+            if (parsed > 0) {
+              posting.setAmount(parsed);
+              setInValue(formatCurrencyInput(parsed));
+            } else if (!inValue) {
+              // Field is empty
+            } else {
+              setInValue("");
+            }
+          }}
+          placeholder="0,00"
+        />
+      </td>
+      <td className="py-1 pr-2 text-center align-middle">
+        {transaction.postings.length > 1 && (
+          <button
+            type="button"
+            onClick={() => transaction.removePosting(posting)}
+            className="text-stone-400 hover:text-red-600 transition-colors"
+            title="Remove split"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+});
 
 interface SplitTransactionFormRowProps {
   transaction: Transaction;
@@ -127,7 +266,7 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
             />
           </div>
         </td>
-        <td colSpan={3}></td>
+        <td colSpan={4}></td>
         <td className="pr-2 text-center align-top pt-2">
           <div className="flex items-center justify-center gap-1">
             <button
@@ -159,85 +298,21 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
       </tr>
 
       {/* Posting rows */}
-      {transaction.postings.map((posting, _index) => (
-        <tr key={posting.id} className="bg-amber-50/50 border-amber-200" onKeyDown={handleKeyDown}>
-          {/* <td className="py-1 pr-2 pl-8 text-sm text-stone-600 align-middle w-[100px]">
-            {index === 0 ? "Splits:" : ""}
-          </td> */}
-          <td colSpan={2} />
-          <td className="py-1 pr-2">
-            <Combobox
-              groups={budgetGroups}
-              value={
-                posting.budget
-                  ? {
-                      id: posting.budget.id,
-                      label: posting.budget.isToBeBudgeted ? "Inflow" : posting.budget.name,
-                      budget: posting.budget,
-                      icon: posting.budget.isToBeBudgeted ? (
-                        <ArrowDownToLine className="mr-1.5" size={14} />
-                      ) : undefined,
-                    }
-                  : null
-              }
-              onValueChange={(option: any) => posting.setBudget(option.budget)}
-              onCreateNew={(name) => {
-                return new Promise<any>((resolve) => {
-                  runInAction(() => {
-                    const newBudget = new Budget({ ledger: ledger!, id: null });
-                    newBudget.name = name;
-                    ledger!._budgets.push(newBudget);
-                    resolve({
-                      id: newBudget.id,
-                      label: newBudget.name,
-                      budget: newBudget,
-                    });
-                  });
-                });
-              }}
-              placeholder="Category..."
-              emptyText="No categories found."
-            />
-          </td>
-          <td className="py-1 pr-2">
-            <FormInput
-              type="text"
-              value={posting.note}
-              onChange={(e) => {
-                posting.note = e.target.value;
-              }}
-              placeholder="Note..."
-            />
-          </td>
-          <td className="py-1 pr-2">
-            <FormInput
-              type="number"
-              className="tabular-nums text-right"
-              value={posting.amount}
-              onChange={(e) => {
-                posting.setAmount(parseInt(e.target.value, 10) || 0);
-              }}
-            />
-          </td>
-          <td className="py-1 pr-2 text-center align-middle">
-            {transaction.postings.length > 1 && (
-              <button
-                type="button"
-                onClick={() => transaction.removePosting(posting)}
-                className="text-stone-400 hover:text-red-600 transition-colors"
-                title="Remove split"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </td>
-        </tr>
+      {transaction.postings.map((posting) => (
+        <PostingRow
+          key={posting.id}
+          posting={posting}
+          transaction={transaction}
+          budgetGroups={budgetGroups}
+          ledger={ledger!}
+          handleKeyDown={handleKeyDown}
+        />
       ))}
 
       {/* Add split button row */}
       <tr className="bg-amber-50/50 border-b-2 border-amber-200">
         <td colSpan={2}> </td>
-        <td colSpan={4} className="py-1 pl-2 pr-2">
+        <td colSpan={5} className="py-1 pl-2 pr-2">
           <button
             type="button"
             onClick={() => transaction.addPosting()}
