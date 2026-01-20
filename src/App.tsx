@@ -1,6 +1,6 @@
 import { get, set } from "idb-keyval";
 import { useEffect, useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { HashRouter, Route, Routes } from "react-router";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { Ledger } from "@/models/Ledger";
@@ -25,7 +25,7 @@ function AppContent() {
 
   return (
     <SidebarProvider>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <HashRouter>
         <Routes>
           <Route path="/" element={<OpenPage />} />
           <Route path="/budget" element={<BudgetPage />} />
@@ -35,7 +35,7 @@ function AppContent() {
           <Route path="/ledger/:accountName" element={<AccountPage />} />
           <Route path="/payees" element={<PayeesPage />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </SidebarProvider>
   );
 }

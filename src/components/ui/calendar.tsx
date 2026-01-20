@@ -47,7 +47,7 @@ function Calendar({
         ),
         range_start: "day-range-start rounded-l-md",
         range_end: "day-range-end rounded-r-md",
-        selected: "",
+        selected: "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground",
         today: "[&>button]:bg-accent [&>button]:text-accent-foreground",
         outside:
           "text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
