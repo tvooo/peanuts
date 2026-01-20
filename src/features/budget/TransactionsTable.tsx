@@ -156,8 +156,13 @@ export const TransactionsTable = observer(function TransactionsTable({
         cell: () => null,
       }),
       columnHelper.display({
-        id: "amount",
-        header: () => <HeaderCell alignRight>Amount</HeaderCell>,
+        id: "out",
+        header: () => <HeaderCell alignRight>Out</HeaderCell>,
+        cell: () => null,
+      }),
+      columnHelper.display({
+        id: "in",
+        header: () => <HeaderCell alignRight>In</HeaderCell>,
         cell: () => null,
       }),
       columnHelper.display({

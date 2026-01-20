@@ -8,6 +8,7 @@ import { usePayeeAccountGroups } from "@/hooks/usePayeeAccountGroups";
 import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
 import type { Transfer } from "@/models/Transfer";
+import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
 
 interface TransferFormRowProps {
@@ -34,7 +35,17 @@ export const TransferFormRow = observer(function TransferFormRow({
   // Refs for required fields
   const dateInputRef = React.useRef<HTMLInputElement>(null);
   const accountComboboxRef = React.useRef<HTMLInputElement>(null);
-  const amountInputRef = React.useRef<HTMLInputElement>(null);
+  const outInputRef = React.useRef<HTMLInputElement>(null);
+  const inInputRef = React.useRef<HTMLInputElement>(null);
+
+  // State for amount inputs (text-based for better UX)
+  // For transfers: Out = sending from current account, In = receiving to current account
+  const [outValue, setOutValue] = React.useState(() =>
+    isFromAccount && transfer.amount > 0 ? formatCurrencyInput(transfer.amount) : ""
+  );
+  const [inValue, setInValue] = React.useState(() =>
+    !isFromAccount && transfer.amount > 0 ? formatCurrencyInput(transfer.amount) : ""
+  );
 
   // Use keyboard handling hook
   const { handleKeyDown, handleCancel, handleSave } = useTransactionFormKeyboard({
@@ -49,7 +60,7 @@ export const TransferFormRow = observer(function TransferFormRow({
         return accountComboboxRef.current;
       }
       if (transfer.amount === 0 || Number.isNaN(transfer.amount)) {
-        return amountInputRef.current;
+        return outInputRef.current;
       }
       return null;
     },
@@ -129,13 +140,70 @@ export const TransferFormRow = observer(function TransferFormRow({
       </td>
       <td className="pr-2">
         <FormInput
-          ref={amountInputRef}
-          type="number"
+          ref={outInputRef}
+          type="text"
           className="tabular-nums text-right"
-          value={transfer.amount}
+          value={outValue}
           onChange={(e) => {
-            transfer.amount = parseInt(e.target.value, 10);
+            setOutValue(e.target.value);
+            // Clear the other field when typing here
+            if (e.target.value) {
+              setInValue("");
+            }
           }}
+          onBlur={() => {
+            const parsed = parseCurrencyInput(outValue);
+            if (parsed > 0) {
+              transfer.amount = parsed;
+              // If entering in Out, ensure current account is the fromAccount
+              if (!isFromAccount && otherAccount) {
+                // Swap the accounts
+                const currentAccount = ledger!.accounts.find((a) => a.id === currentAccountId);
+                transfer.fromAccount = currentAccount ?? null;
+                transfer.toAccount = otherAccount;
+              }
+              setOutValue(formatCurrencyInput(parsed));
+            } else if (!outValue) {
+              // Field is empty, don't change anything
+            } else {
+              setOutValue("");
+            }
+          }}
+          placeholder="0,00"
+        />
+      </td>
+      <td className="pr-2">
+        <FormInput
+          ref={inInputRef}
+          type="text"
+          className="tabular-nums text-right"
+          value={inValue}
+          onChange={(e) => {
+            setInValue(e.target.value);
+            // Clear the other field when typing here
+            if (e.target.value) {
+              setOutValue("");
+            }
+          }}
+          onBlur={() => {
+            const parsed = parseCurrencyInput(inValue);
+            if (parsed > 0) {
+              transfer.amount = parsed;
+              // If entering in In, ensure current account is the toAccount
+              if (isFromAccount && otherAccount) {
+                // Swap the accounts
+                const currentAccount = ledger!.accounts.find((a) => a.id === currentAccountId);
+                transfer.toAccount = currentAccount ?? null;
+                transfer.fromAccount = otherAccount;
+              }
+              setInValue(formatCurrencyInput(parsed));
+            } else if (!inValue) {
+              // Field is empty, don't change anything
+            } else {
+              setInValue("");
+            }
+          }}
+          placeholder="0,00"
         />
       </td>
       <td className="pr-2 text-center">

@@ -55,9 +55,7 @@ export const TransactionRow = ({
           </BudgetCell>
         </td>
         <td className="py-2 px-3 pr-2 text-sm">{transaction.postings[0]?.note}</td>
-        <td className="py-2 pr-2">
-          <AmountCell amount={transaction.amount} highlightPositiveAmount />
-        </td>
+        <AmountCell amount={transaction.amount} highlightPositiveAmount />
         <td className="pr-2 text-center">
           {transaction.status === "cleared" ? (
             <CheckCheck width={20} className="inline-block" />
@@ -100,9 +98,7 @@ export const TransactionRow = ({
           </div>
         </td>
         <td className="py-2 px-3 pr-2 text-sm"></td>
-        <td className="py-2 pr-2">
-          <AmountCell amount={transaction.amount} highlightPositiveAmount />
-        </td>
+        <AmountCell amount={transaction.amount} highlightPositiveAmount />
         <td className="pr-2 text-center">
           {transaction.status === "cleared" ? (
             <CheckCheck width={20} className="inline-block" />
@@ -153,9 +149,7 @@ export const TransactionRow = ({
           </div>
         </td>
         <td className="py-2 px-3 pr-2 text-sm"></td>
-        <td className="py-2 pr-2">
-          <AmountCell amount={transaction.amount} highlightPositiveAmount />
-        </td>
+        <AmountCell amount={transaction.amount} highlightPositiveAmount />
         <td className="pr-2 text-center">
           {transaction.status === "cleared" ? (
             <CheckCheck width={20} className="inline-block" />
@@ -192,9 +186,7 @@ export const TransactionRow = ({
             </BudgetCell>
           </td>
           <td className="py-1 px-3 pr-2 text-sm text-stone-600">{posting.note}</td>
-          <td className="py-1 pr-2">
-            <AmountCell amount={posting.amount} highlightPositiveAmount />
-          </td>
+          <AmountCell amount={posting.amount} highlightPositiveAmount />
           <td className="pr-2"></td>
         </tr>
       ))}
