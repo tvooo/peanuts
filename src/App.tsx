@@ -1,5 +1,6 @@
 import { get, set } from "idb-keyval";
-import { useEffect, useState } from "react";
+import { reaction } from "mobx";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HashRouter, Route, Routes } from "react-router";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
@@ -43,6 +44,62 @@ function AppContent() {
 export default function App() {
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [ledger, setLedger] = useState<Ledger | null>(null);
+  const changeCountRef = useRef(0);
+  const autoSaveIntervalRef = useRef<number | null>(null);
+
+  // Save function that writes to file and marks ledger as clean
+  const saveLedger = useCallback(async () => {
+    if (!ledger || !fileHandle) return;
+    const writableStream = await fileHandle.createWritable();
+    await writableStream.write(JSON.stringify(ledger.toJSON(), null, 2));
+    await writableStream.close();
+    ledger.markClean();
+    changeCountRef.current = 0;
+    console.log("Ledger saved");
+  }, [ledger, fileHandle]);
+
+  // Set up change detection and auto-save when ledger loads
+  useEffect(() => {
+    if (!ledger || !fileHandle) return;
+
+    // Mark clean after initial load
+    ledger.markClean();
+
+    // Set up MobX reaction for change detection with debounce
+    let debounceTimeout: number | null = null;
+    const dispose = reaction(
+      () => JSON.stringify(ledger.toJSON()),
+      (currentSnapshot) => {
+        // Clear previous debounce
+        if (debounceTimeout) clearTimeout(debounceTimeout);
+
+        debounceTimeout = window.setTimeout(() => {
+          if (currentSnapshot !== ledger.lastSavedSnapshot) {
+            ledger.markDirty();
+            changeCountRef.current++;
+
+            // Auto-save after 5 changes
+            if (changeCountRef.current >= 5) {
+              saveLedger();
+            }
+          }
+        }, 500);
+      }
+    );
+
+    // Set up 60-second interval for auto-save
+    autoSaveIntervalRef.current = window.setInterval(() => {
+      if (ledger.isDirty) {
+        saveLedger();
+      }
+    }, 60000);
+
+    return () => {
+      dispose();
+      if (debounceTimeout) clearTimeout(debounceTimeout);
+      if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current);
+    };
+  }, [ledger, fileHandle, saveLedger]);
 
   useEffect(() => {
     async function doit() {
@@ -95,6 +152,7 @@ export default function App() {
     <LedgerContext.Provider
       value={{
         ledger,
+        saveLedger,
         openLedger: async (fh?: FileSystemFileHandle) => {
           let fileHandleToOpen: FileSystemFileHandle;
 
