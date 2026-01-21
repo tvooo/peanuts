@@ -11,6 +11,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { observer } from "mobx-react-lite";
 import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 import {
@@ -66,8 +67,8 @@ const items = [
   },
 ];
 
-export function AppSidebar() {
-  const { ledger, fileHandle } = useLedger();
+export const AppSidebar = observer(function AppSidebar() {
+  const { ledger, saveLedger } = useLedger();
   const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
   const location = useLocation();
   return (
@@ -268,17 +269,14 @@ export function AppSidebar() {
         >
           Debug
         </Button>
-        <Button
-          onClick={async () => {
-            const writableStream = await fileHandle!.createWritable();
-            await writableStream.write(JSON.stringify(ledger!.toJSON(), null, 2));
-            await writableStream.close();
-          }}
-        >
+        <Button onClick={saveLedger} disabled={!ledger?.isDirty} className="relative">
           <Save size={16} /> Save
+          {ledger?.isDirty && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full" />
+          )}
         </Button>
       </SidebarFooter>
       <CreateAccountModal open={isCreateAccountOpen} onOpenChange={setIsCreateAccountOpen} />
     </Sidebar>
   );
-}
+});

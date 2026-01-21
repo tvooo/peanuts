@@ -11,6 +11,11 @@ import { RecurringTemplate } from "./RecurringTemplate";
 import { Transfer } from "./Transfer";
 
 export class Ledger {
+  @observable
+  accessor isDirty = false;
+
+  lastSavedSnapshot: string = "";
+
   accounts: Account[] = [];
 
   @observable
@@ -141,6 +146,17 @@ export class Ledger {
   @action
   addBudget(budget: Budget) {
     this._budgets.push(budget);
+  }
+
+  @action
+  markClean() {
+    this.isDirty = false;
+    this.lastSavedSnapshot = JSON.stringify(this.toJSON());
+  }
+
+  @action
+  markDirty() {
+    this.isDirty = true;
   }
 
   @action
