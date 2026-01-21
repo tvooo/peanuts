@@ -188,17 +188,29 @@ export const TransactionsTable = observer(function TransactionsTable({
   });
 
   return (
-    <table className="table w-full">
+    <table className="table w-full table-fixed">
       <thead className="sticky top-0 bg-slate-50 z-10 ">
         {table.getHeaderGroups().map((headerGroup) => (
           <tr key={headerGroup.id}>
             {headerGroup.headers.map((header) => {
+              const widthClass =
+                header.id === "checkbox"
+                  ? "w-[64px]"
+                  : header.id === "date"
+                    ? "w-[110px]"
+                    : header.id === "budget"
+                      ? "w-[150px]"
+                      : header.id === "out" || header.id === "in"
+                        ? "w-[100px]"
+                        : header.id === "cleared"
+                          ? "w-[50px]"
+                          : "";
               const headerClasses =
                 header.id === "checkbox"
-                  ? "p-1 pl-8 w-[64px]"
+                  ? `p-1 pl-8 ${widthClass}`
                   : header.id === "cleared"
-                    ? "pr-2"
-                    : "px-3 pr-2";
+                    ? `pr-2 ${widthClass}`
+                    : `px-3 pr-2 ${widthClass}`;
               return (
                 <th key={header.id} className={twJoin("", headerClasses)}>
                   {header.isPlaceholder
