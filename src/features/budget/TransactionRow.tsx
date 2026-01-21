@@ -3,7 +3,7 @@
 
 import { ArrowDownToLine, CheckCheck, ChevronDown, ChevronRight, Repeat } from "lucide-react";
 import { twJoin } from "tailwind-merge";
-import { AmountCell, BudgetCell } from "@/components/Table";
+import { BudgetCell, OutInAmountCells } from "@/components/Table";
 import type { Transaction } from "@/models/Transaction";
 import { formatDate } from "@/utils/formatting";
 
@@ -64,7 +64,7 @@ export const TransactionRow = ({
           </BudgetCell>
         </td>
         <td className="py-2 px-3 pr-2 text-sm">{transaction.postings[0]?.note}</td>
-        <AmountCell amount={transaction.amount} highlightPositiveAmount />
+        <OutInAmountCells amount={transaction.amount} highlightPositiveAmount />
         <td className="pr-2 text-center">
           {transaction.status === "cleared" ? (
             <CheckCheck width={20} className="inline-block" />
@@ -116,7 +116,7 @@ export const TransactionRow = ({
           </div>
         </td>
         <td className="py-2 px-3 pr-2 text-sm"></td>
-        <AmountCell amount={transaction.amount} highlightPositiveAmount />
+        <OutInAmountCells amount={transaction.amount} highlightPositiveAmount />
         <td className="pr-2 text-center">
           {transaction.status === "cleared" ? (
             <CheckCheck width={20} className="inline-block" />
@@ -176,7 +176,7 @@ export const TransactionRow = ({
           </div>
         </td>
         <td className="py-2 px-3 pr-2 text-sm"></td>
-        <AmountCell amount={transaction.amount} highlightPositiveAmount />
+        <OutInAmountCells amount={transaction.amount} highlightPositiveAmount />
         <td className="pr-2 text-center">
           {transaction.status === "cleared" ? (
             <CheckCheck width={20} className="inline-block" />
@@ -213,7 +213,7 @@ export const TransactionRow = ({
             </BudgetCell>
           </td>
           <td className="py-1 px-3 pr-2 text-sm text-stone-600">{posting.note}</td>
-          <AmountCell amount={posting.amount} highlightPositiveAmount />
+          <OutInAmountCells amount={posting.amount} highlightPositiveAmount />
           <td className="pr-2"></td>
         </tr>
       ))}

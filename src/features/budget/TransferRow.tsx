@@ -1,6 +1,6 @@
 import { ArrowLeftRight, CheckCheck } from "lucide-react";
 import { twJoin } from "tailwind-merge";
-import { AmountCell } from "@/components/Table";
+import { OutInAmountCells } from "@/components/Table";
 import type { Transfer } from "@/models/Transfer";
 import { formatDate } from "@/utils/formatting";
 
@@ -44,7 +44,7 @@ export const TransferRow = ({
       </td>
       <td className="py-2 px-3 pr-2 text-sm text-muted-foreground font-normal italic">Transfer</td>
       <td className="py-2 px-3 pr-2 text-sm">{transfer.note}</td>
-      <AmountCell amount={(isInbound ? 1 : -1) * transfer.amount} highlightPositiveAmount />
+      <OutInAmountCells amount={(isInbound ? 1 : -1) * transfer.amount} highlightPositiveAmount />
       <td className="pr-2 text-center">
         {transfer.fromStatus === "cleared" ? (
           <CheckCheck width={20} className="inline-block" />

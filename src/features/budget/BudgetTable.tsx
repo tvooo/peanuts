@@ -14,7 +14,39 @@ import { Input } from "@/components/ui/input";
 import { Assignment } from "@/models/Assignment";
 import type { Budget } from "@/models/Budget";
 import type { Ledger } from "@/models/Ledger";
+import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { EditBudgetModal } from "./EditBudgetModal";
+
+// Component for editing assignment amount with text parsing
+function AssignmentInput({ assignment, onClose }: { assignment: Assignment; onClose: () => void }) {
+  const [value, setValue] = useState(() => formatCurrencyInput(assignment.amount));
+
+  const handleBlur = () => {
+    const parsed = parseCurrencyInput(value);
+    assignment.setAmount(parsed);
+    setValue(formatCurrencyInput(parsed));
+  };
+
+  return (
+    <Input
+      autoFocus
+      type="text"
+      className="tabular-nums text-right"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          handleBlur();
+          onClose();
+        } else if (e.key === "Escape") {
+          onClose();
+        }
+      }}
+      placeholder="0,00"
+    />
+  );
+}
 
 interface BudgetTableProps {
   ledger: Ledger;
@@ -76,17 +108,25 @@ export const BudgetTable = observer(function BudgetTable({
 
   return (
     <>
-      <table className="table w-full">
+      <table className="table w-full table-fixed">
         <thead className="sticky top-0 bg-white z-10">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="border-b border-stone-300">
               {headerGroup.headers.map((header) => {
+                const widthClass =
+                  header.id === "checkbox"
+                    ? "w-[64px]"
+                    : header.id === "budgeted" ||
+                        header.id === "activity" ||
+                        header.id === "available"
+                      ? "w-[120px]"
+                      : "";
                 const headerClasses =
                   header.id === "checkbox"
-                    ? "p-1 pl-8 w-[64px]"
+                    ? `p-1 pl-8 ${widthClass}`
                     : header.id === "available"
-                      ? "pr-2"
-                      : "px-3 pr-2";
+                      ? `pr-2 ${widthClass}`
+                      : `px-3 pr-2 ${widthClass}`;
                 return (
                   <th key={header.id} className={headerClasses}>
                     {header.isPlaceholder
@@ -137,16 +177,9 @@ export const BudgetTable = observer(function BudgetTable({
                       (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
                     ) ? (
                       <td className="py-2 px-3 pr-2">
-                        <Input
-                          autoFocus
-                          type="number"
-                          value={assignment.amount}
-                          onChange={(e) => assignment.setAmount(parseInt(e.target.value, 10))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === "Escape") {
-                              setAssignment(null);
-                            }
-                          }}
+                        <AssignmentInput
+                          assignment={assignment}
+                          onClose={() => setAssignment(null)}
                         />
                       </td>
                     ) : (
@@ -229,16 +262,9 @@ export const BudgetTable = observer(function BudgetTable({
                       (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
                     ) ? (
                       <td className="py-2 px-3 pr-2">
-                        <Input
-                          autoFocus
-                          type="number"
-                          value={assignment.amount}
-                          onChange={(e) => assignment.setAmount(parseInt(e.target.value, 10))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === "Escape") {
-                              setAssignment(null);
-                            }
-                          }}
+                        <AssignmentInput
+                          assignment={assignment}
+                          onClose={() => setAssignment(null)}
                         />
                       </td>
                     ) : (

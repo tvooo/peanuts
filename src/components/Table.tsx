@@ -1,7 +1,10 @@
 import { twJoin } from "tailwind-merge";
-import { formatCurrencyInput } from "@/utils/formatting";
+import { formatCurrency, formatCurrencyInput } from "@/utils/formatting";
 import type { Amount } from "@/utils/types";
 
+/**
+ * Single-cell amount display (for Budget table and other single-value displays)
+ */
 export function AmountCell({
   amount,
   highlightNegativeAmount,
@@ -12,6 +15,34 @@ export function AmountCell({
   highlightNegativeAmount?: boolean;
   highlightPositiveAmount?: boolean;
   chip?: boolean;
+}) {
+  return (
+    <div className="text-right px-3">
+      <span
+        className={twJoin(
+          "font-mono text-right self-end text-sm",
+          amount > 0 && "text-foreground",
+          highlightNegativeAmount && amount < 0 && "text-red-600",
+          highlightPositiveAmount && amount > 0 && "text-green-700",
+          amount === 0 && "text-muted-foreground",
+          chip && "bg-stone-50 rounded-full py-1 px-2 ring-1 ring-stone-200"
+        )}
+      >
+        {formatCurrency(amount)}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Two-cell amount display for transactions table (Out and In columns)
+ */
+export function OutInAmountCells({
+  amount,
+  highlightPositiveAmount,
+}: {
+  amount: Amount;
+  highlightPositiveAmount?: boolean;
 }) {
   const outAmount = amount < 0 ? Math.abs(amount) : 0;
   const inAmount = amount > 0 ? amount : 0;
@@ -24,9 +55,7 @@ export function AmountCell({
             className={twJoin(
               "font-mono text-right self-end text-sm",
               outAmount > 0 && "text-foreground",
-              highlightNegativeAmount && outAmount > 0 && "text-red-600",
-              outAmount === 0 && "text-muted-foreground",
-              chip && "bg-stone-50 rounded-full py-1 px-2 ring-1 ring-stone-200"
+              outAmount === 0 && "text-muted-foreground"
             )}
           >
             {outAmount > 0 ? formatCurrencyInput(outAmount) : ""}
@@ -40,8 +69,7 @@ export function AmountCell({
               "font-mono text-right self-end text-sm",
               inAmount > 0 && "text-foreground",
               highlightPositiveAmount && inAmount > 0 && "text-green-700",
-              inAmount === 0 && "text-muted-foreground",
-              chip && "bg-stone-50 rounded-full py-1 px-2 ring-1 ring-stone-200"
+              inAmount === 0 && "text-muted-foreground"
             )}
           >
             {inAmount > 0 ? formatCurrencyInput(inAmount) : ""}
