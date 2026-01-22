@@ -17,6 +17,7 @@ export const AccountPage = observer(function AccountPage() {
   const params = useParams();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [autoEditTransactionId, setAutoEditTransactionId] = useState<string | null>(null);
+  const [lastUsedDate, setLastUsedDate] = useState<Date>(startOfToday());
   const navigate = useNavigate();
   const currentAccount = ledger?.getAccount(params.accountName || "");
 
@@ -38,33 +39,46 @@ export const AccountPage = observer(function AccountPage() {
     setAutoEditTransactionId(null);
   }, [currentAccount]);
 
+  const createNewTransaction = useCallback(
+    (dateFromPrevious?: Date) => {
+      if (!ledger || !currentAccount) return;
+
+      // Update last used date if provided
+      const dateToUse = dateFromPrevious ?? lastUsedDate;
+      if (dateFromPrevious) {
+        setLastUsedDate(dateFromPrevious);
+      }
+
+      let newTransactionId: string | null = null;
+      runInAction(() => {
+        const transactionPosting = new TransactionPosting({
+          ledger: ledger,
+          id: null,
+        });
+        transactionPosting.budget = null;
+        transactionPosting.amount = 0;
+        transactionPosting.note = "";
+        ledger.transactionPostings.push(transactionPosting);
+
+        const transaction = new Transaction({
+          ledger: ledger,
+          id: null,
+        });
+        transaction.account = currentAccount;
+        transaction.postings.push(transactionPosting);
+        transaction.date = dateToUse;
+        transaction.payee = null;
+        ledger.transactions.push(transaction);
+        newTransactionId = transaction.id;
+      });
+      setAutoEditTransactionId(newTransactionId);
+    },
+    [ledger, currentAccount, lastUsedDate]
+  );
+
   const handleCreateNewTransaction = useCallback(() => {
-    if (!ledger || !currentAccount) return;
-
-    let newTransactionId: string | null = null;
-    runInAction(() => {
-      const transactionPosting = new TransactionPosting({
-        ledger: ledger,
-        id: null,
-      });
-      transactionPosting.budget = null;
-      transactionPosting.amount = 0;
-      transactionPosting.note = "";
-      ledger.transactionPostings.push(transactionPosting);
-
-      const transaction = new Transaction({
-        ledger: ledger,
-        id: null,
-      });
-      transaction.account = currentAccount;
-      transaction.postings.push(transactionPosting);
-      transaction.date = startOfToday();
-      transaction.payee = null;
-      ledger.transactions.push(transaction);
-      newTransactionId = transaction.id;
-    });
-    setAutoEditTransactionId(newTransactionId);
-  }, [ledger, currentAccount]);
+    createNewTransaction();
+  }, [createNewTransaction]);
 
   if (!ledger || !currentAccount) {
     return null;
@@ -256,7 +270,7 @@ export const AccountPage = observer(function AccountPage() {
             onConvertTransferToTransaction={handleConvertTransferToTransaction}
             autoEditTransactionId={autoEditTransactionId}
             onAutoEditProcessed={() => setAutoEditTransactionId(null)}
-            onRequestNewTransaction={handleCreateNewTransaction}
+            onRequestNewTransaction={createNewTransaction}
           />
         </div>
       </div>
