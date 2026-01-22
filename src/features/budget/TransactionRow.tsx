@@ -1,11 +1,13 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: TODO: fix later */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: TODO: fix later */
 
-import { ArrowDownToLine, CheckCheck, ChevronDown, ChevronRight, Repeat } from "lucide-react";
-import { twJoin } from "tailwind-merge";
 import { BudgetCell, OutInAmountCells } from "@/components/Table";
 import type { Transaction } from "@/models/Transaction";
 import { formatDate } from "@/utils/formatting";
+import { ArrowDownToLine, CheckCheck, ChevronDown, ChevronRight, Dot, Repeat } from "lucide-react";
+import { runInAction } from "mobx";
+import { observer } from "mobx-react-lite";
+import { twJoin } from "tailwind-merge";
 
 interface TransactionRowProps {
   transaction: Transaction;
@@ -16,14 +18,14 @@ interface TransactionRowProps {
   onToggleExpand?: (id: string) => void;
 }
 
-export const TransactionRow = ({
+export const TransactionRow = observer(function TransactionRow({
   transaction,
   onClick,
   selectedIds,
   onToggleSelection,
   isExpanded,
   onToggleExpand,
-}: TransactionRowProps) => {
+}: TransactionRowProps) {
   // Single posting - render as before
   if (!transaction.isSplit) {
     return (
@@ -67,11 +69,22 @@ export const TransactionRow = ({
         <td className="py-2 px-3 pr-2 text-sm">{transaction.postings[0]?.note}</td>
         <OutInAmountCells amount={transaction.amount} highlightPositiveAmount />
         <td className="pr-2 text-center">
-          {transaction.status === "cleared" ? (
-            <CheckCheck width={20} className="inline-block" />
-          ) : (
-            <>&middot;</>
-          )}
+          <button
+            type="button"
+            className="cursor-pointer hover:bg-stone-200 rounded-sm size-6 inline-flex items-center justify-center"
+            onClick={(e) => {
+              e.stopPropagation();
+              runInAction(() => {
+                transaction.status = transaction.status === "cleared" ? "open" : "cleared";
+              });
+            }}
+          >
+            {transaction.status === "cleared" ? (
+              <CheckCheck width={16} className="inline-block" />
+            ) : (
+              <Dot width={16} className="inline-block" />
+            )}
+          </button>
         </td>
       </tr>
     );
@@ -92,7 +105,7 @@ export const TransactionRow = ({
           onToggleExpand?.(transaction.id);
         }}
       >
-        <td className="p-1 pl-8 w-[64px] align-middle">
+        <td className="p-1 pl-8 w-16 align-middle">
           <input
             type="checkbox"
             checked={selectedIds?.has(transaction.id) || false}
@@ -222,4 +235,4 @@ export const TransactionRow = ({
       ))}
     </>
   );
-};
+});

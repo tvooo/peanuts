@@ -1,6 +1,6 @@
+import type { Amount } from "@/utils/types";
 import { endOfToday, isAfter } from "date-fns";
 import { action, computed, observable } from "mobx";
-import type { Amount } from "@/utils/types";
 import type { Account } from "./Account";
 import type { Budget } from "./Budget";
 import type { Ledger } from "./Ledger";
@@ -19,17 +19,21 @@ export class Transaction extends Model {
   @observable
   accessor postings: TransactionPosting[] = [];
 
-  status: "open" | "cleared" = "open";
+  @observable
+  accessor status: "open" | "cleared" = "open";
 
   @observable
   accessor recurringTemplateId: string | null = null;
 
   static fromJSON(json: any, ledger: Ledger) {
     const transaction = new Transaction({ id: json.id, ledger });
-    transaction.account = ledger.accounts.find((a) => a.id === json.account_id) || null;
-    transaction.payee = ledger.payees.find((p) => p.id === json.payee_id) || null;
+    transaction.account =
+      ledger.accounts.find((a) => a.id === json.account_id) || null;
+    transaction.payee =
+      ledger.payees.find((p) => p.id === json.payee_id) || null;
     transaction.postings = json.transaction_posting_ids.map(
-      (p_id: string) => ledger.transactionPostings.find((pp) => pp.id === p_id) || null
+      (p_id: string) =>
+        ledger.transactionPostings.find((pp) => pp.id === p_id) || null,
     );
     transaction.status = json.status;
     transaction.date = new Date(json.date);
@@ -50,7 +54,10 @@ export class Transaction extends Model {
   }
 
   addsUp(): boolean {
-    return this.amount === this.postings.reduce((sum, posting) => posting.amount + sum, 0);
+    return (
+      this.amount ===
+      this.postings.reduce((sum, posting) => posting.amount + sum, 0)
+    );
   }
 
   @computed
@@ -140,20 +147,27 @@ export class Transaction extends Model {
     const draftPostingIds = new Set(draft.postings.map((p) => p.id));
 
     // Remove postings that are in original but not in draft
-    const postingsToRemove = this.postings.filter((p) => !draftPostingIds.has(p.id));
+    const postingsToRemove = this.postings.filter(
+      (p) => !draftPostingIds.has(p.id),
+    );
     postingsToRemove.forEach((p) => {
       this.removePosting(p);
     });
 
     // Update or add postings from draft
     draft.postings.forEach((draftPosting) => {
-      const existingPosting = this.postings.find((p) => p.id === draftPosting.id);
+      const existingPosting = this.postings.find(
+        (p) => p.id === draftPosting.id,
+      );
       if (existingPosting) {
         // Update existing posting
         existingPosting.copyFrom(draftPosting);
       } else {
         // Add new posting (was added during editing)
-        const newPosting = new TransactionPosting({ id: draftPosting.id, ledger: this.ledger! });
+        const newPosting = new TransactionPosting({
+          id: draftPosting.id,
+          ledger: this.ledger!,
+        });
         newPosting.copyFrom(draftPosting);
         this.ledger!.transactionPostings.push(newPosting);
         this.postings.push(newPosting);
