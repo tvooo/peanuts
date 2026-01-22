@@ -1,13 +1,13 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: TODO: fix later */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: TODO: fix later */
 
-import { BudgetCell, OutInAmountCells } from "@/components/Table";
-import type { Transaction } from "@/models/Transaction";
-import { formatDate } from "@/utils/formatting";
 import { ArrowDownToLine, CheckCheck, ChevronDown, ChevronRight, Dot, Repeat } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { twJoin } from "tailwind-merge";
+import { BudgetCell, OutInAmountCells } from "@/components/Table";
+import type { Transaction } from "@/models/Transaction";
+import { formatDate } from "@/utils/formatting";
 
 interface TransactionRowProps {
   transaction: Transaction;
