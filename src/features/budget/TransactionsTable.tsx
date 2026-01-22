@@ -38,8 +38,8 @@ interface TransactionsTableProps {
   autoEditTransferId?: string | null;
   /** Called when auto-edit is processed so parent can clear the ID */
   onAutoEditProcessed?: () => void;
-  /** Called after saving a new transaction to enable rapid entry */
-  onRequestNewTransaction?: () => void;
+  /** Called after saving a new transaction to enable rapid entry. Receives the date from the saved item. */
+  onRequestNewTransaction?: (lastDate: Date) => void;
 }
 
 // Discriminated union type for row data
@@ -241,10 +241,11 @@ export const TransactionsTable = observer(function TransactionsTable({
                       // Copy draft back to original
                       rowData.copyFrom(draft);
                       const wasNew = editingState.isNew;
+                      const savedDate = draft.date;
                       setEditingState(null);
                       // If this was a new transaction, create another for rapid entry
-                      if (wasNew) {
-                        onRequestNewTransaction?.();
+                      if (wasNew && savedDate) {
+                        onRequestNewTransaction?.(savedDate);
                       }
                     }}
                     onCancel={() => {
@@ -272,10 +273,11 @@ export const TransactionsTable = observer(function TransactionsTable({
                       // Copy draft back to original
                       rowData.copyFrom(draft);
                       const wasNew = editingState.isNew;
+                      const savedDate = draft.date;
                       setEditingState(null);
                       // If this was a new transaction, create another for rapid entry
-                      if (wasNew) {
-                        onRequestNewTransaction?.();
+                      if (wasNew && savedDate) {
+                        onRequestNewTransaction?.(savedDate);
                       }
                     }}
                     onCancel={() => {
@@ -335,10 +337,11 @@ export const TransactionsTable = observer(function TransactionsTable({
                     // Copy draft back to original
                     rowData.copyFrom(draft);
                     const wasNew = editingState.isNew;
+                    const savedDate = draft.date;
                     setEditingState(null);
                     // If this was a new transfer, create a new transaction for rapid entry
-                    if (wasNew) {
-                      onRequestNewTransaction?.();
+                    if (wasNew && savedDate) {
+                      onRequestNewTransaction?.(savedDate);
                     }
                   }}
                   onCancel={() => {
