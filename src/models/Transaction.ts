@@ -19,7 +19,8 @@ export class Transaction extends Model {
   @observable
   accessor postings: TransactionPosting[] = [];
 
-  status: "open" | "cleared" = "open";
+  @observable
+  accessor status: "open" | "cleared" = "open";
 
   @observable
   accessor recurringTemplateId: string | null = null;
@@ -153,7 +154,10 @@ export class Transaction extends Model {
         existingPosting.copyFrom(draftPosting);
       } else {
         // Add new posting (was added during editing)
-        const newPosting = new TransactionPosting({ id: draftPosting.id, ledger: this.ledger! });
+        const newPosting = new TransactionPosting({
+          id: draftPosting.id,
+          ledger: this.ledger!,
+        });
         newPosting.copyFrom(draftPosting);
         this.ledger!.transactionPostings.push(newPosting);
         this.postings.push(newPosting);
