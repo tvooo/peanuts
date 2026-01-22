@@ -91,6 +91,11 @@ export const TransactionFormRow = observer(function TransactionFormRow({
   // Group budgets by category (with split option)
   const budgetGroups = useBudgetGroups(ledger!, { includeSplitOption: true });
 
+  // Get suggested budget based on selected payee
+  const suggestedBudget = transaction.payee
+    ? ledger?.getLastBudgetForPayee(transaction.payee.id)
+    : undefined;
+
   return (
     <>
       <tr
@@ -156,6 +161,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
           <Combobox
             ref={budgetComboboxRef}
             groups={budgetGroups}
+            suggestedId={suggestedBudget?.id}
             value={
               posting.budget
                 ? {
