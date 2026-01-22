@@ -30,7 +30,8 @@ export const TransactionRow = ({
       <tr
         className={twJoin(
           "hover:bg-stone-100 rounded-md border-b border-stone-200",
-          transaction.isFuture && "bg-stone-50 text-stone-400"
+          transaction.isFuture && "bg-stone-50 text-stone-400",
+          transaction.hasMissingCategory && "bg-amber-50"
         )}
         onClick={onClick}
       >
@@ -82,7 +83,8 @@ export const TransactionRow = ({
       <tr
         className={twJoin(
           "hover:bg-stone-100 rounded-md border-b border-stone-200 cursor-pointer",
-          transaction.isFuture && "bg-stone-50 text-stone-400"
+          transaction.isFuture && "bg-stone-50 text-stone-400",
+          transaction.hasMissingCategory && "bg-amber-50"
         )}
         onClick={(e) => {
           // If clicking checkbox, don't toggle expand
@@ -135,7 +137,8 @@ export const TransactionRow = ({
       <tr
         className={twJoin(
           "hover:bg-stone-100 border-b-0 cursor-pointer",
-          transaction.isFuture && "bg-stone-50 text-stone-400"
+          transaction.isFuture && "bg-stone-50 text-stone-400",
+          transaction.hasMissingCategory && "bg-amber-50"
         )}
         onClick={(e) => {
           // If clicking checkbox or edit icon, don't toggle expand

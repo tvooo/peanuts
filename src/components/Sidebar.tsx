@@ -146,8 +146,17 @@ export const AppSidebar = observer(function AppSidebar() {
                               }
                             >
                               <Link to={`/ledger/${account.name}`} className="justify-between">
-                                <span className="truncate" title={account.name}>
+                                <span
+                                  className="truncate flex items-center gap-1.5"
+                                  title={account.name}
+                                >
                                   {account.name}
+                                  {account.uncategorizedTransactionCount > 0 && (
+                                    <span
+                                      className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
+                                      title={`${account.uncategorizedTransactionCount} uncategorized`}
+                                    />
+                                  )}
                                 </span>
                                 <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 shrink-0">
                                   {formatCurrency(account.currentBalance)}
@@ -190,8 +199,17 @@ export const AppSidebar = observer(function AppSidebar() {
                                 }
                               >
                                 <Link to={`/ledger/${account.name}`} className="justify-between">
-                                  <span className="truncate" title={account.name}>
+                                  <span
+                                    className="truncate flex items-center gap-1.5"
+                                    title={account.name}
+                                  >
                                     {account.name}
+                                    {account.uncategorizedTransactionCount > 0 && (
+                                      <span
+                                        className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
+                                        title={`${account.uncategorizedTransactionCount} uncategorized`}
+                                      />
+                                    )}
                                   </span>
                                   <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 shrink-0">
                                     {formatCurrency(account.currentBalance)}
