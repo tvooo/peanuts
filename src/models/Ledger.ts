@@ -49,6 +49,9 @@ export class Ledger {
 
   budgetCategories: BudgetCategory[] = [];
 
+  /** Maps payee ID to the last used budget for that payee (not persisted) */
+  payeeBudgetMap: Map<string, Budget> = new Map();
+
   static async fromJSON(json: string): Promise<Ledger> {
     const ledger = new Ledger();
     ledger.source = json;
@@ -100,6 +103,9 @@ export class Ledger {
     collections.transfers.forEach((t: any) => {
       ledger.transfers.push(Transfer.fromJSON(t, ledger));
     });
+
+    // Build payee -> budget map from transactions (sorted by date so most recent wins)
+    ledger.buildPayeeBudgetMap();
 
     return ledger;
   }
@@ -312,5 +318,42 @@ export class Ledger {
       });
 
     return assigned;
+  }
+
+  /**
+   * Builds the payee -> budget map from existing transactions.
+   * Transactions are sorted by date so the most recent budget wins.
+   */
+  buildPayeeBudgetMap() {
+    this.payeeBudgetMap.clear();
+
+    // Sort transactions by date (oldest first so newest overwrites)
+    const sortedTransactions = [...this.transactions].sort((a, b) => {
+      if (!a.date || !b.date) return 0;
+      return a.date.getTime() - b.date.getTime();
+    });
+
+    sortedTransactions.forEach((t) => {
+      if (t.payee && t.postings.length > 0 && t.postings[0].budget) {
+        this.payeeBudgetMap.set(t.payee.id, t.postings[0].budget);
+      }
+    });
+  }
+
+  /**
+   * Updates the payee -> budget mapping for a transaction.
+   * Call this when a transaction is saved.
+   */
+  updatePayeeBudget(transaction: Transaction) {
+    if (transaction.payee && transaction.postings.length > 0 && transaction.postings[0].budget) {
+      this.payeeBudgetMap.set(transaction.payee.id, transaction.postings[0].budget);
+    }
+  }
+
+  /**
+   * Gets the last used budget for a payee, if any.
+   */
+  getLastBudgetForPayee(payeeId: string): Budget | undefined {
+    return this.payeeBudgetMap.get(payeeId);
   }
 }

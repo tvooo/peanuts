@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Star } from "lucide-react";
 import * as React from "react";
 import {
   Command,
@@ -34,6 +34,8 @@ interface ComboboxProps<T extends ComboboxOption>
   className?: string;
   getLabel?: (option: T) => string;
   filterFn?: (option: T, search: string) => boolean;
+  /** ID of a suggested option to highlight (e.g., last used budget for a payee) */
+  suggestedId?: string;
 }
 
 function ComboboxInner<T extends ComboboxOption>(
@@ -48,6 +50,7 @@ function ComboboxInner<T extends ComboboxOption>(
     className,
     getLabel = (option) => option.label,
     filterFn,
+    suggestedId,
     ...inputProps
   }: ComboboxProps<T>,
   ref: React.ForwardedRef<HTMLInputElement>
@@ -145,12 +148,15 @@ function ComboboxInner<T extends ComboboxOption>(
       // When opening, if current value is in filtered options, keep it selected
       if (value && filteredOptions.find((opt) => opt.id === value.id)) {
         setSelectedValue(value.id);
+      } else if (suggestedId && filteredOptions.find((opt) => opt.id === suggestedId)) {
+        // If there's a suggested option, select it
+        setSelectedValue(suggestedId);
       } else {
         // Otherwise, default to first filtered option
         setSelectedValue(filteredOptions[0].id);
       }
     }
-  }, [open, filteredOptions, value]);
+  }, [open, filteredOptions, value, suggestedId]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -291,9 +297,13 @@ function ComboboxInner<T extends ComboboxOption>(
                           key={option.id}
                           value={option.id}
                           onSelect={() => handleSelect(option)}
+                          className={cn(suggestedId === option.id && "bg-amber-50")}
                         >
                           {option.icon}
                           {getLabel(option)}
+                          {suggestedId === option.id && (
+                            <Star className="ml-auto h-3 w-3 text-amber-500 fill-amber-500" />
+                          )}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -312,9 +322,13 @@ function ComboboxInner<T extends ComboboxOption>(
                     key={option.id}
                     value={option.id}
                     onSelect={() => handleSelect(option)}
+                    className={cn(suggestedId === option.id && "bg-amber-50")}
                   >
                     {option.icon}
                     {getLabel(option)}
+                    {suggestedId === option.id && (
+                      <span className="ml-auto text-xs text-amber-600">suggested</span>
+                    )}
                   </CommandItem>
                 ))}
               </CommandGroup>

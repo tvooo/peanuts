@@ -240,6 +240,8 @@ export const TransactionsTable = observer(function TransactionsTable({
                     onSave={() => {
                       // Copy draft back to original
                       rowData.copyFrom(draft);
+                      // Update payee -> budget mapping
+                      ledger.updatePayeeBudget(rowData);
                       const wasNew = editingState.isNew;
                       const savedDate = draft.date;
                       setEditingState(null);
@@ -272,6 +274,8 @@ export const TransactionsTable = observer(function TransactionsTable({
                     onSave={() => {
                       // Copy draft back to original
                       rowData.copyFrom(draft);
+                      // Update payee -> budget mapping
+                      ledger.updatePayeeBudget(rowData);
                       const wasNew = editingState.isNew;
                       const savedDate = draft.date;
                       setEditingState(null);
