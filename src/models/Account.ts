@@ -2,7 +2,6 @@ import { computed, observable } from "mobx";
 import type { Balance } from "@/utils/types";
 import type { Ledger } from "./Ledger";
 import { Model } from "./Model";
-import type { Transaction } from "./Transaction";
 
 export class Account extends Model {
   @observable
@@ -14,14 +13,11 @@ export class Account extends Model {
   @observable
   accessor archived: boolean = false;
 
-  private balance: number = 0;
-
   static fromJSON(json: any, ledger: Ledger): Account {
     const account = new Account({ id: json.id, ledger });
     account.name = json.name;
     account.type = json.type || "budget";
     account.archived = json.archived || false;
-    account.balance = 0;
     return account;
   }
 
@@ -38,8 +34,32 @@ export class Account extends Model {
     return `2020-01-01 open ${this.name} ${this.balance}`;
   }
 
-  processTransaction(transaction: Transaction) {
-    this.balance += transaction.amount;
+  @computed
+  get balance(): Balance {
+    if (!this.ledger) return 0;
+
+    let total = 0;
+
+    // Add transaction amounts for this account (excluding future)
+    this.ledger.transactions
+      .filter((t) => t.account === this && !t.isFuture)
+      .forEach((t) => {
+        total += t.amount;
+      });
+
+    // Handle transfers (excluding future)
+    this.ledger.transfers
+      .filter((t) => !t.isFuture)
+      .forEach((t) => {
+        if (t.fromAccount === this) {
+          total -= t.amount;
+        }
+        if (t.toAccount === this) {
+          total += t.amount;
+        }
+      });
+
+    return total;
   }
 
   @computed
