@@ -75,6 +75,12 @@ export class Transaction extends Model {
     return true;
   }
 
+  @computed
+  get hasMissingCategory(): boolean {
+    if (this.postings.length === 0) return true;
+    return this.postings.some((p) => !p.budget);
+  }
+
   @action
   addPosting() {
     const posting = new TransactionPosting({ ledger: this.ledger!, id: null });

@@ -71,4 +71,11 @@ export class Account extends Model {
   get clearedBalance(): Balance {
     return this.balance;
   }
+
+  @computed
+  get uncategorizedTransactionCount(): number {
+    if (!this.ledger) return 0;
+    return this.ledger.transactions.filter((t) => t.account === this && t.hasMissingCategory)
+      .length;
+  }
 }
