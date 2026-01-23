@@ -64,6 +64,7 @@ interface PeanutsJSON {
     name: string;
     budget_category_id: string | null;
     is_to_be_budgeted: boolean;
+    is_archived: boolean;
   }>;
   payees: Array<{
     id: string;
@@ -227,6 +228,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
     name: "To Be Budgeted",
     budget_category_id: null,
     is_to_be_budgeted: true,
+    is_archived: false,
   });
   budgetMap.set("__INFLOW__", inflowId);
 
@@ -237,12 +239,15 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
     if (row.Category && !budgetMap.has(fullKey)) {
       const id = createId();
       const categoryGroupId = categoryGroupMap.get(row["Category Group"]) || null;
+      // YNAB "Hidden Categories" group contains archived budgets
+      const isArchived = row["Category Group"] === "Hidden Categories";
       budgetMap.set(fullKey, id);
       result.budgets.push({
         id,
         name: row.Category,
         budget_category_id: categoryGroupId,
         is_to_be_budgeted: false,
+        is_archived: isArchived,
       });
     }
   });
@@ -635,5 +640,4 @@ console.log(`   - Reconciliation/balance assertions`);
 console.log(`   - Scheduled/recurring transactions`);
 console.log(`   - Budget notes`);
 console.log(`   - Account notes`);
-console.log(`   - Hidden/archived categories`);
 console.log(`   - Multiple currencies`);

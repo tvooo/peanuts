@@ -212,6 +212,16 @@ export class Ledger {
     return this._budgets.filter((b) => !b.isToBeBudgeted);
   }
 
+  @computed
+  get activeBudgets(): Budget[] {
+    return this._budgets.filter((b) => !b.isToBeBudgeted && !b.isArchived);
+  }
+
+  @computed
+  get archivedBudgets(): Budget[] {
+    return this._budgets.filter((b) => !b.isToBeBudgeted && b.isArchived);
+  }
+
   transactionsForAccount(account: Account) {
     return this.transactions.filter((tr) => tr.account === account);
   }

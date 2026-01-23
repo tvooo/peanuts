@@ -89,12 +89,12 @@ rm -rf ynab-export
 - **Split Transactions** - Transactions with multiple budget allocations are now fully supported! The script detects consecutive rows with the same account, date, and payee, and groups them into a single transaction with multiple postings.
 - **Cross-Type Transfer Budgets** - Transfers between budget and tracking accounts can have a budget category assigned, just like in YNAB. This ensures money flowing to/from tracking accounts (like mortgage payments) is properly categorized.
 - **Overspending Reconciliation** - See below for details.
+- **Hidden/Archived Categories** - YNAB's "Hidden Categories" group is now imported with `is_archived: true`. These budgets are hidden by default in the budget table but can be revealed with a "Show archived" toggle. They're also excluded from budget dropdowns in transaction forms.
 
 ### ❌ Not Yet Supported (In Export, Not Implemented)
 - **Flags/Colors** - Transaction flags are included but ignored
 - **Budget Notes** - Category notes not imported
 - **Account Notes** - Account notes not imported
-- **Hidden/Archived Categories** - All categories imported as active
 - **Multiple Currencies** - Only single currency supported (€)
 - **Starting Balances** - Not imported (would need separate handling)
 
