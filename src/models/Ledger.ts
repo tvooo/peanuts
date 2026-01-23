@@ -226,7 +226,8 @@ export class Ledger {
 
   activityForMonth(date: Date): Balance {
     const activity = this.transactions
-      .filter((t) => isBefore(t.date!, endOfMonth(date)))
+      // Include transactions up to end of month, but exclude future (after today)
+      .filter((t) => isBefore(t.date!, endOfMonth(date)) && !t.isFuture)
       // Exclude tracking accounts from budget calculations
       .filter((t) => t.account?.type !== "tracking")
       .reduce((sum, t) => sum + t.amount, 0);
@@ -243,8 +244,8 @@ export class Ledger {
   budgetAvailableForMonth(budget: Budget, date: Date): Balance {
     let activity: Balance = 0;
     this.transactions
-      // Exclude future transactions
-      .filter((t) => isBefore(t.date!, endOfMonth(date)))
+      // Include transactions up to end of month, but exclude future (after today)
+      .filter((t) => isBefore(t.date!, endOfMonth(date)) && !t.isFuture)
       // Exclude tracking accounts from budget calculations
       .filter((t) => t.account?.type !== "tracking")
       .forEach((t) => {
@@ -259,18 +260,27 @@ export class Ledger {
           });
       });
 
-    if (budget.isToBeBudgeted) {
-      this.transfers
-        .filter((t) => isBefore(t.date!, endOfMonth(date)))
-        .filter((t) => t.toAccount?.type !== t.fromAccount?.type)
-        .forEach((t) => {
+    // Handle cross-type transfers (budget ↔ tracking)
+    this.transfers
+      // Include transfers up to end of month, but exclude future (after today)
+      .filter((t) => isBefore(t.date!, endOfMonth(date)) && !t.isFuture)
+      .filter((t) => t.toAccount?.type !== t.fromAccount?.type)
+      .forEach((t) => {
+        // Determine which budget this transfer affects
+        const targetBudget = t.budget;
+
+        // If transfer has a budget, add activity to that budget
+        // If no budget, fall back to "To Be Budgeted"
+        const affectsBudget = targetBudget ? targetBudget === budget : budget.isToBeBudgeted;
+
+        if (affectsBudget) {
           if (t.toAccount?.type === "budget") {
             activity += t.amount;
           } else {
             activity -= t.amount;
           }
-        });
-    }
+        }
+      });
 
     let assigned: Balance = 0;
     if (budget.isToBeBudgeted) {
@@ -295,7 +305,7 @@ export class Ledger {
   budgetActivityForMonth(budget: Budget, date: Date): Balance {
     let activity: Balance = 0;
     this.transactions
-      .filter((t) => isSameMonth(t.date!, date))
+      .filter((t) => isSameMonth(t.date!, date) && !t.isFuture)
       // Exclude tracking accounts from budget calculations
       .filter((t) => t.account?.type !== "tracking")
       .forEach((t) => {
@@ -305,6 +315,25 @@ export class Ledger {
             activity += p.amount;
           });
       });
+
+    // Include cross-type transfer activity for this budget
+    this.transfers
+      .filter((t) => isSameMonth(t.date!, date) && !t.isFuture)
+      .filter((t) => t.toAccount?.type !== t.fromAccount?.type)
+      .forEach((t) => {
+        // Check if transfer affects this budget
+        const targetBudget = t.budget;
+        const affectsBudget = targetBudget ? targetBudget === budget : budget.isToBeBudgeted;
+
+        if (affectsBudget) {
+          if (t.toAccount?.type === "budget") {
+            activity += t.amount;
+          } else {
+            activity -= t.amount;
+          }
+        }
+      });
+
     return activity;
   }
 

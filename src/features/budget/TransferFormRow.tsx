@@ -4,6 +4,7 @@ import * as React from "react";
 import { Combobox } from "@/components/Combobox";
 import { DatePicker } from "@/components/DatePicker";
 import { FormInput } from "@/components/FormInput";
+import { type BudgetOption, useBudgetGroups } from "@/hooks/useBudgetGroups";
 import { usePayeeAccountGroups } from "@/hooks/usePayeeAccountGroups";
 import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
@@ -35,8 +36,16 @@ export const TransferFormRow = observer(function TransferFormRow({
   // Refs for required fields
   const dateInputRef = React.useRef<HTMLInputElement>(null);
   const accountComboboxRef = React.useRef<HTMLInputElement>(null);
+  const budgetComboboxRef = React.useRef<HTMLInputElement>(null);
   const outInputRef = React.useRef<HTMLInputElement>(null);
   const inInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Get budget groups for cross-type transfers
+  const budgetGroups = useBudgetGroups(ledger);
+
+  // Check if this is a cross-type transfer (budget ↔ tracking)
+  const currentAccount = ledger?.accounts.find((a) => a.id === currentAccountId);
+  const isCrossType = currentAccount && otherAccount && currentAccount.type !== otherAccount.type;
 
   // State for amount inputs (text-based for better UX)
   // For transfers: Out = sending from current account, In = receiving to current account
@@ -85,6 +94,10 @@ export const TransferFormRow = observer(function TransferFormRow({
       }
       if (transfer.amount === 0 || Number.isNaN(transfer.amount)) {
         return outInputRef.current;
+      }
+      // Require budget for cross-type transfers
+      if (isCrossType && !transfer.budget) {
+        return budgetComboboxRef.current;
       }
       return null;
     },
@@ -139,6 +152,10 @@ export const TransferFormRow = observer(function TransferFormRow({
               } else {
                 transfer.fromAccount = option.account;
               }
+              // Clear budget if switching to same-type transfer
+              if (currentAccount && option.account.type === currentAccount.type) {
+                transfer.budget = null;
+              }
             } else if (option.payee) {
               // Convert to transaction
               onConvertToTransaction?.();
@@ -149,9 +166,30 @@ export const TransferFormRow = observer(function TransferFormRow({
         />
       </td>
       <td className="pr-2">
-        <div className="h-9 px-3 py-1 text-sm text-muted-foreground italic flex items-center">
-          Transfer
-        </div>
+        {isCrossType ? (
+          <Combobox
+            ref={budgetComboboxRef}
+            groups={budgetGroups}
+            value={
+              transfer.budget
+                ? {
+                    id: transfer.budget.id,
+                    label: transfer.budget.name,
+                    budget: transfer.budget,
+                  }
+                : null
+            }
+            onValueChange={(option: BudgetOption) => {
+              transfer.budget = option.budget;
+            }}
+            placeholder="Select budget..."
+            emptyText="No budgets found."
+          />
+        ) : (
+          <div className="h-9 px-3 py-1 text-sm text-muted-foreground italic flex items-center">
+            Transfer
+          </div>
+        )}
       </td>
       <td className="pr-2">
         <FormInput
