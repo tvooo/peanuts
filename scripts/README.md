@@ -67,7 +67,7 @@ rm -rf ynab-export
 - **Budgets/Categories** - Each YNAB category becomes a Peanuts budget
 - **Payees** - All payees are preserved
 - **Transactions** - Regular income/expense transactions, including future-dated scheduled transactions
-- **Transfers** - Inter-account transfers are detected and converted
+- **Transfers** - Inter-account transfers are detected and converted, including cross-type transfers (budget ↔ tracking) with budget categories
 - **Budget Assignments** - Monthly budget allocations from the Plan file
 - **Cleared Status** - Transaction cleared/reconciled/uncleared status (reconciled and cleared are treated the same)
 - **Dates** - All dates are preserved
@@ -87,6 +87,8 @@ rm -rf ynab-export
 
 ### ✅ Recently Added
 - **Split Transactions** - Transactions with multiple budget allocations are now fully supported! The script detects consecutive rows with the same account, date, and payee, and groups them into a single transaction with multiple postings.
+- **Cross-Type Transfer Budgets** - Transfers between budget and tracking accounts can have a budget category assigned, just like in YNAB. This ensures money flowing to/from tracking accounts (like mortgage payments) is properly categorized.
+- **Overspending Reconciliation** - See below for details.
 
 ### ❌ Not Yet Supported (In Export, Not Implemented)
 - **Flags/Colors** - Transaction flags are included but ignored
@@ -103,6 +105,31 @@ The YNAB export contains two TSV files:
 - **Register.tsv** - All transactions with account, payee, category, memo, amounts
 - **Plan.tsv** - Budget assignments per month per category
 
+## Overspending Reconciliation
+
+YNAB and Peanuts handle overspending differently:
+
+- **YNAB**: When a category ends the month with a negative balance, YNAB automatically resets it to zero and deducts the overspent amount from "To Be Budgeted" in the following month.
+- **Peanuts**: Negative balances carry forward in the category itself.
+
+This difference means that after a straightforward import, category "Available" amounts would not match YNAB, even though all transactions and assignments are correct.
+
+### Automatic Reconciliation
+
+The import script performs **automatic reconciliation** to match YNAB's available amounts:
+
+1. After importing all data, it calculates what Peanuts would show as "Available" for each budget
+2. It compares this to YNAB's "Available" column from the Plan.tsv (excluding future/scheduled transactions)
+3. For any differences due to overspending resets, it adjusts the assignment in the latest month to match YNAB's available amount
+
+This ensures that imported budgets show the same available amounts as YNAB.
+
+### What to expect
+
+- **"Available to Budget"** will match YNAB (minus the reconciliation amount, which represents overspending YNAB absorbed over time)
+- **Individual category balances** will match YNAB's current available amounts
+- The script reports all reconciliation adjustments made during import
+
 ## Implementation Notes
 
 - IDs are generated using `cuid` to match Peanuts' ID system
@@ -110,5 +137,8 @@ The YNAB export contains two TSV files:
 - Dates use ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
 - Transfers are detected by payee name starting with "Transfer : "
 - Empty categories on inflows default to "To Be Budgeted"
-- Only the "outflow" side of transfers creates a transfer record to avoid duplicates
+- Only one side of transfers creates a transfer record to avoid duplicates:
+  - Same-type transfers (budget ↔ budget): created from the outflow side
+  - Cross-type transfers (budget ↔ tracking): created from the budget account side (which has the category in YNAB)
+- Cross-type transfers preserve the budget category from YNAB, allowing proper categorization of money flowing to/from tracking accounts
 - Tracking accounts are detected by identifying accounts with transactions that have no categories (off-budget accounts in YNAB)

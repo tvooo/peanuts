@@ -3,9 +3,22 @@
 /**
  * YNAB to Peanuts Converter
  *
- * Converts YNAB export files (.tsv format) to Peanuts JSON format
+ * Converts YNAB export files (.tsv format) to Peanuts JSON format.
  *
  * Usage: tsx scripts/convert-ynab-export.ts <path-to-ynab-export-folder> <output-file.json>
+ *
+ * Features:
+ * - Imports accounts (budget and tracking types)
+ * - Imports transactions including split transactions
+ * - Imports transfers, including cross-type transfers with budget categories
+ * - Imports budget categories and assignments
+ *
+ * Reconciliation:
+ * YNAB handles overspending by automatically resetting negative category balances
+ * at month-end and deducting from "To Be Budgeted". Peanuts does not do this.
+ * To ensure imported data matches YNAB's final available amounts, this script
+ * adds reconciliation assignments to adjust for any differences caused by
+ * YNAB's overspending behavior.
  */
 
 import * as fs from "node:fs";
@@ -86,11 +99,18 @@ interface PeanutsJSON {
     from_status: "open" | "cleared";
     to_status: "open" | "cleared";
     note: string;
+    budget_id: string | null;
   }>;
 }
 
 function parseTSV(content: string): any[] {
-  const lines = content.trim().split("\n");
+  // Remove BOM and normalize line endings (Windows \r\n → \n)
+  const normalizedContent = content
+    .replace(/^\uFEFF/, "") // Remove BOM
+    .replace(/\r\n/g, "\n") // Windows line endings
+    .replace(/\r/g, "\n"); // Old Mac line endings
+
+  const lines = normalizedContent.trim().split("\n");
   const headers = lines[0].split("\t").map((h) => h.replace(/^"|"$/g, ""));
 
   return lines.slice(1).map((line) => {
@@ -211,11 +231,13 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
   budgetMap.set("__INFLOW__", inflowId);
 
   // Extract unique budgets/categories
+  // Use "Category Group/Category" as key to handle duplicate category names in different groups
   planRows.forEach((row) => {
-    if (row.Category && !budgetMap.has(row.Category)) {
+    const fullKey = row["Category Group/Category"] || `${row["Category Group"]}: ${row.Category}`;
+    if (row.Category && !budgetMap.has(fullKey)) {
       const id = createId();
       const categoryGroupId = categoryGroupMap.get(row["Category Group"]) || null;
-      budgetMap.set(row.Category, id);
+      budgetMap.set(fullKey, id);
       result.budgets.push({
         id,
         name: row.Category,
@@ -282,24 +304,45 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
 
     // Check if this is a transfer
     const isTransfer = firstRow.Payee.startsWith("Transfer : ");
+    const toAccountName = isTransfer ? firstRow.Payee.replace("Transfer : ", "") : null;
+    const toAccountId = toAccountName ? accountMap.get(toAccountName) : null;
+
+    // Check if this is a cross-type transfer (budget ↔ tracking)
+    const isCrossTypeTransfer =
+      isTransfer && trackingAccounts.has(firstRow.Account) !== trackingAccounts.has(toAccountName!);
 
     if (isTransfer) {
-      // Handle transfers
-      const toAccountName = firstRow.Payee.replace("Transfer : ", "");
-      const toAccountId = accountMap.get(toAccountName);
-
+      // Handle all transfers
       if (toAccountId) {
         const inflow = parseYNABAmount(firstRow.Inflow);
         const outflow = parseYNABAmount(firstRow.Outflow);
         const amount = inflow > 0 ? inflow : outflow;
 
-        // Only create transfer once (from the outflow side)
-        if (outflow > 0) {
+        // For cross-type transfers, get the budget from the category
+        let transferBudgetId: string | null = null;
+        if (isCrossTypeTransfer && firstRow.Category) {
+          const fullKey =
+            firstRow["Category Group/Category"] ||
+            `${firstRow["Category Group"]}: ${firstRow.Category}`;
+          transferBudgetId = budgetMap.get(fullKey) || null;
+        } else if (isCrossTypeTransfer && firstRow["Category Group"] === "Inflow") {
+          // Inflows from tracking accounts go to "To Be Budgeted"
+          transferBudgetId = inflowId;
+        }
+
+        // Only create transfer once:
+        // - Same-type transfers: from outflow side only
+        // - Cross-type transfers: from budget account side only (which has the category in YNAB)
+        const shouldCreateTransfer =
+          (!isCrossTypeTransfer && outflow > 0) ||
+          (isCrossTypeTransfer && !trackingAccounts.has(firstRow.Account));
+
+        if (shouldCreateTransfer) {
           result.transfers.push({
             id: createId(),
             date: parseYNABDate(firstRow.Date).toISOString(),
-            from_account_id: accountId,
-            to_account_id: toAccountId,
+            from_account_id: inflow > 0 ? toAccountId : accountId,
+            to_account_id: inflow > 0 ? accountId : toAccountId,
             amount,
             from_status:
               firstRow.Cleared === "Cleared" || firstRow.Cleared === "Reconciled"
@@ -310,6 +353,7 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
                 ? "cleared"
                 : "open",
             note: firstRow.Memo || "",
+            budget_id: transferBudgetId,
           });
         }
       }
@@ -331,10 +375,15 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
 
         // Determine budget
         let budgetId: string | null = null;
-        if (row.Category) {
-          budgetId = budgetMap.get(row.Category) || null;
+        if (row["Category Group"] === "Inflow") {
+          // YNAB income transactions (Category Group "Inflow") go to "To Be Budgeted"
+          budgetId = inflowId;
+        } else if (row.Category) {
+          const fullKey =
+            row["Category Group/Category"] || `${row["Category Group"]}: ${row.Category}`;
+          budgetId = budgetMap.get(fullKey) || null;
         } else if (inflow > 0) {
-          // Inflow without category goes to "To Be Budgeted"
+          // Fallback: inflow without category goes to "To Be Budgeted"
           budgetId = inflowId;
         }
 
@@ -369,7 +418,8 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
     const assigned = parseYNABAmount(row.Assigned);
     if (assigned === 0) return;
 
-    const budgetId = budgetMap.get(row.Category);
+    const fullKey = row["Category Group/Category"] || `${row["Category Group"]}: ${row.Category}`;
+    const budgetId = budgetMap.get(fullKey);
     if (!budgetId) return;
 
     result.assignments.push({
@@ -379,6 +429,155 @@ function convertYNABExport(registerPath: string, planPath: string): PeanutsJSON 
       amount: assigned,
     });
   });
+
+  // Analysis: Compare YNAB "Available" amounts with what Peanuts calculates
+  // Note: YNAB resets negative category balances at month-end, deducting from "To Be Budgeted".
+  // Peanuts does NOT do this, so category balances may differ. This is expected behavior.
+  // We log the differences but do NOT adjust assignments, as that would incorrectly deplete TBB.
+  const latestYnabAvailable = new Map<string, number>();
+  const latestYnabMonth = new Map<string, string>();
+
+  // Get the latest available amount for each category from YNAB
+  // Use "Category Group/Category" as key to handle duplicate category names in different groups
+  planRows.forEach((row) => {
+    if (!row.Category) return;
+
+    const fullKey = row["Category Group/Category"] || `${row["Category Group"]}: ${row.Category}`;
+    const budgetId = budgetMap.get(fullKey);
+    if (!budgetId) return;
+
+    const available = parseYNABAmount(row.Available || "0");
+    latestYnabAvailable.set(budgetId, available);
+    latestYnabMonth.set(budgetId, row.Month);
+  });
+
+  // Build a set of posting IDs from future transactions (to exclude from comparison)
+  // Future = after today. YNAB's "Available" column excludes future scheduled transactions.
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // End of today
+  const futurePostingIds = new Set<string>();
+  const futureTransferIds = new Set<string>();
+
+  result.transactions.forEach((t) => {
+    const txDate = new Date(t.date);
+    if (txDate > today) {
+      t.transaction_posting_ids.forEach((id) => {
+        futurePostingIds.add(id);
+      });
+    }
+  });
+
+  result.transfers.forEach((t) => {
+    const txDate = new Date(t.date);
+    if (txDate > today) {
+      futureTransferIds.add(t.id);
+    }
+  });
+
+  console.log(
+    `\n📅 Excluding ${futurePostingIds.size} postings from ${result.transactions.filter((t) => new Date(t.date) > today).length} future transactions from comparison`
+  );
+
+  // Calculate what Peanuts would show as available for each budget
+  const differences: Array<{
+    budgetId: string;
+    budgetName: string;
+    ynabAvailable: number;
+    peanutsAvailable: number;
+    difference: number;
+    month: string;
+  }> = [];
+
+  for (const [budgetId, ynabAvailable] of latestYnabAvailable) {
+    // Skip "To Be Budgeted" - it will balance out automatically
+    if (budgetId === inflowId) continue;
+
+    // Sum all assignments for this budget
+    const totalAssigned = result.assignments
+      .filter((a) => a.budget_id === budgetId)
+      .reduce((sum, a) => sum + a.amount, 0);
+
+    // Sum all transaction postings for this budget (excluding future transactions)
+    const totalActivity = result.transaction_postings
+      .filter((p) => p.budget_id === budgetId && !futurePostingIds.has(p.id))
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    // Sum all transfer activity for this budget (cross-type transfers, excluding future)
+    const transferActivity = result.transfers
+      .filter((t) => t.budget_id === budgetId && !futureTransferIds.has(t.id))
+      .reduce((sum, t) => {
+        // Find account types
+        const fromAccount = result.accounts.find((a) => a.id === t.from_account_id);
+        const toAccount = result.accounts.find((a) => a.id === t.to_account_id);
+        if (fromAccount?.type === toAccount?.type) return sum; // Same type, no budget impact
+        // Money entering budget system = positive, leaving = negative
+        return sum + (toAccount?.type === "budget" ? t.amount : -t.amount);
+      }, 0);
+
+    const peanutsAvailable = totalAssigned + totalActivity + transferActivity;
+    const difference = ynabAvailable - peanutsAvailable;
+
+    // Only reconcile if difference is significant (> 1 cent, to avoid floating point issues)
+    if (Math.abs(difference) > 1) {
+      const monthStr = latestYnabMonth.get(budgetId)!;
+      const budgetName = result.budgets.find((b) => b.id === budgetId)?.name || "Unknown";
+
+      differences.push({
+        budgetId,
+        budgetName,
+        ynabAvailable,
+        peanutsAvailable,
+        difference,
+        month: monthStr,
+      });
+    }
+  }
+
+  // Print and reconcile differences
+  if (differences.length > 0) {
+    console.log(`\n📊 Reconciling category balance differences (YNAB vs Peanuts):`);
+    console.log(`   Note: These differences are due to YNAB's overspending reset behavior.`);
+    console.log(`   YNAB resets negative balances at month-end; Peanuts carries them forward.`);
+    console.log(`   Adding reconciliation assignments to match YNAB's available amounts.\n`);
+
+    differences
+      .sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference))
+      .forEach((d) => {
+        const sign = d.difference > 0 ? "+" : "";
+        const monthDate = parseYNABMonth(d.month).toISOString();
+
+        // Check if there's already an assignment for this budget in this month
+        const existingAssignment = result.assignments.find(
+          (a) => a.budget_id === d.budgetId && a.date === monthDate
+        );
+
+        if (existingAssignment) {
+          // Adjust the existing assignment
+          existingAssignment.amount += d.difference;
+          console.log(
+            `   ${d.budgetName}: ${sign}${(d.difference / 100).toFixed(2)}€ ` +
+              `(adjusted existing ${d.month} assignment)`
+          );
+        } else {
+          // Create a new reconciliation assignment
+          result.assignments.push({
+            id: createId(),
+            date: monthDate,
+            budget_id: d.budgetId,
+            amount: d.difference,
+          });
+          console.log(
+            `   ${d.budgetName}: ${sign}${(d.difference / 100).toFixed(2)}€ ` +
+              `(new ${d.month} assignment)`
+          );
+        }
+      });
+
+    const totalDiff = differences.reduce((sum, d) => sum + d.difference, 0);
+    console.log(
+      `\n   Total reconciled: ${(totalDiff / 100).toFixed(2)}€ across ${differences.length} categories`
+    );
+  }
 
   return result;
 }

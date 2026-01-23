@@ -2,6 +2,7 @@ import { endOfToday, isAfter } from "date-fns";
 import { action, computed, observable } from "mobx";
 import type { Amount } from "@/utils/types";
 import type { Account } from "./Account";
+import type { Budget } from "./Budget";
 import type { Ledger } from "./Ledger";
 import { Model } from "./Model";
 
@@ -21,6 +22,9 @@ export class Transfer extends Model {
   @observable
   accessor note: string = "";
 
+  @observable
+  accessor budget: Budget | null = null;
+
   fromStatus: "open" | "cleared" = "open";
   toStatus: "open" | "cleared" = "open";
 
@@ -33,6 +37,9 @@ export class Transfer extends Model {
     transfer.toStatus = json.to_status;
     transfer.date = new Date(json.date);
     transfer.note = json.note;
+    transfer.budget = json.budget_id
+      ? ledger._budgets.find((b) => b.id === json.budget_id) || null
+      : null;
     return transfer;
   }
 
@@ -46,6 +53,7 @@ export class Transfer extends Model {
       to_status: this.toStatus,
       date: this.date?.toISOString() || null,
       note: this.note,
+      budget_id: this.budget?.id || null,
     };
   }
 
@@ -67,6 +75,7 @@ export class Transfer extends Model {
     draft.note = this.note;
     draft.fromStatus = this.fromStatus;
     draft.toStatus = this.toStatus;
+    draft.budget = this.budget;
     return draft;
   }
 
@@ -82,5 +91,15 @@ export class Transfer extends Model {
     this.note = draft.note;
     this.fromStatus = draft.fromStatus;
     this.toStatus = draft.toStatus;
+    this.budget = draft.budget;
+  }
+
+  /**
+   * Returns true if this is a cross-type transfer (budget ↔ tracking).
+   */
+  @computed
+  get isCrossType(): boolean {
+    if (!this.fromAccount || !this.toAccount) return false;
+    return this.fromAccount.type !== this.toAccount.type;
   }
 }

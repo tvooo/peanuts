@@ -1,8 +1,26 @@
-import { ArrowLeftRight, CheckCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, CheckCheck } from "lucide-react";
 import { twJoin } from "tailwind-merge";
 import { OutInAmountCells } from "@/components/Table";
 import type { Transfer } from "@/models/Transfer";
 import { formatDate } from "@/utils/formatting";
+
+function TransferBudgetCell({ transfer }: { transfer: Transfer }) {
+  // Show budget name for cross-type transfers
+  if (transfer.isCrossType) {
+    if (transfer.budget) {
+      return <span>{transfer.budget.name}</span>;
+    }
+    // Warning: cross-type transfer without budget
+    return (
+      <span className="flex items-center gap-1 text-amber-600">
+        <AlertTriangle size={14} />
+        Uncategorized
+      </span>
+    );
+  }
+  // Same-type transfer: no budget needed
+  return <span>Transfer</span>;
+}
 
 interface TransferRowProps {
   transfer: Transfer;
@@ -42,7 +60,9 @@ export const TransferRow = ({
           {transfer.toAccount?.name}
         </div>
       </td>
-      <td className="py-2 px-3 pr-2 text-sm text-muted-foreground font-normal italic">Transfer</td>
+      <td className="py-2 px-3 pr-2 text-sm text-muted-foreground font-normal italic">
+        <TransferBudgetCell transfer={transfer} />
+      </td>
       <td className="py-2 px-3 pr-2 text-sm">{transfer.note}</td>
       <OutInAmountCells amount={(isInbound ? 1 : -1) * transfer.amount} highlightPositiveAmount />
       <td className="pr-2 text-center">
