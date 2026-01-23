@@ -37,9 +37,9 @@ export function useBudgetGroups(
     // Find the inflow budget separately
     const inflowBudget = ledger._budgets.find((b) => b.isToBeBudgeted);
 
-    // Group budgets by their category
+    // Group budgets by their category (exclude archived)
     ledger._budgets.forEach((budget) => {
-      if (budget.isToBeBudgeted) {
+      if (budget.isToBeBudgeted || budget.isArchived) {
         return;
       }
 

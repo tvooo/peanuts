@@ -1,6 +1,7 @@
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -69,6 +70,25 @@ export const EditBudgetModal = observer(function EditBudgetModal({
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="archived" className="text-right">
+                  Archived
+                </label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Checkbox
+                    id="archived"
+                    checked={envelope.isArchived}
+                    onCheckedChange={(checked) => {
+                      runInAction(() => {
+                        envelope.isArchived = checked === true;
+                      });
+                    }}
+                  />
+                  <label htmlFor="archived" className="text-sm text-stone-500">
+                    Hide from budget list and dropdowns
+                  </label>
+                </div>
               </div>
             </div>
           )}

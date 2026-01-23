@@ -7,6 +7,9 @@ export class Budget extends Model {
   @observable
   accessor name: string = "Some budget";
 
+  @observable
+  accessor isArchived: boolean = false;
+
   balance: Balance = 0;
 
   budgetCategory: BudgetCategory | null = null;
@@ -19,6 +22,7 @@ export class Budget extends Model {
     budget.budgetCategory =
       budget.ledger.budgetCategories.find((c) => c.id === json.budget_category_id) || null;
     budget.isToBeBudgeted = json.is_to_be_budgeted;
+    budget.isArchived = json.is_archived ?? false;
     return budget;
   }
 
@@ -28,6 +32,7 @@ export class Budget extends Model {
       name: this.name,
       budget_category_id: this.budgetCategory?.id || null,
       is_to_be_budgeted: this.isToBeBudgeted,
+      is_archived: this.isArchived,
     };
   }
 
