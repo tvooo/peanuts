@@ -27,10 +27,10 @@ export class Transaction extends Model {
 
   static fromJSON(json: any, ledger: Ledger) {
     const transaction = new Transaction({ id: json.id, ledger });
-    transaction.account = ledger.accounts.find((a) => a.id === json.account_id) || null;
-    transaction.payee = ledger.payees.find((p) => p.id === json.payee_id) || null;
+    transaction.account = ledger.getAccountByIdFast(json.account_id) || null;
+    transaction.payee = ledger.getPayeeByIdFast(json.payee_id) || null;
     transaction.postings = json.transaction_posting_ids.map(
-      (p_id: string) => ledger.transactionPostings.find((pp) => pp.id === p_id) || null
+      (p_id: string) => ledger.getPostingByIdFast(p_id) || null
     );
     transaction.status = json.status;
     transaction.date = new Date(json.date);
@@ -163,6 +163,7 @@ export class Transaction extends Model {
         this.postings.push(newPosting);
       }
     });
+    this.notifyChange();
   }
 }
 
@@ -178,7 +179,7 @@ export class TransactionPosting extends Model {
 
   static fromJSON(json: any, ledger: Ledger) {
     const posting = new TransactionPosting({ id: json.id, ledger });
-    posting.budget = ledger.getBudgetByID(json.budget_id) || null;
+    posting.budget = ledger.getBudgetByIdFast(json.budget_id) || null;
     posting.amount = json.amount;
     posting.note = json.note;
     return posting;
@@ -196,16 +197,19 @@ export class TransactionPosting extends Model {
   @action
   setBudget(budget: Budget) {
     this.budget = budget;
+    this.notifyChange();
   }
 
   @action
   setAmount(amount: Amount) {
     this.amount = amount;
+    this.notifyChange();
   }
 
   @action
   setNote(note: string) {
     this.note = note;
+    this.notifyChange();
   }
 
   /**
@@ -227,5 +231,6 @@ export class TransactionPosting extends Model {
     this.budget = draft.budget;
     this.amount = draft.amount;
     this.note = draft.note;
+    this.notifyChange();
   }
 }

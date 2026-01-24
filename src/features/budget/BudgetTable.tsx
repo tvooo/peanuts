@@ -124,7 +124,7 @@ export const BudgetTable = observer(function BudgetTable({
                     : header.id === "budgeted" ||
                         header.id === "activity" ||
                         header.id === "available"
-                      ? "w-[120px]"
+                      ? "w-[160px]"
                       : "";
                 const headerClasses =
                   header.id === "checkbox"

@@ -19,8 +19,7 @@ export class Budget extends Model {
   static fromJSON(json: any, ledger: Ledger): Budget {
     const budget = new Budget({ id: json.id, ledger });
     budget.name = json.name;
-    budget.budgetCategory =
-      budget.ledger.budgetCategories.find((c) => c.id === json.budget_category_id) || null;
+    budget.budgetCategory = ledger.getBudgetCategoryByIdFast(json.budget_category_id) || null;
     budget.isToBeBudgeted = json.is_to_be_budgeted;
     budget.isArchived = json.is_archived ?? false;
     return budget;

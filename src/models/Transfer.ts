@@ -30,16 +30,14 @@ export class Transfer extends Model {
 
   static fromJSON(json: any, ledger: Ledger) {
     const transfer = new Transfer({ id: json.id, ledger });
-    transfer.fromAccount = ledger.accounts.find((a) => a.id === json.from_account_id) || null;
-    transfer.toAccount = ledger.accounts.find((a) => a.id === json.to_account_id) || null;
+    transfer.fromAccount = ledger.getAccountByIdFast(json.from_account_id) || null;
+    transfer.toAccount = ledger.getAccountByIdFast(json.to_account_id) || null;
     transfer.amount = json.amount;
     transfer.fromStatus = json.from_status;
     transfer.toStatus = json.to_status;
     transfer.date = new Date(json.date);
     transfer.note = json.note;
-    transfer.budget = json.budget_id
-      ? ledger._budgets.find((b) => b.id === json.budget_id) || null
-      : null;
+    transfer.budget = json.budget_id ? ledger.getBudgetByIdFast(json.budget_id) || null : null;
     return transfer;
   }
 
@@ -92,6 +90,7 @@ export class Transfer extends Model {
     this.fromStatus = draft.fromStatus;
     this.toStatus = draft.toStatus;
     this.budget = draft.budget;
+    this.notifyChange();
   }
 
   /**

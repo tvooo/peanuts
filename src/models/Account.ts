@@ -37,29 +37,7 @@ export class Account extends Model {
   @computed
   get balance(): Balance {
     if (!this.ledger) return 0;
-
-    let total = 0;
-
-    // Add transaction amounts for this account (excluding future)
-    this.ledger.transactions
-      .filter((t) => t.account === this && !t.isFuture)
-      .forEach((t) => {
-        total += t.amount;
-      });
-
-    // Handle transfers (excluding future)
-    this.ledger.transfers
-      .filter((t) => !t.isFuture)
-      .forEach((t) => {
-        if (t.fromAccount === this) {
-          total -= t.amount;
-        }
-        if (t.toAccount === this) {
-          total += t.amount;
-        }
-      });
-
-    return total;
+    return this.ledger.getAccountBalance(this);
   }
 
   @computed

@@ -14,6 +14,10 @@ export class Ledger {
   @observable
   accessor isDirty = false;
 
+  /** Version counter for change detection - incremented on every mutation */
+  @observable
+  accessor _version = 0;
+
   lastSavedSnapshot: string = "";
 
   accounts: Account[] = [];
@@ -52,6 +56,49 @@ export class Ledger {
   /** Maps payee ID to the last used budget for that payee (not persisted) */
   payeeBudgetMap: Map<string, Budget> = new Map();
 
+  /** Cache for budget calculations - invalidated on version change */
+  private _budgetCacheVersion = -1;
+  private _budgetValuesCache: Map<
+    string,
+    Map<string, { available: Balance; activity: Balance; assigned: Balance }>
+  > = new Map();
+
+  /** Cache for account balance calculations - invalidated on version change */
+  private _accountBalanceCacheVersion = -1;
+  private _accountBalanceCache: Map<string, Balance> = new Map();
+
+  /** Temporary lookup maps used during deserialization for O(1) lookups */
+  private _accountsById?: Map<string, Account>;
+  private _payeesById?: Map<string, Payee>;
+  private _budgetsById?: Map<string, Budget>;
+  private _postingsById?: Map<string, TransactionPosting>;
+  private _budgetCategoriesById?: Map<string, BudgetCategory>;
+
+  /** O(1) account lookup during deserialization */
+  getAccountByIdFast(id: string): Account | undefined {
+    return this._accountsById?.get(id) ?? this.accounts.find((a) => a.id === id);
+  }
+
+  /** O(1) payee lookup during deserialization */
+  getPayeeByIdFast(id: string): Payee | undefined {
+    return this._payeesById?.get(id) ?? this.payees.find((p) => p.id === id);
+  }
+
+  /** O(1) budget lookup during deserialization */
+  getBudgetByIdFast(id: string): Budget | undefined {
+    return this._budgetsById?.get(id) ?? this._budgets.find((b) => b.id === id);
+  }
+
+  /** O(1) posting lookup during deserialization */
+  getPostingByIdFast(id: string): TransactionPosting | undefined {
+    return this._postingsById?.get(id) ?? this.transactionPostings.find((p) => p.id === id);
+  }
+
+  /** O(1) budget category lookup during deserialization */
+  getBudgetCategoryByIdFast(id: string): BudgetCategory | undefined {
+    return this._budgetCategoriesById?.get(id) ?? this.budgetCategories.find((c) => c.id === id);
+  }
+
   static async fromJSON(json: string): Promise<Ledger> {
     const ledger = new Ledger();
     ledger.source = json;
@@ -60,32 +107,35 @@ export class Ledger {
 
     ledger.name = collections.name || "Untitled Ledger";
 
+    // Phase 1: Parse entities that have no dependencies
     collections.accounts.forEach((a: any) => {
       ledger.accounts.push(Account.fromJSON(a, ledger));
     });
+    // Build lookup map for O(1) access
+    ledger._accountsById = new Map(ledger.accounts.map((a) => [a.id, a]));
 
     collections.payees.forEach((a: any) => {
       ledger.payees.push(Payee.fromJSON(a, ledger));
     });
+    ledger._payeesById = new Map(ledger.payees.map((p) => [p.id, p]));
 
     collections.budget_categories.forEach((b: any) => {
       ledger.budgetCategories.push(BudgetCategory.fromJSON(b, ledger));
     });
+    ledger._budgetCategoriesById = new Map(ledger.budgetCategories.map((c) => [c.id, c]));
 
     collections.budgets.forEach((b: any) => {
-      // const budgetCategory = ledger.budgetCategories.find(
-      //   (c) => c.uuid === b.budget_category_uuid
-      // );
-      // if(!budgetCategory) {
-      //   throw new Error(`Budget category ${b.budget_category_uuid} not found`);
-      // }
       ledger._budgets.push(Budget.fromJSON(b, ledger));
     });
+    ledger._budgetsById = new Map(ledger._budgets.map((b) => [b.id, b]));
 
+    // Phase 2: Parse entities that depend on budgets
     collections.transaction_postings.forEach((p: any) => {
       ledger.transactionPostings.push(TransactionPosting.fromJSON(p, ledger));
     });
+    ledger._postingsById = new Map(ledger.transactionPostings.map((p) => [p.id, p]));
 
+    // Phase 3: Parse entities that depend on accounts, payees, postings
     collections.transactions.forEach((t: any) => {
       ledger.transactions.push(Transaction.fromJSON(t, ledger));
     });
@@ -103,6 +153,13 @@ export class Ledger {
     collections.transfers.forEach((t: any) => {
       ledger.transfers.push(Transfer.fromJSON(t, ledger));
     });
+
+    // Clear temporary lookup maps to free memory
+    ledger._accountsById = undefined;
+    ledger._payeesById = undefined;
+    ledger._budgetsById = undefined;
+    ledger._postingsById = undefined;
+    ledger._budgetCategoriesById = undefined;
 
     // Build payee -> budget map from transactions (sorted by date so most recent wins)
     ledger.buildPayeeBudgetMap();
@@ -152,17 +209,23 @@ export class Ledger {
   @action
   addBudget(budget: Budget) {
     this._budgets.push(budget);
+    this.incrementVersion();
+  }
+
+  @action
+  incrementVersion() {
+    this._version++;
   }
 
   @action
   markClean() {
     this.isDirty = false;
-    this.lastSavedSnapshot = JSON.stringify(this.toJSON());
   }
 
   @action
   markDirty() {
     this.isDirty = true;
+    this.incrementVersion();
   }
 
   @action
@@ -179,6 +242,7 @@ export class Ledger {
     if (transactionIndex !== -1) {
       this.transactions.splice(transactionIndex, 1);
     }
+    this.incrementVersion();
   }
 
   @action
@@ -187,6 +251,7 @@ export class Ledger {
     if (transferIndex !== -1) {
       this.transfers.splice(transferIndex, 1);
     }
+    this.incrementVersion();
   }
 
   /**
@@ -222,6 +287,59 @@ export class Ledger {
     return this._budgets.filter((b) => !b.isToBeBudgeted && b.isArchived);
   }
 
+  /**
+   * Compute all account balances in a single pass.
+   * Returns a Map from account ID to balance.
+   */
+  getAllAccountBalances(): Map<string, Balance> {
+    // Check cache validity
+    if (this._accountBalanceCacheVersion === this._version) {
+      return this._accountBalanceCache;
+    }
+
+    // Clear and recompute
+    const result = new Map<string, Balance>();
+
+    // Initialize all accounts to 0
+    for (const account of this.accounts) {
+      result.set(account.id, 0);
+    }
+
+    // Single pass through transactions
+    for (const t of this.transactions) {
+      if (t.isFuture || !t.account) continue;
+      const current = result.get(t.account.id) ?? 0;
+      result.set(t.account.id, current + t.amount);
+    }
+
+    // Single pass through transfers
+    for (const t of this.transfers) {
+      if (t.isFuture) continue;
+
+      if (t.fromAccount) {
+        const current = result.get(t.fromAccount.id) ?? 0;
+        result.set(t.fromAccount.id, current - t.amount);
+      }
+      if (t.toAccount) {
+        const current = result.get(t.toAccount.id) ?? 0;
+        result.set(t.toAccount.id, current + t.amount);
+      }
+    }
+
+    // Cache the result
+    this._accountBalanceCache = result;
+    this._accountBalanceCacheVersion = this._version;
+
+    return result;
+  }
+
+  /**
+   * Get the balance for a specific account using cached computation.
+   */
+  getAccountBalance(account: Account): Balance {
+    return this.getAllAccountBalances().get(account.id) ?? 0;
+  }
+
   transactionsForAccount(account: Account) {
     return this.transactions.filter((tr) => tr.account === account);
   }
@@ -251,112 +369,165 @@ export class Ledger {
       .reduce((sum, t) => sum + t.amount, 0);
   }
 
-  budgetAvailableForMonth(budget: Budget, date: Date): Balance {
-    let activity: Balance = 0;
-    this.transactions
-      // Include transactions up to end of month, but exclude future (after today)
-      .filter((t) => isBefore(t.date!, endOfMonth(date)) && !t.isFuture)
-      // Exclude tracking accounts from budget calculations
-      .filter((t) => t.account?.type !== "tracking")
-      .forEach((t) => {
-        //   t.account.processTransaction(t);
-        // t.budgets.forEach((b) => b.processTransaction(t));
-        t.postings
-          .filter((p) => p.budget === budget)
-          .forEach((p) => {
-            // if (budget.name === "inflow") {
-            // }
-            activity += p.amount;
-          });
-      });
+  /**
+   * Get the month key for caching
+   */
+  private getMonthKey(date: Date): string {
+    return `${date.getFullYear()}-${date.getMonth()}`;
+  }
 
-    // Handle cross-type transfers (budget ↔ tracking)
-    this.transfers
-      // Include transfers up to end of month, but exclude future (after today)
-      .filter((t) => isBefore(t.date!, endOfMonth(date)) && !t.isFuture)
-      .filter((t) => t.toAccount?.type !== t.fromAccount?.type)
-      .forEach((t) => {
-        // Determine which budget this transfer affects
-        const targetBudget = t.budget;
+  /**
+   * Compute all budget values for a month in a single pass.
+   * Returns a Map from budget ID to { available, activity, assigned }
+   */
+  getAllBudgetValuesForMonth(
+    date: Date
+  ): Map<string, { available: Balance; activity: Balance; assigned: Balance }> {
+    const monthKey = this.getMonthKey(date);
 
-        // If transfer has a budget, add activity to that budget
-        // If no budget, fall back to "To Be Budgeted"
-        const affectsBudget = targetBudget ? targetBudget === budget : budget.isToBeBudgeted;
-
-        if (affectsBudget) {
-          if (t.toAccount?.type === "budget") {
-            activity += t.amount;
-          } else {
-            activity -= t.amount;
-          }
-        }
-      });
-
-    let assigned: Balance = 0;
-    if (budget.isToBeBudgeted) {
-      this.assignments
-        .filter((t) => isBefore(t.date!, endOfMonth(date)))
-        .filter((p) => p.budget !== budget)
-        .forEach((a) => {
-          assigned -= a.amount;
-        });
+    // Check cache validity
+    if (this._budgetCacheVersion === this._version) {
+      const cached = this._budgetValuesCache.get(monthKey);
+      if (cached) {
+        return cached;
+      }
     } else {
-      this.assignments
-        .filter((t) => isBefore(t.date!, endOfMonth(date)))
-        .filter((p) => p.budget === budget)
-        .forEach((a) => {
-          assigned += a.amount;
-        });
+      // Version changed, clear entire cache
+      this._budgetValuesCache.clear();
+      this._budgetCacheVersion = this._version;
     }
 
-    return assigned + activity;
+    const endOfMonthDate = endOfMonth(date);
+    const toBeBudgeted = this.getInflowBudget();
+
+    // Initialize accumulators for all budgets
+    const result = new Map<
+      string,
+      {
+        available: Balance;
+        activity: Balance;
+        assigned: Balance;
+        activityThrough: Balance; // Activity through end of month (for available calc)
+      }
+    >();
+
+    for (const budget of this._budgets) {
+      result.set(budget.id, { available: 0, activity: 0, assigned: 0, activityThrough: 0 });
+    }
+
+    // Single pass through transactions
+    for (const t of this.transactions) {
+      if (t.isFuture || t.account?.type === "tracking") continue;
+      if (!t.date) continue;
+
+      const isInMonth = isSameMonth(t.date, date);
+      const isThroughMonth = isBefore(t.date, endOfMonthDate);
+
+      for (const p of t.postings) {
+        if (!p.budget) continue;
+        const acc = result.get(p.budget.id);
+        if (!acc) continue;
+
+        if (isInMonth) {
+          acc.activity += p.amount;
+        }
+        if (isThroughMonth) {
+          acc.activityThrough += p.amount;
+        }
+      }
+    }
+
+    // Single pass through cross-type transfers
+    for (const t of this.transfers) {
+      if (t.isFuture) continue;
+      if (!t.date) continue;
+      if (t.toAccount?.type === t.fromAccount?.type) continue; // Not cross-type
+
+      const isInMonth = isSameMonth(t.date, date);
+      const isThroughMonth = isBefore(t.date, endOfMonthDate);
+
+      // Determine which budget this affects
+      const targetBudget = t.budget ?? toBeBudgeted;
+      if (!targetBudget) continue;
+
+      const acc = result.get(targetBudget.id);
+      if (!acc) continue;
+
+      const amount = t.toAccount?.type === "budget" ? t.amount : -t.amount;
+
+      if (isInMonth) {
+        acc.activity += amount;
+      }
+      if (isThroughMonth) {
+        acc.activityThrough += amount;
+      }
+    }
+
+    // Single pass through assignments for assigned amounts
+    let totalAssignedThroughMonth = 0;
+    for (const a of this.assignments) {
+      if (!a.date || !a.budget) continue;
+
+      const isInMonth = isSameMonth(a.date, date);
+      const isThroughMonth = isBefore(a.date, endOfMonthDate);
+
+      const acc = result.get(a.budget.id);
+      if (!acc) continue;
+
+      if (isInMonth) {
+        acc.assigned += a.amount;
+      }
+      if (isThroughMonth && !a.budget.isToBeBudgeted) {
+        // For available calculation: add to budget's assigned
+        acc.available += a.amount;
+        totalAssignedThroughMonth += a.amount;
+      }
+    }
+
+    // Finalize available calculations
+    for (const [budgetId, acc] of result) {
+      const budget = this._budgets.find((b) => b.id === budgetId);
+      if (budget?.isToBeBudgeted) {
+        // "To Be Budgeted" = all activity - all assignments to other budgets
+        acc.available = acc.activityThrough - totalAssignedThroughMonth;
+      } else {
+        // Regular budget: available = assigned + activity
+        acc.available += acc.activityThrough;
+      }
+    }
+
+    // Convert to final format (remove activityThrough)
+    const finalResult = new Map<
+      string,
+      { available: Balance; activity: Balance; assigned: Balance }
+    >();
+    for (const [budgetId, acc] of result) {
+      finalResult.set(budgetId, {
+        available: acc.available,
+        activity: acc.activity,
+        assigned: acc.assigned,
+      });
+    }
+
+    // Cache the result
+    this._budgetValuesCache.set(monthKey, finalResult);
+
+    return finalResult;
+  }
+
+  budgetAvailableForMonth(budget: Budget, date: Date): Balance {
+    const values = this.getAllBudgetValuesForMonth(date);
+    return values.get(budget.id)?.available ?? 0;
   }
 
   budgetActivityForMonth(budget: Budget, date: Date): Balance {
-    let activity: Balance = 0;
-    this.transactions
-      .filter((t) => isSameMonth(t.date!, date) && !t.isFuture)
-      // Exclude tracking accounts from budget calculations
-      .filter((t) => t.account?.type !== "tracking")
-      .forEach((t) => {
-        t.postings
-          .filter((p) => p.budget === budget)
-          .forEach((p) => {
-            activity += p.amount;
-          });
-      });
-
-    // Include cross-type transfer activity for this budget
-    this.transfers
-      .filter((t) => isSameMonth(t.date!, date) && !t.isFuture)
-      .filter((t) => t.toAccount?.type !== t.fromAccount?.type)
-      .forEach((t) => {
-        // Check if transfer affects this budget
-        const targetBudget = t.budget;
-        const affectsBudget = targetBudget ? targetBudget === budget : budget.isToBeBudgeted;
-
-        if (affectsBudget) {
-          if (t.toAccount?.type === "budget") {
-            activity += t.amount;
-          } else {
-            activity -= t.amount;
-          }
-        }
-      });
-
-    return activity;
+    const values = this.getAllBudgetValuesForMonth(date);
+    return values.get(budget.id)?.activity ?? 0;
   }
 
   budgetAssignedForMonth(budget: Budget, date: Date): Balance {
-    let assigned: Balance = 0;
-    this.assignments
-      .filter((t) => isSameMonth(t.date!, date))
-      .filter((p) => p.budget === budget)
-      .forEach((a) => {
-        assigned += a.amount;
-      });
-
-    return assigned;
+    const values = this.getAllBudgetValuesForMonth(date);
+    return values.get(budget.id)?.assigned ?? 0;
   }
 
   /**

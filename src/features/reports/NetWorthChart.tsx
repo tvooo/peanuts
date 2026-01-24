@@ -1,7 +1,7 @@
 import * as d3 from "d3";
-import { eachMonthOfInterval, endOfMonth, endOfYear, isBefore, startOfYear } from "date-fns";
+import { eachMonthOfInterval, endOfMonth, endOfYear, startOfYear } from "date-fns";
 import { observer } from "mobx-react-lite";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { Ledger } from "@/models/Ledger";
 import { formatCurrency } from "@/utils/formatting";
 
@@ -13,41 +13,50 @@ interface NetWorthChartProps {
 export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: NetWorthChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
 
-  useEffect(() => {
-    if (!svgRef.current) return;
-
-    // Calculate net worth for each month
+  // Memoize the data computation for performance
+  const data = useMemo(() => {
     const startDate = startOfYear(new Date(year, 0, 1));
     const endDate = endOfYear(new Date(year, 0, 1));
     const months = eachMonthOfInterval({ start: startDate, end: endDate });
 
-    const data = months.map((month) => {
+    // Pre-sort transactions and transfers by date for more efficient filtering
+    const sortedTransactions = [...ledger.transactions].sort(
+      (a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0)
+    );
+    const _sortedTransfers = [...ledger.transfers].sort(
+      (a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0)
+    );
+
+    return months.map((month) => {
       const monthEnd = endOfMonth(month);
+      const monthEndTime = monthEnd.getTime();
 
-      // Calculate total account balance up to this month
-      const netWorth = ledger.accounts.reduce((total, account) => {
-        // Sum all transactions for this account up to this month
-        const accountBalance = ledger.transactions
-          .filter((t) => t.account === account && isBefore(t.date!, monthEnd))
-          .reduce((sum, t) => sum + t.amount, 0);
+      // Calculate total net worth by summing all accounts
+      let netWorth = 0;
 
-        // Add transfers
-        const transferBalance = ledger.transfers
-          .filter((t) => isBefore(t.date!, monthEnd))
-          .reduce((sum, transfer) => {
-            if (transfer.toAccount === account) return sum + transfer.amount;
-            if (transfer.fromAccount === account) return sum - transfer.amount;
-            return sum;
-          }, 0);
+      // Sum transactions up to this month
+      for (const t of sortedTransactions) {
+        if (!t.date || t.date.getTime() >= monthEndTime) break;
+        netWorth += t.amount;
+      }
 
-        return total + accountBalance + transferBalance;
-      }, 0);
+      // Add transfers (they net to zero across accounts, but we need to count correctly)
+      // Actually, transfers between accounts cancel out, so we don't need to add them
+      // They only move money between accounts, not create or destroy it
 
       return {
         date: month,
         value: netWorth,
       };
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledger.transactions, ledger.transfers, year]);
+
+  useEffect(() => {
+    if (!svgRef.current) return;
+
+    const startDate = startOfYear(new Date(year, 0, 1));
+    const endDate = endOfYear(new Date(year, 0, 1));
 
     // Clear previous chart
     d3.select(svgRef.current).selectAll("*").remove();
@@ -175,7 +184,7 @@ export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: N
         .attr("stroke-width", 1)
         .attr("stroke-dasharray", "4,4");
     }
-  }, [ledger, year]);
+  }, [data, year]);
 
   return (
     <div className="border rounded-lg p-4 bg-white">
