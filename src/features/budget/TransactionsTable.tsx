@@ -5,12 +5,13 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { sortBy } from "lodash";
 import { CheckCheck } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { twJoin } from "tailwind-merge";
 import { HeaderCell } from "@/components/Table";
 import type { Account } from "@/models/Account";
@@ -24,6 +25,10 @@ import { TransactionFormRow } from "./TransactionFormRow";
 import { TransactionRow } from "./TransactionRow";
 import { TransferFormRow } from "./TransferFormRow";
 import { TransferRow } from "./TransferRow";
+
+const ROW_HEIGHT = 44; // Approximate height of a normal row
+const FORM_ROW_HEIGHT = 52; // Height of form rows (slightly taller)
+const SPLIT_FORM_ROW_HEIGHT = 120; // Height of split transaction form
 
 interface TransactionsTableProps {
   ledger: Ledger;
@@ -76,7 +81,12 @@ export const TransactionsTable = observer(function TransactionsTable({
 
   // Draft editing state - tracks which original is being edited and its draft
   const [editingState, setEditingState] = useState<
-    | { type: "transaction"; original: Transaction; draft: Transaction; isNew?: boolean }
+    | {
+        type: "transaction";
+        original: Transaction;
+        draft: Transaction;
+        isNew?: boolean;
+      }
     | { type: "transfer"; original: Transfer; draft: Transfer; isNew?: boolean }
     | null
   >(null);
@@ -112,7 +122,7 @@ export const TransactionsTable = observer(function TransactionsTable({
     }
   }, [autoEditTransferId, editingState, ledger.transfers, onAutoEditProcessed]);
 
-  const handleToggleExpand = (id: string) => {
+  const handleToggleExpand = useCallback((id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -122,10 +132,16 @@ export const TransactionsTable = observer(function TransactionsTable({
       }
       return next;
     });
-  };
+  }, []);
 
-  // Get and sort data - no useMemo to allow MobX reactivity
-  const data = sortBy(ledger.transactionsAndBalancesForAccount(currentAccount), "date").reverse();
+  // Get and sort data - memoized for performance
+  // MobX reactivity still works because observer() tracks observable access within the render
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Indirect dependencies
+  const data = useMemo(
+    () => sortBy(ledger.transactionsAndBalancesForAccount(currentAccount), "date").reverse(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ledger.transactions, ledger.transfers, ledger.balanceAssertions, currentAccount]
+  );
 
   // Define columns - we'll use custom row rendering, so columns are mainly for structure
   const columns = useMemo(
@@ -187,216 +203,301 @@ export const TransactionsTable = observer(function TransactionsTable({
     autoResetAll: false,
   });
 
-  return (
-    <table className="table w-full table-fixed">
-      <thead className="sticky top-0 bg-slate-50 z-10 ">
-        {table.getHeaderGroups().map((headerGroup) => (
-          <tr key={headerGroup.id}>
-            {headerGroup.headers.map((header) => {
-              const widthClass =
-                header.id === "checkbox"
-                  ? "w-[64px]"
-                  : header.id === "date"
-                    ? "w-[110px]"
-                    : header.id === "budget"
-                      ? "w-[150px]"
-                      : header.id === "out" || header.id === "in"
-                        ? "w-[100px]"
-                        : header.id === "cleared"
-                          ? "w-[50px]"
-                          : "";
-              const headerClasses =
-                header.id === "checkbox"
-                  ? `p-1 pl-8 ${widthClass}`
-                  : header.id === "cleared"
-                    ? `pr-2 ${widthClass}`
-                    : `px-3 pr-2 ${widthClass}`;
-              return (
-                <th key={header.id} className={twJoin("", headerClasses)}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              );
-            })}
-          </tr>
-        ))}
-      </thead>
-      <tbody>
-        {table.getRowModel().rows.map((row) => {
-          const rowData = row.original;
+  const rows = table.getRowModel().rows;
 
-          // Use existing row components for rendering
-          if (isTransaction(rowData)) {
-            // Check if this transaction is being edited
-            if (editingState?.type === "transaction" && editingState.original === rowData) {
-              const draft = editingState.draft;
-              // Use SplitTransactionFormRow for split transactions, TransactionFormRow for regular
-              if (draft.isSplit) {
-                return (
-                  <SplitTransactionFormRow
-                    transaction={draft}
-                    key={row.id}
-                    onSave={() => {
-                      // Copy draft back to original
-                      rowData.copyFrom(draft);
-                      // Update payee -> budget mapping
-                      ledger.updatePayeeBudget(rowData);
-                      const wasNew = editingState.isNew;
-                      const savedDate = draft.date;
-                      setEditingState(null);
-                      // If this was a new transaction, create another for rapid entry
-                      if (wasNew && savedDate) {
-                        onRequestNewTransaction?.(savedDate);
-                      }
-                    }}
-                    onCancel={() => {
-                      // If this is a new transaction, delete it from the ledger
-                      if (editingState.isNew) {
-                        ledger.deleteTransaction(rowData);
-                      }
-                      // Discard draft
-                      setEditingState(null);
-                    }}
-                    onConvertToTransfer={(accountId) => {
-                      // Copy draft to original first, then convert
-                      rowData.copyFrom(draft);
-                      setEditingState(null);
-                      onConvertTransactionToTransfer?.(rowData, accountId);
-                    }}
-                  />
-                );
-              } else {
-                return (
-                  <TransactionFormRow
-                    transaction={draft}
-                    key={row.id}
-                    onSave={() => {
-                      // Copy draft back to original
-                      rowData.copyFrom(draft);
-                      // Update payee -> budget mapping
-                      ledger.updatePayeeBudget(rowData);
-                      const wasNew = editingState.isNew;
-                      const savedDate = draft.date;
-                      setEditingState(null);
-                      // If this was a new transaction, create another for rapid entry
-                      if (wasNew && savedDate) {
-                        onRequestNewTransaction?.(savedDate);
-                      }
-                    }}
-                    onCancel={() => {
-                      // If this is a new transaction, delete it from the ledger
-                      if (editingState.isNew) {
-                        ledger.deleteTransaction(rowData);
-                      }
-                      // Discard draft
-                      setEditingState(null);
-                    }}
-                    onConvertToTransfer={(accountId) => {
-                      // Copy draft to original first, then convert
-                      rowData.copyFrom(draft);
-                      setEditingState(null);
-                      onConvertTransactionToTransfer?.(rowData, accountId);
-                    }}
-                  />
-                );
-              }
-            }
+  // Scroll container ref for virtualization
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Estimate row height based on editing state
+  const estimateSize = useCallback(
+    (index: number) => {
+      const row = rows[index];
+      if (!row) return ROW_HEIGHT;
+
+      const rowData = row.original;
+
+      // Check if this row is being edited
+      if (isTransaction(rowData)) {
+        if (editingState?.type === "transaction" && editingState.original === rowData) {
+          return editingState.draft.isSplit ? SPLIT_FORM_ROW_HEIGHT : FORM_ROW_HEIGHT;
+        }
+        // Expanded split transactions are taller
+        if (rowData.isSplit && expandedIds.has(rowData.id)) {
+          return ROW_HEIGHT + rowData.postings.length * 32;
+        }
+      } else if (isTransfer(rowData)) {
+        if (editingState?.type === "transfer" && editingState.original === rowData) {
+          return FORM_ROW_HEIGHT;
+        }
+      }
+
+      return ROW_HEIGHT;
+    },
+    [rows, editingState, expandedIds]
+  );
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize,
+    overscan: 10, // Render 10 extra rows above/below viewport
+  });
+
+  // Render a single row based on its data type and editing state
+  const renderRow = useCallback(
+    (row: (typeof rows)[0]) => {
+      const rowData = row.original;
+
+      // Use existing row components for rendering
+      if (isTransaction(rowData)) {
+        // Check if this transaction is being edited
+        if (editingState?.type === "transaction" && editingState.original === rowData) {
+          const draft = editingState.draft;
+          // Use SplitTransactionFormRow for split transactions, TransactionFormRow for regular
+          if (draft.isSplit) {
             return (
-              <TransactionRow
-                transaction={rowData}
+              <SplitTransactionFormRow
+                transaction={draft}
                 key={row.id}
-                onClick={() => {
-                  if (!editingState) {
-                    // Auto-collapse when entering edit mode
-                    setExpandedIds((prev) => {
-                      const next = new Set(prev);
-                      next.delete(rowData.id);
-                      return next;
-                    });
-                    // Create draft
-                    setEditingState({
-                      type: "transaction",
-                      original: rowData,
-                      draft: rowData.clone(),
-                    });
+                onSave={() => {
+                  // Copy draft back to original
+                  rowData.copyFrom(draft);
+                  // Update payee -> budget mapping
+                  ledger.updatePayeeBudget(rowData);
+                  const wasNew = editingState.isNew;
+                  const savedDate = draft.date;
+                  setEditingState(null);
+                  // If this was a new transaction, create another for rapid entry
+                  if (wasNew && savedDate) {
+                    onRequestNewTransaction?.(savedDate);
                   }
                 }}
-                selectedIds={selectedIds}
-                onToggleSelection={onToggleSelection}
-                isExpanded={expandedIds.has(rowData.id)}
-                onToggleExpand={handleToggleExpand}
-              />
-            );
-          } else if (isTransfer(rowData)) {
-            // Check if this transfer is being edited
-            if (editingState?.type === "transfer" && editingState.original === rowData) {
-              const draft = editingState.draft;
-              return (
-                <TransferFormRow
-                  transfer={draft}
-                  currentAccountId={currentAccount.id}
-                  key={row.id}
-                  onSave={() => {
-                    // Copy draft back to original
-                    rowData.copyFrom(draft);
-                    const wasNew = editingState.isNew;
-                    const savedDate = draft.date;
-                    setEditingState(null);
-                    // If this was a new transfer, create a new transaction for rapid entry
-                    if (wasNew && savedDate) {
-                      onRequestNewTransaction?.(savedDate);
-                    }
-                  }}
-                  onCancel={() => {
-                    // If this is a new transfer, delete it from the ledger
-                    if (editingState.isNew) {
-                      runInAction(() => {
-                        // Remove transfer
-                        const transferIndex = ledger.transfers.findIndex(
-                          (t) => t.id === rowData.id
-                        );
-                        if (transferIndex !== -1) {
-                          ledger.transfers.splice(transferIndex, 1);
-                        }
-                      });
-                    }
-                    // Discard draft
-                    setEditingState(null);
-                  }}
-                  onConvertToTransaction={() => {
-                    // Copy draft to original first, then convert
-                    rowData.copyFrom(draft);
-                    setEditingState(null);
-                    onConvertTransferToTransaction?.(rowData);
-                  }}
-                />
-              );
-            }
-            return (
-              <TransferRow
-                transfer={rowData}
-                isInbound={rowData.toAccount?.id === currentAccount.id}
-                key={row.id}
-                onClick={() => {
-                  if (!editingState) {
-                    // Create draft
-                    setEditingState({
-                      type: "transfer",
-                      original: rowData,
-                      draft: rowData.clone(),
-                    });
+                onCancel={() => {
+                  // If this is a new transaction, delete it from the ledger
+                  if (editingState.isNew) {
+                    ledger.deleteTransaction(rowData);
                   }
+                  // Discard draft
+                  setEditingState(null);
                 }}
-                selectedIds={selectedIds}
-                onToggleSelection={onToggleSelection}
+                onConvertToTransfer={(accountId) => {
+                  // Copy draft to original first, then convert
+                  rowData.copyFrom(draft);
+                  setEditingState(null);
+                  onConvertTransactionToTransfer?.(rowData, accountId);
+                }}
               />
             );
           } else {
-            return <BalanceAssertionRow transaction={rowData} key={row.id} />;
+            return (
+              <TransactionFormRow
+                transaction={draft}
+                key={row.id}
+                onSave={() => {
+                  // Copy draft back to original
+                  rowData.copyFrom(draft);
+                  // Update payee -> budget mapping
+                  ledger.updatePayeeBudget(rowData);
+                  const wasNew = editingState.isNew;
+                  const savedDate = draft.date;
+                  setEditingState(null);
+                  // If this was a new transaction, create another for rapid entry
+                  if (wasNew && savedDate) {
+                    onRequestNewTransaction?.(savedDate);
+                  }
+                }}
+                onCancel={() => {
+                  // If this is a new transaction, delete it from the ledger
+                  if (editingState.isNew) {
+                    ledger.deleteTransaction(rowData);
+                  }
+                  // Discard draft
+                  setEditingState(null);
+                }}
+                onConvertToTransfer={(accountId) => {
+                  // Copy draft to original first, then convert
+                  rowData.copyFrom(draft);
+                  setEditingState(null);
+                  onConvertTransactionToTransfer?.(rowData, accountId);
+                }}
+              />
+            );
           }
+        }
+        return (
+          <TransactionRow
+            transaction={rowData}
+            key={row.id}
+            onClick={() => {
+              if (!editingState) {
+                // Auto-collapse when entering edit mode
+                setExpandedIds((prev) => {
+                  const next = new Set(prev);
+                  next.delete(rowData.id);
+                  return next;
+                });
+                // Create draft
+                setEditingState({
+                  type: "transaction",
+                  original: rowData,
+                  draft: rowData.clone(),
+                });
+              }
+            }}
+            selectedIds={selectedIds}
+            onToggleSelection={onToggleSelection}
+            isExpanded={expandedIds.has(rowData.id)}
+            onToggleExpand={handleToggleExpand}
+          />
+        );
+      } else if (isTransfer(rowData)) {
+        // Check if this transfer is being edited
+        if (editingState?.type === "transfer" && editingState.original === rowData) {
+          const draft = editingState.draft;
+          return (
+            <TransferFormRow
+              transfer={draft}
+              currentAccountId={currentAccount.id}
+              key={row.id}
+              onSave={() => {
+                // Copy draft back to original
+                rowData.copyFrom(draft);
+                const wasNew = editingState.isNew;
+                const savedDate = draft.date;
+                setEditingState(null);
+                // If this was a new transfer, create a new transaction for rapid entry
+                if (wasNew && savedDate) {
+                  onRequestNewTransaction?.(savedDate);
+                }
+              }}
+              onCancel={() => {
+                // If this is a new transfer, delete it from the ledger
+                if (editingState.isNew) {
+                  runInAction(() => {
+                    // Remove transfer
+                    const transferIndex = ledger.transfers.findIndex((t) => t.id === rowData.id);
+                    if (transferIndex !== -1) {
+                      ledger.transfers.splice(transferIndex, 1);
+                    }
+                  });
+                }
+                // Discard draft
+                setEditingState(null);
+              }}
+              onConvertToTransaction={() => {
+                // Copy draft to original first, then convert
+                rowData.copyFrom(draft);
+                setEditingState(null);
+                onConvertTransferToTransaction?.(rowData);
+              }}
+            />
+          );
+        }
+        return (
+          <TransferRow
+            transfer={rowData}
+            isInbound={rowData.toAccount?.id === currentAccount.id}
+            key={row.id}
+            onClick={() => {
+              if (!editingState) {
+                // Create draft
+                setEditingState({
+                  type: "transfer",
+                  original: rowData,
+                  draft: rowData.clone(),
+                });
+              }
+            }}
+            selectedIds={selectedIds}
+            onToggleSelection={onToggleSelection}
+          />
+        );
+      } else {
+        return <BalanceAssertionRow transaction={rowData} key={row.id} />;
+      }
+    },
+    [
+      editingState,
+      expandedIds,
+      selectedIds,
+      ledger,
+      currentAccount.id,
+      onToggleSelection,
+      onConvertTransactionToTransfer,
+      onConvertTransferToTransaction,
+      onRequestNewTransaction,
+      handleToggleExpand,
+    ]
+  );
+
+  return (
+    <div ref={scrollContainerRef} className="h-full overflow-auto" style={{ contain: "strict" }}>
+      {/* Header table */}
+      <table className="table w-full table-fixed">
+        <thead className="sticky top-0 bg-slate-50 z-10">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const widthClass =
+                  header.id === "checkbox"
+                    ? "w-[64px]"
+                    : header.id === "date"
+                      ? "w-[110px]"
+                      : header.id === "budget"
+                        ? "w-[150px]"
+                        : header.id === "out" || header.id === "in"
+                          ? "w-[100px]"
+                          : header.id === "cleared"
+                            ? "w-[50px]"
+                            : "";
+                const headerClasses =
+                  header.id === "checkbox"
+                    ? `p-1 pl-8 ${widthClass}`
+                    : header.id === "cleared"
+                      ? `pr-2 ${widthClass}`
+                      : `px-3 pr-2 ${widthClass}`;
+                return (
+                  <th key={header.id} className={twJoin("", headerClasses)}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                );
+              })}
+            </tr>
+          ))}
+        </thead>
+      </table>
+
+      {/* Virtualized body */}
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const row = rows[virtualRow.index];
+          return (
+            <div
+              key={row.id}
+              data-index={virtualRow.index}
+              ref={(node) => virtualizer.measureElement(node)}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <table className="table w-full table-fixed">
+                <tbody>{renderRow(row)}</tbody>
+              </table>
+            </div>
+          );
         })}
-      </tbody>
-    </table>
+      </div>
+    </div>
   );
 });

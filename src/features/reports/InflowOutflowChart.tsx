@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { eachMonthOfInterval, endOfYear, format, isSameMonth, startOfYear } from "date-fns";
 import { observer } from "mobx-react-lite";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { Ledger } from "@/models/Ledger";
 import { formatCurrency } from "@/utils/formatting";
 
@@ -16,15 +16,14 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
 }: InflowOutflowChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
 
-  useEffect(() => {
-    if (!svgRef.current) return;
-
-    // Calculate inflow/outflow for each month
+  // Memoize the data computation for performance
+  // biome-ignore lint/correctness/useExhaustiveDependencies: version change handled
+  const data = useMemo(() => {
     const startDate = startOfYear(new Date(year, 0, 1));
     const endDate = endOfYear(new Date(year, 0, 1));
     const months = eachMonthOfInterval({ start: startDate, end: endDate });
 
-    const data = months.map((month) => {
+    return months.map((month) => {
       const monthTransactions = ledger.transactions.filter((t) => isSameMonth(t.date!, month));
 
       const inflow = monthTransactions
@@ -42,8 +41,11 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
         outflow,
       };
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledger.transactions, ledger._version, year]);
 
-    console.log("Inflow/Outflow Data:", data);
+  useEffect(() => {
+    if (!svgRef.current) return;
 
     // Clear previous chart
     d3.select(svgRef.current).selectAll("*").remove();
@@ -225,7 +227,7 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
       .attr("fill", "#ef4444");
 
     legend.append("text").attr("x", 100).attr("y", 12).style("font-size", "12px").text("Outflow");
-  }, [ledger, year]);
+  }, [data]);
 
   return (
     <div className="border rounded-lg p-4 bg-white">

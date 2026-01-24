@@ -128,10 +128,10 @@ export class RecurringTemplate extends Model {
     template.startDate = startOfDay(new Date(json.start_date));
     template.endDate = json.end_date ? startOfDay(new Date(json.end_date)) : null;
 
-    template.account = ledger.accounts.find((a) => a.id === json.account_id) || null;
+    template.account = ledger.getAccountByIdFast(json.account_id) || null;
     template.amount = json.amount || 0;
-    template.budget = ledger.getBudgetByID(json.budget_id) || null;
-    template.payee = ledger.payees.find((p) => p.id === json.payee_id) || null;
+    template.budget = ledger.getBudgetByIdFast(json.budget_id) || null;
+    template.payee = ledger.getPayeeByIdFast(json.payee_id) || null;
     template.note = json.note || "";
 
     return template;

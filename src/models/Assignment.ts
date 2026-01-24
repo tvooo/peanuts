@@ -17,7 +17,7 @@ export class Assignment extends Model {
   static fromJSON(json: any, ledger: Ledger) {
     const assignment = new Assignment({ id: json.id, ledger });
     assignment.date = new Date(json.date);
-    assignment.budget = ledger.getBudgetByID(json.budget_id) || null;
+    assignment.budget = ledger.getBudgetByIdFast(json.budget_id) || null;
     assignment.amount = json.amount;
     return assignment;
   }
@@ -34,15 +34,18 @@ export class Assignment extends Model {
   @action
   setDate(date: Date) {
     this.date = date;
+    this.notifyChange();
   }
 
   @action
   setBudget(budget: Budget) {
     this.budget = budget;
+    this.notifyChange();
   }
 
   @action
   setAmount(amount: Amount) {
     this.amount = amount;
+    this.notifyChange();
   }
 }

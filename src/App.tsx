@@ -65,23 +65,24 @@ export default function App() {
     // Mark clean after initial load
     ledger.markClean();
 
-    // Set up MobX reaction for change detection with debounce
+    // Set up MobX reaction for change detection using version counter
+    // This is O(1) instead of O(n) JSON serialization
     let debounceTimeout: number | null = null;
     const dispose = reaction(
-      () => JSON.stringify(ledger.toJSON()),
-      (currentSnapshot) => {
+      () => ledger._version,
+      () => {
         // Clear previous debounce
         if (debounceTimeout) clearTimeout(debounceTimeout);
 
         debounceTimeout = window.setTimeout(() => {
-          if (currentSnapshot !== ledger.lastSavedSnapshot) {
+          if (!ledger.isDirty) {
             ledger.markDirty();
-            changeCountRef.current++;
+          }
+          changeCountRef.current++;
 
-            // Auto-save after 5 changes
-            if (changeCountRef.current >= 5) {
-              saveLedger();
-            }
+          // Auto-save after 5 changes
+          if (changeCountRef.current >= 5) {
+            saveLedger();
           }
         }, 500);
       }

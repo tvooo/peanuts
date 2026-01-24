@@ -17,4 +17,9 @@ export abstract class Model {
     this.id = id || createId();
     this.ledger = ledger;
   }
+
+  /** Notify the ledger that data has changed */
+  protected notifyChange() {
+    this.ledger?.incrementVersion();
+  }
 }
