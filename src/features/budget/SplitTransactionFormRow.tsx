@@ -16,6 +16,8 @@ import type { Transaction, TransactionPosting } from "@/models/Transaction";
 import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
 
+const rowClasses = "bg-amber-50/50 border-amber-200";
+
 // Inner component for posting rows to manage local state
 interface PostingRowProps {
   posting: TransactionPosting;
@@ -41,9 +43,10 @@ const PostingRow = observer(function PostingRow({
   );
 
   return (
-    <tr className="bg-amber-50/50 border-amber-200" onKeyDown={handleKeyDown}>
-      <td colSpan={2} />
-      <td className="py-1 pr-2">
+    <tr className={rowClasses}>
+      {/* Empty cells for checkbox and date columns */}
+      <td colSpan={2} className={rowClasses} />
+      <td className={cn("py-1 pr-2", rowClasses)} onKeyDown={handleKeyDown}>
         <Combobox
           groups={budgetGroups}
           value={
@@ -77,7 +80,7 @@ const PostingRow = observer(function PostingRow({
           emptyText="No categories found."
         />
       </td>
-      <td className="py-1 pr-2">
+      <td className={cn("py-1 pr-2", rowClasses)} onKeyDown={handleKeyDown}>
         <FormInput
           type="text"
           value={posting.note}
@@ -87,7 +90,7 @@ const PostingRow = observer(function PostingRow({
           placeholder="Note..."
         />
       </td>
-      <td className="py-1 pr-2">
+      <td className={cn("py-1 pr-2", rowClasses)} onKeyDown={handleKeyDown}>
         <FormInput
           type="text"
           className="tabular-nums text-right"
@@ -112,7 +115,7 @@ const PostingRow = observer(function PostingRow({
           placeholder="0,00"
         />
       </td>
-      <td className="py-1 pr-2">
+      <td className={cn("py-1 pr-2", rowClasses)} onKeyDown={handleKeyDown}>
         <FormInput
           type="text"
           className="tabular-nums text-right"
@@ -137,7 +140,10 @@ const PostingRow = observer(function PostingRow({
           placeholder="0,00"
         />
       </td>
-      <td className="py-1 pr-2 text-center align-middle">
+      <td
+        className={cn("py-1 pr-2 text-center align-middle", rowClasses)}
+        onKeyDown={handleKeyDown}
+      >
         {transaction.postings.length > 1 && (
           <button
             type="button"
@@ -208,11 +214,11 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
   return (
     <>
       {/* Header row with date and shared payee */}
-      <tr className="bg-amber-50/50 border-t-2 border-amber-200" onKeyDown={handleKeyDown}>
-        <td rowSpan={transaction.postings.length + 2} className="p-1 pl-8 w-[64px] align-top pt-3">
+      <tr className={cn(rowClasses, "border-t-2")}>
+        <td className="p-1 pl-8 align-top pt-3" onKeyDown={handleKeyDown}>
           <input type="checkbox" className="rounded" />
         </td>
-        <td className="py-2 pr-2">
+        <td className="py-2 pr-2" onKeyDown={handleKeyDown}>
           <DatePicker
             ref={dateInputRef}
             className="tabular-nums"
@@ -222,52 +228,50 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
             }}
           />
         </td>
-        <td className="py-2 pr-2">
-          <div className="flex items-center gap-2">
-            {/* <label className="text-sm font-medium w-16 shrink-0">Payee:</label> */}
-            <Combobox
-              ref={payeeComboboxRef}
-              groups={payeeGroups}
-              value={
-                transaction.payee
-                  ? {
-                      id: `payee-${transaction.payee.id}`,
-                      label: transaction.payee.name,
-                      payee: transaction.payee,
-                    }
-                  : null
+        <td className="py-2 pr-2" onKeyDown={handleKeyDown}>
+          <Combobox
+            ref={payeeComboboxRef}
+            groups={payeeGroups}
+            value={
+              transaction.payee
+                ? {
+                    id: `payee-${transaction.payee.id}`,
+                    label: transaction.payee.name,
+                    payee: transaction.payee,
+                  }
+                : null
+            }
+            onValueChange={(option: any) => {
+              // Check if an account was selected
+              if (option.account) {
+                // Convert to transfer
+                onConvertToTransfer?.(option.account.id);
+              } else if (option.payee) {
+                // Set payee
+                transaction.payee = option.payee;
               }
-              onValueChange={(option: any) => {
-                // Check if an account was selected
-                if (option.account) {
-                  // Convert to transfer
-                  onConvertToTransfer?.(option.account.id);
-                } else if (option.payee) {
-                  // Set payee
-                  transaction.payee = option.payee;
-                }
-              }}
-              onCreateNew={(name) => {
-                return new Promise<any>((resolve) => {
-                  runInAction(() => {
-                    const newPayee = new Payee({ ledger: ledger!, id: null });
-                    newPayee.name = name;
-                    ledger!.payees.push(newPayee);
-                    resolve({
-                      id: `payee-${newPayee.id}`,
-                      label: newPayee.name,
-                      payee: newPayee,
-                    });
+            }}
+            onCreateNew={(name) => {
+              return new Promise<any>((resolve) => {
+                runInAction(() => {
+                  const newPayee = new Payee({ ledger: ledger!, id: null });
+                  newPayee.name = name;
+                  ledger!.payees.push(newPayee);
+                  resolve({
+                    id: `payee-${newPayee.id}`,
+                    label: newPayee.name,
+                    payee: newPayee,
                   });
                 });
-              }}
-              placeholder="Select payee..."
-              emptyText="No payees found."
-            />
-          </div>
+              });
+            }}
+            placeholder="Select payee..."
+            emptyText="No payees found."
+          />
         </td>
-        <td colSpan={4}></td>
-        <td className="pr-2 text-center align-top pt-2">
+        {/* Empty cells for budget, note, out, in */}
+        <td colSpan={4} />
+        <td className="pr-2 text-center align-top pt-2" onKeyDown={handleKeyDown}>
           <div className="flex items-center justify-center gap-1">
             <button
               type="button"
@@ -310,9 +314,8 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
       ))}
 
       {/* Add split button row */}
-      <tr className="bg-amber-50/50 border-b-2 border-amber-200">
-        <td colSpan={2}> </td>
-        <td colSpan={5} className="py-1 pl-2 pr-2">
+      <tr className={cn(rowClasses, "border-b-2")}>
+        <td colSpan={8} className="py-1 pl-8 pr-2">
           <button
             type="button"
             onClick={() => transaction.addPosting()}

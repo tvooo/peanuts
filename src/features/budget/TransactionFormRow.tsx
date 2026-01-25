@@ -22,6 +22,8 @@ interface TransactionFormRowProps {
   onConvertToTransfer?: (accountId: string) => void;
 }
 
+const rowClasses = "bg-amber-50/50 border-t-2 border-b-2 border-amber-200";
+
 export const TransactionFormRow = observer(function TransactionFormRow({
   transaction,
   onSave,
@@ -98,14 +100,12 @@ export const TransactionFormRow = observer(function TransactionFormRow({
 
   return (
     <>
-      <tr
-        className="bg-amber-50/50 border-t-2 border-b-2 border-amber-200 group"
-        onKeyDown={handleKeyDown}
-      >
-        <td className="p-1 pl-8 w-16 align-middle">
+      {/* Main form row */}
+      <tr className={rowClasses}>
+        <td className="p-1 pl-8 align-middle" onKeyDown={handleKeyDown}>
           <input type="checkbox" className="rounded" />
         </td>
-        <td className="py-2 pr-2">
+        <td className="py-2 pr-2" onKeyDown={handleKeyDown}>
           <DatePicker
             ref={dateInputRef}
             className="tabular-nums"
@@ -115,8 +115,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
             }}
           />
         </td>
-
-        <td className="pr-2">
+        <td className="pr-2" onKeyDown={handleKeyDown}>
           <Combobox
             ref={payeeComboboxRef}
             groups={payeeGroups}
@@ -157,7 +156,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
             emptyText="No payees found."
           />
         </td>
-        <td className="pr-2">
+        <td className="pr-2" onKeyDown={handleKeyDown}>
           <Combobox
             ref={budgetComboboxRef}
             groups={budgetGroups}
@@ -200,7 +199,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
             emptyText="No categories found."
           />
         </td>
-        <td className="pr-2">
+        <td className="pr-2" onKeyDown={handleKeyDown}>
           <FormInput
             type="text"
             value={posting.note}
@@ -209,7 +208,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
             }}
           />
         </td>
-        <td className="pr-2">
+        <td className="pr-2" onKeyDown={handleKeyDown}>
           <FormInput
             ref={outInputRef}
             type="text"
@@ -236,7 +235,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
             placeholder="0,00"
           />
         </td>
-        <td className="pr-2">
+        <td className="pr-2" onKeyDown={handleKeyDown}>
           <FormInput
             ref={inInputRef}
             type="text"
@@ -263,7 +262,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
             placeholder="0,00"
           />
         </td>
-        <td className="pr-2 text-center">
+        <td className="pr-2 text-center" onKeyDown={handleKeyDown}>
           <div className="flex items-center justify-center gap-1">
             <button
               type="button"
@@ -292,7 +291,8 @@ export const TransactionFormRow = observer(function TransactionFormRow({
           </div>
         </td>
       </tr>
-      {/* Split button row */}
+
+      {/* Split button row - spans all columns */}
       <tr className="bg-amber-50/50 border-b-2 border-amber-200">
         <td colSpan={8} className="py-1 pl-8 pr-2">
           <button

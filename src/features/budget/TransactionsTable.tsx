@@ -12,7 +12,6 @@ import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { twJoin } from "tailwind-merge";
 import { HeaderCell } from "@/components/Table";
 import type { Account } from "@/models/Account";
 import type { BalanceAssertion } from "@/models/BalanceAssertion";
@@ -430,34 +429,34 @@ export const TransactionsTable = observer(function TransactionsTable({
     ]
   );
 
+  const virtualItems = virtualizer.getVirtualItems();
+  const lastVirtualItem = virtualItems[virtualItems.length - 1];
+
   return (
     <div ref={scrollContainerRef} className="h-full overflow-auto" style={{ contain: "strict" }}>
-      {/* Header table */}
-      <table className="table w-full table-fixed">
+      <table className="w-full table-fixed">
+        <colgroup>
+          <col style={{ width: "64px" }} />
+          <col style={{ width: "110px" }} />
+          <col /> {/* payee - flexible */}
+          <col style={{ width: "150px" }} />
+          <col /> {/* note - flexible */}
+          <col style={{ width: "100px" }} />
+          <col style={{ width: "100px" }} />
+          <col style={{ width: "50px" }} />
+        </colgroup>
         <thead className="sticky top-0 bg-slate-50 z-10">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
-                const widthClass =
-                  header.id === "checkbox"
-                    ? "w-[64px]"
-                    : header.id === "date"
-                      ? "w-[110px]"
-                      : header.id === "budget"
-                        ? "w-[150px]"
-                        : header.id === "out" || header.id === "in"
-                          ? "w-[100px]"
-                          : header.id === "cleared"
-                            ? "w-[50px]"
-                            : "";
                 const headerClasses =
                   header.id === "checkbox"
-                    ? `p-1 pl-8 ${widthClass}`
+                    ? "p-1 pl-8"
                     : header.id === "cleared"
-                      ? `pr-2 ${widthClass}`
-                      : `px-3 pr-2 ${widthClass}`;
+                      ? "pr-2"
+                      : "px-3 pr-2";
                 return (
-                  <th key={header.id} className={twJoin("", headerClasses)}>
+                  <th key={header.id} className={headerClasses}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -467,37 +466,28 @@ export const TransactionsTable = observer(function TransactionsTable({
             </tr>
           ))}
         </thead>
-      </table>
+        <tbody>
+          {/* Top spacer row */}
+          {virtualItems[0]?.start > 0 && (
+            <tr style={{ height: virtualItems[0].start }}>
+              <td colSpan={8} />
+            </tr>
+          )}
 
-      {/* Virtualized body */}
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          position: "relative",
-        }}
-      >
-        {virtualizer.getVirtualItems().map((virtualRow) => {
-          const row = rows[virtualRow.index];
-          return (
-            <div
-              key={row.id}
-              data-index={virtualRow.index}
-              ref={(node) => virtualizer.measureElement(node)}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              <table className="table w-full table-fixed">
-                <tbody>{renderRow(row)}</tbody>
-              </table>
-            </div>
-          );
-        })}
-      </div>
+          {/* Visible rows */}
+          {virtualItems.map((virtualRow) => {
+            const row = rows[virtualRow.index];
+            return renderRow(row);
+          })}
+
+          {/* Bottom spacer row */}
+          {lastVirtualItem && virtualizer.getTotalSize() - lastVirtualItem.end > 0 && (
+            <tr style={{ height: virtualizer.getTotalSize() - lastVirtualItem.end }}>
+              <td colSpan={8} />
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 });

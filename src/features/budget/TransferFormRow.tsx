@@ -20,6 +20,8 @@ interface TransferFormRowProps {
   onConvertToTransaction?: () => void;
 }
 
+const rowClasses = "bg-amber-50/50 border-t-2 border-b-2 border-amber-200";
+
 export const TransferFormRow = observer(function TransferFormRow({
   transfer,
   currentAccountId,
@@ -112,14 +114,11 @@ export const TransferFormRow = observer(function TransferFormRow({
   const accountPayeeGroups = usePayeeAccountGroups(ledger!, currentAccountId);
 
   return (
-    <tr
-      className="bg-amber-50/50 border-t-2 border-b-2 border-amber-200 group"
-      onKeyDown={handleKeyDown}
-    >
-      <td className="p-1 pl-8 w-[64px] align-middle">
+    <tr className={rowClasses}>
+      <td className="p-1 pl-8 align-middle" onKeyDown={handleKeyDown}>
         <input type="checkbox" className="rounded" />
       </td>
-      <td className="py-2 pr-2">
+      <td className="py-2 pr-2" onKeyDown={handleKeyDown}>
         <DatePicker
           ref={dateInputRef}
           className="tabular-nums"
@@ -129,8 +128,7 @@ export const TransferFormRow = observer(function TransferFormRow({
           }}
         />
       </td>
-
-      <td className="pr-2">
+      <td className="pr-2" onKeyDown={handleKeyDown}>
         <Combobox
           ref={accountComboboxRef}
           groups={accountPayeeGroups}
@@ -165,7 +163,7 @@ export const TransferFormRow = observer(function TransferFormRow({
           emptyText="No accounts found."
         />
       </td>
-      <td className="pr-2">
+      <td className="pr-2" onKeyDown={handleKeyDown}>
         {isCrossType ? (
           <Combobox
             ref={budgetComboboxRef}
@@ -191,7 +189,7 @@ export const TransferFormRow = observer(function TransferFormRow({
           </div>
         )}
       </td>
-      <td className="pr-2">
+      <td className="pr-2" onKeyDown={handleKeyDown}>
         <FormInput
           type="text"
           value={transfer.note}
@@ -200,7 +198,7 @@ export const TransferFormRow = observer(function TransferFormRow({
           }}
         />
       </td>
-      <td className="pr-2">
+      <td className="pr-2" onKeyDown={handleKeyDown}>
         <FormInput
           ref={outInputRef}
           type="text"
@@ -234,7 +232,7 @@ export const TransferFormRow = observer(function TransferFormRow({
           placeholder="0,00"
         />
       </td>
-      <td className="pr-2">
+      <td className="pr-2" onKeyDown={handleKeyDown}>
         <FormInput
           ref={inInputRef}
           type="text"
@@ -268,7 +266,7 @@ export const TransferFormRow = observer(function TransferFormRow({
           placeholder="0,00"
         />
       </td>
-      <td className="pr-2 text-center">
+      <td className="pr-2 text-center" onKeyDown={handleKeyDown}>
         <div className="flex items-center justify-center gap-1">
           <button
             type="button"
