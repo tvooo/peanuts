@@ -5,6 +5,7 @@ import {
   CalendarSync,
   ChartSpline,
   ChevronDown,
+  Milestone,
   PiggyBank,
   Plus,
   Save,
@@ -218,6 +219,55 @@ export const AppSidebar = observer(function AppSidebar() {
                               </SidebarMenuButton>
                             </SidebarMenuItem>
                           ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
+            )}
+            {/* Savings Goals */}
+            {ledger.savingsGoals.length > 0 && (
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarGroup>
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger>
+                      <Milestone size={14} className="mr-1" />
+                      Savings Goals
+                      <ChevronDown
+                        size={16}
+                        className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                      />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {ledger.savingsGoals.map((goal) => (
+                          <SidebarMenuItem key={goal.id}>
+                            <div className="px-2 py-1.5">
+                              <div className="flex justify-between items-center">
+                                <span
+                                  className="text-sm truncate"
+                                  title={goal.budget?.name || "Unknown"}
+                                >
+                                  {goal.budget?.name || "Unknown"}
+                                </span>
+                                <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 shrink-0">
+                                  {formatCurrency(goal.progress.current)} /{" "}
+                                  {formatCurrency(goal.targetAmount)}
+                                </span>
+                              </div>
+                              <div className="mt-1 h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all ${goal.progress.isComplete ? "bg-green-500" : "bg-green-500"}`}
+                                  style={{
+                                    width: `${Math.min(100, goal.progress.percentage)}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </SidebarMenuItem>
+                        ))}
                       </SidebarMenu>
                     </SidebarGroupContent>
                   </CollapsibleContent>
