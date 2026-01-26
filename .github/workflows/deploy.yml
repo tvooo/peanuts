@@ -41,4 +41,4 @@ jobs:
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy via rsync
-        run: rsync -avz --delete ./dist/ ${{ secrets.DEPLOY_TARGET }}
+        run: rsync -avz --delete ./dist/* ${{ secrets.DEPLOY_TARGET }}
