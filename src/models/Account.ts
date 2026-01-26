@@ -47,7 +47,13 @@ export class Account extends Model {
 
   @computed
   get clearedBalance(): Balance {
-    return this.balance;
+    if (!this.ledger) return 0;
+    return this.ledger.getClearedAccountBalance(this);
+  }
+
+  @computed
+  get unclearedBalance(): Balance {
+    return this.balance - this.clearedBalance;
   }
 
   @computed

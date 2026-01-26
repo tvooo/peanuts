@@ -5,6 +5,7 @@ import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { TransactionsTable } from "@/features/budget/TransactionsTable";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
 import { Transfer } from "@/models/Transfer";
@@ -18,6 +19,7 @@ export const AccountPage = observer(function AccountPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [autoEditTransactionId, setAutoEditTransactionId] = useState<string | null>(null);
   const [lastUsedDate, setLastUsedDate] = useState<Date>(startOfToday());
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const currentAccount = ledger?.getAccount(params.accountName || "");
 
@@ -227,8 +229,18 @@ export const AccountPage = observer(function AccountPage() {
             )}
           </div>
           <div className="flex items-center gap-4">
-            <div>
-              <div className="text-sm">Balance</div>
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">Cleared</div>
+              <div className="text-md">{formatCurrency(currentAccount.clearedBalance)}</div>
+            </div>
+            <div className="text-muted-foreground">+</div>
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">Uncleared</div>
+              <div className="text-md">{formatCurrency(currentAccount.unclearedBalance)}</div>
+            </div>
+            <div className="text-muted-foreground">=</div>
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">Total</div>
               <div className="text-md font-bold">
                 {formatCurrency(currentAccount.currentBalance)}
               </div>
@@ -255,6 +267,13 @@ export const AccountPage = observer(function AccountPage() {
             <Button variant="destructive" disabled={selectedIds.size === 0} onClick={handleDelete}>
               Delete
             </Button>
+            <Input
+              type="text"
+              placeholder="Search transactions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-64"
+            />
           </div>
           <Button onClick={handleCreateNewTransaction}>New Transaction</Button>
         </div>
@@ -271,6 +290,7 @@ export const AccountPage = observer(function AccountPage() {
             autoEditTransactionId={autoEditTransactionId}
             onAutoEditProcessed={() => setAutoEditTransactionId(null)}
             onRequestNewTransaction={createNewTransaction}
+            searchQuery={searchQuery}
           />
         </div>
       </div>
