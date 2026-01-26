@@ -67,6 +67,10 @@ export class Ledger {
   private _accountBalanceCacheVersion = -1;
   private _accountBalanceCache: Map<string, Balance> = new Map();
 
+  /** Cache for cleared account balance calculations - invalidated on version change */
+  private _clearedAccountBalanceCacheVersion = -1;
+  private _clearedAccountBalanceCache: Map<string, Balance> = new Map();
+
   /** Temporary lookup maps used during deserialization for O(1) lookups */
   private _accountsById?: Map<string, Account>;
   private _payeesById?: Map<string, Payee>;
@@ -340,6 +344,62 @@ export class Ledger {
     return this.getAllAccountBalances().get(account.id) ?? 0;
   }
 
+  /**
+   * Compute all cleared account balances in a single pass.
+   * Returns a Map from account ID to cleared balance.
+   * Only includes transactions/transfers with status "cleared".
+   */
+  getAllClearedAccountBalances(): Map<string, Balance> {
+    // Check cache validity
+    if (this._clearedAccountBalanceCacheVersion === this._version) {
+      return this._clearedAccountBalanceCache;
+    }
+
+    // Clear and recompute
+    const result = new Map<string, Balance>();
+
+    // Initialize all accounts to 0
+    for (const account of this.accounts) {
+      result.set(account.id, 0);
+    }
+
+    // Single pass through transactions - only cleared ones
+    for (const t of this.transactions) {
+      if (t.isFuture || !t.account || t.status !== "cleared") continue;
+      const current = result.get(t.account.id) ?? 0;
+      result.set(t.account.id, current + t.amount);
+    }
+
+    // Single pass through transfers - check status for each side
+    for (const t of this.transfers) {
+      if (t.isFuture) continue;
+
+      // For fromAccount, check fromStatus
+      if (t.fromAccount && t.fromStatus === "cleared") {
+        const current = result.get(t.fromAccount.id) ?? 0;
+        result.set(t.fromAccount.id, current - t.amount);
+      }
+      // For toAccount, check toStatus
+      if (t.toAccount && t.toStatus === "cleared") {
+        const current = result.get(t.toAccount.id) ?? 0;
+        result.set(t.toAccount.id, current + t.amount);
+      }
+    }
+
+    // Cache the result
+    this._clearedAccountBalanceCache = result;
+    this._clearedAccountBalanceCacheVersion = this._version;
+
+    return result;
+  }
+
+  /**
+   * Get the cleared balance for a specific account using cached computation.
+   */
+  getClearedAccountBalance(account: Account): Balance {
+    return this.getAllClearedAccountBalances().get(account.id) ?? 0;
+  }
+
   transactionsForAccount(account: Account) {
     return this.transactions.filter((tr) => tr.account === account);
   }
@@ -367,6 +427,56 @@ export class Ledger {
     return this.assignments
       .filter((t) => isSameMonth(t.date!, date))
       .reduce((sum, t) => sum + t.amount, 0);
+  }
+
+  /**
+   * Returns total assigned amount for months after the given month.
+   */
+  assignedAfterMonth(date: Date): Balance {
+    const endOfGivenMonth = endOfMonth(date);
+    return this.assignments
+      .filter((t) => t.date! > endOfGivenMonth)
+      .reduce((sum, t) => sum + t.amount, 0);
+  }
+
+  /**
+   * Returns total inflow (income) for months after the given month.
+   * This is activity on the "To Be Budgeted" budget after the given month.
+   */
+  inflowAfterMonth(date: Date): Balance {
+    const endOfGivenMonth = endOfMonth(date);
+    const toBeBudgeted = this.getInflowBudget();
+    if (!toBeBudgeted) return 0;
+
+    let total = 0;
+
+    // Sum transaction postings to the inflow budget after the month
+    for (const t of this.transactions) {
+      if (t.isFuture || t.account?.type === "tracking") continue;
+      if (!t.date || t.date <= endOfGivenMonth) continue;
+
+      for (const p of t.postings) {
+        if (p.budget?.id === toBeBudgeted.id) {
+          total += p.amount;
+        }
+      }
+    }
+
+    // Sum cross-type transfers that affect the inflow budget after the month
+    for (const t of this.transfers) {
+      if (t.isFuture) continue;
+      if (!t.date || t.date <= endOfGivenMonth) continue;
+      if (t.toAccount?.type === t.fromAccount?.type) continue;
+
+      // Only count if it goes to the inflow budget (or no budget specified)
+      const targetBudget = t.budget ?? toBeBudgeted;
+      if (targetBudget.id !== toBeBudgeted.id) continue;
+
+      const amount = t.toAccount?.type === "budget" ? t.amount : -t.amount;
+      total += amount;
+    }
+
+    return total;
   }
 
   /**

@@ -58,30 +58,60 @@ export default function BudgetPage() {
               </Button>
             )}
           </div>
-          <div className="text-[10px]">
-            <div>
-              + from last month +{" "}
-              {formatCurrency(
-                ledger.budgetAvailableForMonth(
-                  ledger.getInflowBudget()!,
-                  subMonths(currentMonth, 1)
-                )
-              )}
+          <div className="flex items-center gap-6 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Last month</span>
+              <span className="tabular-nums text-green-600">
+                +
+                {formatCurrency(
+                  ledger.budgetAvailableForMonth(
+                    ledger.getInflowBudget()!,
+                    subMonths(currentMonth, 1)
+                  )
+                )}
+              </span>
             </div>
-            <div>
-              + inflow this month{" "}
-              {formatCurrency(
-                ledger.budgetActivityForMonth(ledger.getInflowBudget()!, currentMonth)
-              )}
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Inflow</span>
+              <span className="tabular-nums text-green-600">
+                +
+                {formatCurrency(
+                  ledger.budgetActivityForMonth(ledger.getInflowBudget()!, currentMonth)
+                )}
+              </span>
             </div>
-            <div>- assigned in future</div>
-            <div>- assigned this month {formatCurrency(ledger.assignedForMonth(currentMonth))}</div>
+            {(() => {
+              const futureNet =
+                ledger.inflowAfterMonth(currentMonth) - ledger.assignedAfterMonth(currentMonth);
+              if (futureNet === 0) return null;
+              return (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Future</span>
+                  <span
+                    className={`tabular-nums ${futureNet >= 0 ? "text-green-600" : "text-orange-600"}`}
+                  >
+                    {futureNet >= 0 ? "+" : ""}
+                    {formatCurrency(futureNet)}
+                  </span>
+                </div>
+              );
+            })()}
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">This month</span>
+              <span className="tabular-nums text-orange-600">
+                -{formatCurrency(ledger.assignedForMonth(currentMonth))}
+              </span>
+            </div>
           </div>
-          <div>
+          <div className="text-right">
             <div className="text-xs text-muted-foreground">Available to budget</div>
-            <div className="text-xl font-bold">
+            <div className="text-xl font-bold tabular-nums">
               {formatCurrency(
-                ledger.budgetAvailableForMonth(ledger.getInflowBudget()!, currentMonth)
+                ledger.budgetAvailableForMonth(ledger.getInflowBudget()!, currentMonth) -
+                  Math.max(
+                    0,
+                    ledger.assignedAfterMonth(currentMonth) - ledger.inflowAfterMonth(currentMonth)
+                  )
               )}
             </div>
           </div>

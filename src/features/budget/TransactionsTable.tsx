@@ -18,6 +18,7 @@ import type { BalanceAssertion } from "@/models/BalanceAssertion";
 import type { Ledger } from "@/models/Ledger";
 import { Transaction } from "@/models/Transaction";
 import { Transfer } from "@/models/Transfer";
+import { formatCurrency } from "@/utils/formatting";
 import { BalanceAssertionRow } from "./BalanceAssertionRow";
 import { SplitTransactionFormRow } from "./SplitTransactionFormRow";
 import { TransactionFormRow } from "./TransactionFormRow";
@@ -44,6 +45,8 @@ interface TransactionsTableProps {
   onAutoEditProcessed?: () => void;
   /** Called after saving a new transaction to enable rapid entry. Receives the date from the saved item. */
   onRequestNewTransaction?: (lastDate: Date) => void;
+  /** Search query to filter transactions */
+  searchQuery?: string;
 }
 
 // Discriminated union type for row data
@@ -74,6 +77,7 @@ export const TransactionsTable = observer(function TransactionsTable({
   autoEditTransferId,
   onAutoEditProcessed,
   onRequestNewTransaction,
+  searchQuery = "",
 }: TransactionsTableProps) {
   // Expand/collapse state for split transactions
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -133,13 +137,63 @@ export const TransactionsTable = observer(function TransactionsTable({
     });
   }, []);
 
+  // Filter function for search
+  const matchesSearch = useCallback((item: TableRow, query: string): boolean => {
+    if (!query) return true;
+    const lowerQuery = query.toLowerCase();
+
+    if (isTransaction(item)) {
+      // Check payee name
+      if (item.payee?.name?.toLowerCase().includes(lowerQuery)) return true;
+      // Check postings: budget name, note
+      for (const posting of item.postings) {
+        if (posting.budget?.name?.toLowerCase().includes(lowerQuery)) return true;
+        if (posting.note?.toLowerCase().includes(lowerQuery)) return true;
+      }
+      // Check amount (formatted currency)
+      const amount = item.postings.reduce((sum, p) => sum + p.amount, 0);
+      if (formatCurrency(amount).toLowerCase().includes(lowerQuery)) return true;
+      return false;
+    }
+
+    if (isTransfer(item)) {
+      // Check note
+      if (item.note?.toLowerCase().includes(lowerQuery)) return true;
+      // Check account names
+      if (item.fromAccount?.name?.toLowerCase().includes(lowerQuery)) return true;
+      if (item.toAccount?.name?.toLowerCase().includes(lowerQuery)) return true;
+      // Check budget (for cross-type transfers)
+      if (item.budget?.name?.toLowerCase().includes(lowerQuery)) return true;
+      // Check amount
+      if (formatCurrency(item.amount).toLowerCase().includes(lowerQuery)) return true;
+      return false;
+    }
+
+    // Balance assertions always shown (not filtered)
+    return true;
+  }, []);
+
   // Get and sort data - memoized for performance
   // MobX reactivity still works because observer() tracks observable access within the render
   // biome-ignore lint/correctness/useExhaustiveDependencies: Indirect dependencies
   const data = useMemo(
-    () => sortBy(ledger.transactionsAndBalancesForAccount(currentAccount), "date").reverse(),
+    () => {
+      const sorted = sortBy(
+        ledger.transactionsAndBalancesForAccount(currentAccount),
+        "date"
+      ).reverse();
+      if (!searchQuery) return sorted;
+      return sorted.filter((item) => matchesSearch(item, searchQuery));
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ledger.transactions, ledger.transfers, ledger.balanceAssertions, currentAccount]
+    [
+      ledger.transactions,
+      ledger.transfers,
+      ledger.balanceAssertions,
+      currentAccount,
+      searchQuery,
+      matchesSearch,
+    ]
   );
 
   // Define columns - we'll use custom row rendering, so columns are mainly for structure
