@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to VPS
 
 on:
   workflow_run:
@@ -8,23 +8,14 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
-  group: "pages"
+  group: "deploy"
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-slim
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout code
@@ -41,17 +32,13 @@ jobs:
 
       - name: Build
         run: npm run build
-        env:
-          VITE_BASE_PATH: /peanuts/
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H $(echo "${{ secrets.DEPLOY_TARGET }}" | cut -d'@' -f2 | cut -d':' -f1) >> ~/.ssh/known_hosts
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: './dist'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy via rsync
+        run: rsync -avz --delete ./dist/ ${{ secrets.DEPLOY_TARGET }}
