@@ -1,5 +1,6 @@
 import { computed, observable } from "mobx";
 import type { Balance } from "@/utils/types";
+import type { Goal } from "./Goal";
 import type { Ledger } from "./Ledger";
 import { Model } from "./Model";
 
@@ -40,8 +41,8 @@ export class Budget extends Model {
   }
 
   @computed
-  get goal() {
-    return null;
+  get goal(): Goal | null {
+    return this.ledger.goals.find((g) => g.budget?.id === this.id && !g.isArchived) || null;
   }
 }
 

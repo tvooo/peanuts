@@ -5,18 +5,20 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { isSameMonth } from "date-fns";
-import { Archive } from "lucide-react";
+import { Archive, CheckCircle2, Circle } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { Fragment, useMemo, useState } from "react";
 import { AmountCell, HeaderCell } from "@/components/Table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Assignment } from "@/models/Assignment";
 import type { Budget } from "@/models/Budget";
+import type { Goal } from "@/models/Goal";
 import type { Ledger } from "@/models/Ledger";
-import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
-import { EditBudgetModal } from "./EditBudgetModal";
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
+import { BudgetSidebar } from "./BudgetSidebar";
 
 // Component for editing assignment amount with text parsing
 function AssignmentInput({ assignment, onClose }: { assignment: Assignment; onClose: () => void }) {
@@ -46,6 +48,31 @@ function AssignmentInput({ assignment, onClose }: { assignment: Assignment; onCl
       }}
       placeholder="0,00"
     />
+  );
+}
+
+// Small indicator showing goal progress state
+function GoalIndicator({ goal, className }: { goal: Goal; className?: string }) {
+  const { percentage, isComplete } = goal.progress;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={className}>
+          {isComplete ? (
+            <CheckCircle2 size={14} className="text-green-500" />
+          ) : (
+            <Circle size={14} className="text-amber-500" />
+          )}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="text-xs">
+          {goal.type === "monthly_assignment" ? "Monthly: " : "Savings: "}
+          {Math.round(percentage)}% of {formatCurrency(goal.targetAmount)}
+        </p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -165,7 +192,7 @@ export const BudgetTable = observer(function BudgetTable({
                     </td>
                     <td className="py-2 px-3 pr-2 text-sm align-middle">
                       <div className="flex items-center">
-                        {/* {budget.isTarget && <Goal className="mr-2 w-3" />} */}
+                        {budget.goal && <GoalIndicator goal={budget.goal} className="mr-2" />}
                         {budget.name}
                         <Button
                           className="opacity-0 group-hover:opacity-100 py-0 h-auto"
@@ -251,6 +278,7 @@ export const BudgetTable = observer(function BudgetTable({
                     </td>
                     <td className="py-2 px-3 pr-2 text-sm align-middle">
                       <div className="flex items-center">
+                        {budget.goal && <GoalIndicator goal={budget.goal} className="mr-2" />}
                         {budget.name}
                         <Button
                           className="opacity-0 group-hover:opacity-100 py-0 h-auto"
@@ -342,6 +370,7 @@ export const BudgetTable = observer(function BudgetTable({
                     </td>
                     <td className="py-2 px-3 pr-2 text-sm align-middle text-stone-500">
                       <div className="flex items-center">
+                        {budget.goal && <GoalIndicator goal={budget.goal} className="mr-2" />}
                         {budget.name}
                         <Button
                           className="opacity-0 group-hover:opacity-100 py-0 h-auto"
@@ -407,7 +436,7 @@ export const BudgetTable = observer(function BudgetTable({
           )}
         </tbody>
       </table>
-      <EditBudgetModal envelope={envelope} setEnvelope={setEnvelope} />
+      <BudgetSidebar budget={envelope} onClose={() => setEnvelope(null)} />
     </>
   );
 });

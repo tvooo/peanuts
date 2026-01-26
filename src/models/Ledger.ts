@@ -6,6 +6,7 @@ import { Transaction, TransactionPosting } from "@/models/Transaction";
 import type { Balance } from "@/utils/types";
 import { Assignment } from "./Assignment";
 import type { BalanceAssertion } from "./BalanceAssertion";
+import { Goal } from "./Goal";
 import { Payee } from "./Payee";
 import { RecurringTemplate } from "./RecurringTemplate";
 import { Transfer } from "./Transfer";
@@ -44,6 +45,9 @@ export class Ledger {
 
   @observable
   accessor transfers: Transfer[] = [];
+
+  @observable
+  accessor goals: Goal[] = [];
 
   source: string = "";
   name: string = "";
@@ -158,6 +162,13 @@ export class Ledger {
       ledger.transfers.push(Transfer.fromJSON(t, ledger));
     });
 
+    // Parse goals (depends on budgets)
+    if (collections.goals) {
+      collections.goals.forEach((g: any) => {
+        ledger.goals.push(Goal.fromJSON(g, ledger));
+      });
+    }
+
     // Clear temporary lookup maps to free memory
     ledger._accountsById = undefined;
     ledger._payeesById = undefined;
@@ -183,6 +194,7 @@ export class Ledger {
       recurring_templates: this.recurringTemplates.map((a) => a.toJSON()),
       assignments: this.assignments.map((a) => a.toJSON()),
       transfers: this.transfers.map((a) => a.toJSON()),
+      goals: this.goals.map((g) => g.toJSON()),
     };
   }
 
@@ -289,6 +301,14 @@ export class Ledger {
   @computed
   get archivedBudgets(): Budget[] {
     return this._budgets.filter((b) => !b.isToBeBudgeted && b.isArchived);
+  }
+
+  /**
+   * Returns active savings goals (available type, non-archived).
+   */
+  @computed
+  get savingsGoals(): Goal[] {
+    return this.goals.filter((g) => g.type === "available" && !g.isArchived);
   }
 
   /**
