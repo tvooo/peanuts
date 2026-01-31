@@ -122,8 +122,8 @@ export default function BudgetPage() {
           <AddBudgetModal />
         </div>
 
-        {/* Scrollable table container */}
-        <div className="flex-1 overflow-auto min-h-0">
+        {/* Table container */}
+        <div className="flex-1 min-h-0">
           <BudgetTable currentMonth={currentMonth} ledger={ledger} />
         </div>
       </div>
