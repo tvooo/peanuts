@@ -187,9 +187,9 @@ export const TransactionsTable = observer(function TransactionsTable({
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      ledger.transactions,
-      ledger.transfers,
-      ledger.balanceAssertions,
+      ledger.transactions.length,
+      ledger.transfers.length,
+      ledger.balanceAssertions.length,
       currentAccount,
       searchQuery,
       matchesSearch,
@@ -382,20 +382,26 @@ export const TransactionsTable = observer(function TransactionsTable({
             transaction={rowData}
             key={row.id}
             onClick={() => {
-              if (!editingState) {
-                // Auto-collapse when entering edit mode
-                setExpandedIds((prev) => {
-                  const next = new Set(prev);
-                  next.delete(rowData.id);
-                  return next;
-                });
-                // Create draft
-                setEditingState({
-                  type: "transaction",
-                  original: rowData,
-                  draft: rowData.clone(),
-                });
+              // If already editing this row, do nothing
+              if (editingState?.type === "transaction" && editingState.original === rowData) {
+                return;
               }
+              // If editing a different row that's new, cancel it (delete the new transaction)
+              if (editingState?.type === "transaction" && editingState.isNew) {
+                ledger.deleteTransaction(editingState.original);
+              }
+              // Auto-collapse when entering edit mode
+              setExpandedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(rowData.id);
+                return next;
+              });
+              // Create draft
+              setEditingState({
+                type: "transaction",
+                original: rowData,
+                draft: rowData.clone(),
+              });
             }}
             selectedIds={selectedIds}
             onToggleSelection={onToggleSelection}
@@ -489,12 +495,13 @@ export const TransactionsTable = observer(function TransactionsTable({
   return (
     <div ref={scrollContainerRef} className="h-full overflow-auto" style={{ contain: "strict" }}>
       <table className="w-full table-fixed">
+        {/* Column widths: checkbox, date, payee (flex), budget, note (flex), out, in, status */}
         <colgroup>
           <col style={{ width: "64px" }} />
           <col style={{ width: "110px" }} />
-          <col /> {/* payee - flexible */}
+          <col />
           <col style={{ width: "150px" }} />
-          <col /> {/* note - flexible */}
+          <col />
           <col style={{ width: "100px" }} />
           <col style={{ width: "100px" }} />
           <col style={{ width: "50px" }} />
