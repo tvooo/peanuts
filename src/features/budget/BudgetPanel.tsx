@@ -13,10 +13,15 @@ import { useLedger } from "@/utils/useLedger";
 
 interface BudgetPanelProps {
   budget: Budget | null;
+  currentMonth: Date;
   onClose: () => void;
 }
 
-export const BudgetPanel = observer(function BudgetPanel({ budget, onClose }: BudgetPanelProps) {
+export const BudgetPanel = observer(function BudgetPanel({
+  budget,
+  currentMonth,
+  onClose,
+}: BudgetPanelProps) {
   const { ledger } = useLedger();
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [goalType, setGoalType] = useState<GoalType>("available");
@@ -167,18 +172,20 @@ export const BudgetPanel = observer(function BudgetPanel({ budget, onClose }: Bu
                   {/* Progress */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs text-stone-500">
-                      <span>{formatCurrency(goal.progress.current)}</span>
-                      <span>{Math.round(goal.progress.percentage)}%</span>
+                      <span>{formatCurrency(goal.progressForMonth(currentMonth).current)}</span>
+                      <span>{Math.round(goal.progressForMonth(currentMonth).percentage)}%</span>
                     </div>
                     <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
                       <div
-                        className={`h-full transition-all ${goal.progress.isComplete ? "bg-green-500" : "bg-amber-500"}`}
-                        style={{ width: `${Math.min(100, goal.progress.percentage)}%` }}
+                        className={`h-full transition-all ${goal.progressForMonth(currentMonth).isComplete ? "bg-green-500" : "bg-amber-500"}`}
+                        style={{
+                          width: `${Math.min(100, goal.progressForMonth(currentMonth).percentage)}%`,
+                        }}
                       />
                     </div>
                   </div>
 
-                  {goal.progress.isComplete && (
+                  {goal.progressForMonth(currentMonth).isComplete && (
                     <p className="text-xs text-green-600 font-medium">Goal complete!</p>
                   )}
                 </div>

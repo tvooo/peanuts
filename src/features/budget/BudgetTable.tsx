@@ -57,8 +57,16 @@ function AssignmentInput({ assignment, onClose }: { assignment: Assignment; onCl
 }
 
 // Small indicator showing goal progress state
-function GoalIndicator({ goal, className }: { goal: Goal; className?: string }) {
-  const { percentage, isComplete } = goal.progress;
+function GoalIndicator({
+  goal,
+  month,
+  className,
+}: {
+  goal: Goal;
+  month: Date;
+  className?: string;
+}) {
+  const { percentage, isComplete } = goal.progressForMonth(month);
 
   return (
     <Tooltip>
@@ -210,7 +218,13 @@ export const BudgetTable = observer(function BudgetTable({
                       </td>
                       <td className="py-2 px-3 pr-2 text-sm align-middle">
                         <div className="flex items-center">
-                          {budget.goal && <GoalIndicator goal={budget.goal} className="mr-2" />}
+                          {budget.goal && (
+                            <GoalIndicator
+                              goal={budget.goal}
+                              month={currentMonth}
+                              className="mr-2"
+                            />
+                          )}
                           {budget.name}
                         </div>
                       </td>
@@ -289,7 +303,13 @@ export const BudgetTable = observer(function BudgetTable({
                       </td>
                       <td className="py-2 px-3 pr-2 text-sm align-middle">
                         <div className="flex items-center">
-                          {budget.goal && <GoalIndicator goal={budget.goal} className="mr-2" />}
+                          {budget.goal && (
+                            <GoalIndicator
+                              goal={budget.goal}
+                              month={currentMonth}
+                              className="mr-2"
+                            />
+                          )}
                           {budget.name}
                         </div>
                       </td>
@@ -374,7 +394,13 @@ export const BudgetTable = observer(function BudgetTable({
                       </td>
                       <td className="py-2 px-3 pr-2 text-sm align-middle text-stone-500">
                         <div className="flex items-center">
-                          {budget.goal && <GoalIndicator goal={budget.goal} className="mr-2" />}
+                          {budget.goal && (
+                            <GoalIndicator
+                              goal={budget.goal}
+                              month={currentMonth}
+                              className="mr-2"
+                            />
+                          )}
                           {budget.name}
                         </div>
                       </td>
@@ -433,7 +459,11 @@ export const BudgetTable = observer(function BudgetTable({
           </tbody>
         </table>
       </div>
-      <BudgetPanel budget={selectedBudget} onClose={() => setSelectedBudget(null)} />
+      <BudgetPanel
+        budget={selectedBudget}
+        currentMonth={currentMonth}
+        onClose={() => setSelectedBudget(null)}
+      />
     </div>
   );
 });

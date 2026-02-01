@@ -45,24 +45,27 @@ export class Goal extends Model {
   }
 
   /**
-   * Compute progress based on goal type.
+   * Compute progress based on goal type for a specific month.
    * - For "available": tracks the budget's available balance towards the target
-   * - For "monthly_assignment": tracks the current month's assignment towards the target
+   * - For "monthly_assignment": tracks the given month's assignment towards the target
    */
-  @computed
-  get progress(): { current: Amount; target: Amount; percentage: number; isComplete: boolean } {
+  progressForMonth(month: Date): {
+    current: Amount;
+    target: Amount;
+    percentage: number;
+    isComplete: boolean;
+  } {
     const target = this.targetAmount;
     let current = 0;
 
     if (this.budget) {
       if (this.type === "available") {
-        // For available goals, get the budget's current available balance
-        current = this.ledger.budgetAvailableForMonth(this.budget, new Date());
+        // For available goals, get the budget's available balance for the given month
+        current = this.ledger.budgetAvailableForMonth(this.budget, month);
       } else if (this.type === "monthly_assignment") {
-        // For monthly assignment goals, get current month's assignment
-        const currentMonth = new Date();
+        // For monthly assignment goals, get the given month's assignment
         const assignment = this.ledger.assignments.find(
-          (a) => a.budget?.id === this.budget?.id && a.date && isSameMonth(a.date, currentMonth)
+          (a) => a.budget?.id === this.budget?.id && a.date && isSameMonth(a.date, month)
         );
         current = assignment?.amount ?? 0;
       }
@@ -74,6 +77,16 @@ export class Goal extends Model {
     const isComplete = current >= target;
 
     return { current, target, percentage, isComplete };
+  }
+
+  /**
+   * Compute progress based on goal type for the current month.
+   * - For "available": tracks the budget's available balance towards the target
+   * - For "monthly_assignment": tracks the current month's assignment towards the target
+   */
+  @computed
+  get progress(): { current: Amount; target: Amount; percentage: number; isComplete: boolean } {
+    return this.progressForMonth(new Date());
   }
 
   @action
