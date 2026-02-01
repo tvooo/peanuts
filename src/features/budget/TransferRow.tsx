@@ -1,7 +1,8 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: TODO: fix later */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: TODO: fix later */
 
-import { AlertTriangle, ArrowLeftRight, CheckCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, CheckCheck, Dot } from "lucide-react";
+import { observer } from "mobx-react-lite";
 import { twJoin } from "tailwind-merge";
 import { OutInAmountCells } from "@/components/Table";
 import type { Transfer } from "@/models/Transfer";
@@ -36,13 +37,13 @@ interface TransferRowProps {
   onToggleSelection?: (id: string) => void;
 }
 
-export const TransferRow = ({
+export const TransferRow = observer(function TransferRow({
   transfer,
   isInbound,
   onClick,
   selectedIds,
   onToggleSelection,
-}: TransferRowProps) => {
+}: TransferRowProps) {
   const rowClasses = twJoin(
     "hover:bg-stone-100 border-b border-stone-200",
     transfer.isFuture && "bg-stone-50 text-stone-400"
@@ -75,12 +76,26 @@ export const TransferRow = ({
         onClick={onClick}
       />
       <td className="pr-2 text-center">
-        {transfer.fromStatus === "cleared" ? (
-          <CheckCheck width={20} className="inline-block" />
-        ) : (
-          <>&middot;</>
-        )}
+        <button
+          type="button"
+          className="cursor-pointer hover:bg-stone-200 rounded-sm size-6 inline-flex items-center justify-center"
+          onClick={(e) => {
+            e.stopPropagation();
+            // Toggle the status for the current account's side
+            if (isInbound) {
+              transfer.toggleToStatus();
+            } else {
+              transfer.toggleFromStatus();
+            }
+          }}
+        >
+          {(isInbound ? transfer.toStatus : transfer.fromStatus) === "cleared" ? (
+            <CheckCheck width={16} className="inline-block" />
+          ) : (
+            <Dot width={16} className="inline-block" />
+          )}
+        </button>
       </td>
     </tr>
   );
-};
+});
