@@ -53,10 +53,10 @@ export const TransactionRow = observer(function TransactionRow({
           recurringTemplateId={transaction.recurringTemplateId}
           onClick={onClick}
         />
-        <td className={rowStyles.cellBase} onClick={onClick}>
+        <td className={twJoin(rowStyles.cellBase, "truncate")} onClick={onClick}>
           {transaction.payee?.name}
         </td>
-        <td className={rowStyles.cellBase} onClick={onClick}>
+        <td className={twJoin(rowStyles.cellBase, "truncate")} onClick={onClick}>
           <BudgetCell isInflow={transaction.postings[0]?.budget?.isToBeBudgeted}>
             {transaction.postings[0]?.budget?.isToBeBudgeted && (
               <ArrowDownToLine className="inline-block mr-1.5" size={14} />
@@ -66,7 +66,7 @@ export const TransactionRow = observer(function TransactionRow({
               : transaction.postings[0]?.budget?.name}
           </BudgetCell>
         </td>
-        <td className={rowStyles.cellBase} onClick={onClick}>
+        <td className={twJoin(rowStyles.cellBase, "truncate")} onClick={onClick}>
           {transaction.postings[0]?.note}
         </td>
         <OutInAmountCells amount={transaction.amount} highlightPositiveAmount onClick={onClick} />
@@ -102,16 +102,19 @@ export const TransactionRow = observer(function TransactionRow({
           onClick={handleClick}
           className="cursor-pointer"
         />
-        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={handleClick}>
+        <td className={twJoin("cursor-pointer truncate", rowStyles.cellBase)} onClick={handleClick}>
           {transaction.payee?.name}
         </td>
-        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={handleClick}>
+        <td className={twJoin("cursor-pointer truncate", rowStyles.cellBase)} onClick={handleClick}>
           <div className="flex items-center gap-1.5 text-stone-600">
-            <ChevronRight size={14} />
-            <span>Split ({transaction.postings.length})</span>
+            <ChevronRight size={14} className="shrink-0" />
+            <span className="truncate">Split ({transaction.postings.length})</span>
           </div>
         </td>
-        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={handleClick} />
+        <td
+          className={twJoin("cursor-pointer truncate", rowStyles.cellBase)}
+          onClick={handleClick}
+        />
         <OutInAmountCells
           amount={transaction.amount}
           highlightPositiveAmount
@@ -150,10 +153,10 @@ export const TransactionRow = observer(function TransactionRow({
           onClick={onClick}
           className="cursor-pointer"
         />
-        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={onClick}>
+        <td className={twJoin("cursor-pointer truncate", rowStyles.cellBase)} onClick={onClick}>
           {transaction.payee?.name}
         </td>
-        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={onClick}>
+        <td className={twJoin("cursor-pointer truncate", rowStyles.cellBase)} onClick={onClick}>
           <div
             className="flex items-center gap-1.5 text-stone-600"
             onClick={(e) => {
@@ -161,11 +164,11 @@ export const TransactionRow = observer(function TransactionRow({
               onToggleExpand?.(transaction.id);
             }}
           >
-            <ChevronDown size={14} />
-            <span>Split Transaction</span>
+            <ChevronDown size={14} className="shrink-0" />
+            <span className="truncate">Split Transaction</span>
           </div>
         </td>
-        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={onClick} />
+        <td className={twJoin("cursor-pointer truncate", rowStyles.cellBase)} onClick={onClick} />
         <OutInAmountCells
           amount={transaction.amount}
           highlightPositiveAmount
@@ -192,7 +195,7 @@ export const TransactionRow = observer(function TransactionRow({
                 <span>{index === transaction.postings.length - 1 ? "└─" : "├─"}</span>
               </div>
             </td>
-            <td className="py-1 px-3 pr-2 text-sm" onClick={onClick}>
+            <td className="py-1 px-3 pr-2 text-sm truncate" onClick={onClick}>
               <BudgetCell isInflow={posting.budget?.isToBeBudgeted}>
                 {posting.budget?.isToBeBudgeted && (
                   <ArrowDownToLine className="inline-block mr-1.5" size={14} />
@@ -200,7 +203,7 @@ export const TransactionRow = observer(function TransactionRow({
                 {posting.budget?.isToBeBudgeted ? "Inflow" : posting.budget?.name}
               </BudgetCell>
             </td>
-            <td className="py-1 px-3 pr-2 text-sm text-stone-600" onClick={onClick}>
+            <td className="py-1 px-3 pr-2 text-sm text-stone-600 truncate" onClick={onClick}>
               {posting.note}
             </td>
             <OutInAmountCells amount={posting.amount} highlightPositiveAmount onClick={onClick} />
