@@ -2,7 +2,6 @@
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: TODO: fix later */
 
 import { ArrowDownToLine, CheckCheck, ChevronDown, ChevronRight, Dot, Repeat } from "lucide-react";
-import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import type * as React from "react";
 import { twJoin } from "tailwind-merge";
@@ -81,9 +80,7 @@ export const TransactionRow = observer(function TransactionRow({
             className="cursor-pointer hover:bg-stone-200 rounded-sm size-6 inline-flex items-center justify-center"
             onClick={(e) => {
               e.stopPropagation();
-              runInAction(() => {
-                transaction.status = transaction.status === "cleared" ? "open" : "cleared";
-              });
+              transaction.toggleStatus();
             }}
           >
             {transaction.status === "cleared" ? (
@@ -141,12 +138,21 @@ export const TransactionRow = observer(function TransactionRow({
           className="cursor-pointer"
           onClick={handleClick}
         />
-        <td className="pr-2 text-center cursor-pointer" onClick={handleClick}>
-          {transaction.status === "cleared" ? (
-            <CheckCheck width={20} className="inline-block" />
-          ) : (
-            <>&middot;</>
-          )}
+        <td className="pr-2 text-center">
+          <button
+            type="button"
+            className="cursor-pointer hover:bg-stone-200 rounded-sm size-6 inline-flex items-center justify-center"
+            onClick={(e) => {
+              e.stopPropagation();
+              transaction.toggleStatus();
+            }}
+          >
+            {transaction.status === "cleared" ? (
+              <CheckCheck width={16} className="inline-block" />
+            ) : (
+              <Dot width={16} className="inline-block" />
+            )}
+          </button>
         </td>
       </tr>
     );
@@ -209,12 +215,21 @@ export const TransactionRow = observer(function TransactionRow({
           className="cursor-pointer"
           onClick={onClick}
         />
-        <td className="pr-2 text-center cursor-pointer" onClick={onClick}>
-          {transaction.status === "cleared" ? (
-            <CheckCheck width={20} className="inline-block" />
-          ) : (
-            <>&middot;</>
-          )}
+        <td className="pr-2 text-center">
+          <button
+            type="button"
+            className="cursor-pointer hover:bg-stone-200 rounded-sm size-6 inline-flex items-center justify-center"
+            onClick={(e) => {
+              e.stopPropagation();
+              transaction.toggleStatus();
+            }}
+          >
+            {transaction.status === "cleared" ? (
+              <CheckCheck width={16} className="inline-block" />
+            ) : (
+              <Dot width={16} className="inline-block" />
+            )}
+          </button>
         </td>
       </tr>
 

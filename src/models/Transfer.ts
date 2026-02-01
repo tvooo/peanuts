@@ -25,8 +25,11 @@ export class Transfer extends Model {
   @observable
   accessor budget: Budget | null = null;
 
-  fromStatus: "open" | "cleared" = "open";
-  toStatus: "open" | "cleared" = "open";
+  @observable
+  accessor fromStatus: "open" | "cleared" = "open";
+
+  @observable
+  accessor toStatus: "open" | "cleared" = "open";
 
   static fromJSON(json: any, ledger: Ledger) {
     const transfer = new Transfer({ id: json.id, ledger });
@@ -59,6 +62,18 @@ export class Transfer extends Model {
   get isFuture(): boolean {
     if (!this.date) return false;
     return isAfter(this.date, endOfToday());
+  }
+
+  @action
+  toggleFromStatus() {
+    this.fromStatus = this.fromStatus === "cleared" ? "open" : "cleared";
+    this.notifyChange();
+  }
+
+  @action
+  toggleToStatus() {
+    this.toStatus = this.toStatus === "cleared" ? "open" : "cleared";
+    this.notifyChange();
   }
 
   /**

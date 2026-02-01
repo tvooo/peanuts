@@ -108,6 +108,18 @@ export class Transaction extends Model {
     return isAfter(this.date, endOfToday());
   }
 
+  @action
+  setStatus(status: "open" | "cleared") {
+    this.status = status;
+    this.notifyChange();
+  }
+
+  @action
+  toggleStatus() {
+    this.status = this.status === "cleared" ? "open" : "cleared";
+    this.notifyChange();
+  }
+
   /**
    * Creates a draft copy of this transaction for editing.
    * The draft is not added to the ledger's collections.
