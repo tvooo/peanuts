@@ -18,6 +18,7 @@ import type { Goal } from "@/models/Goal";
 import type { Ledger } from "@/models/Ledger";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { BudgetPanel } from "./BudgetPanel";
+import { MoveMoneyPopover } from "./MoveMoneyPopover";
 
 // Helper to stop event propagation (for cells that shouldn't trigger row selection)
 const stopPropagation = {
@@ -271,11 +272,11 @@ export const BudgetTable = observer(function BudgetTable({
                       <td className="py-2 px-3 pr-2 text-sm">
                         <AmountCell amount={ledger.budgetActivityForMonth(budget, currentMonth)} />
                       </td>
-                      <td className="py-2 pr-2">
-                        <AmountCell
-                          amount={ledger.budgetAvailableForMonth(budget, currentMonth)}
-                          highlightNegativeAmount
-                          chip
+                      <td className="py-2 pr-2" {...stopPropagation}>
+                        <MoveMoneyPopover
+                          sourceBudget={budget}
+                          currentMonth={currentMonth}
+                          ledger={ledger}
                         />
                       </td>
                     </tr>
@@ -356,11 +357,11 @@ export const BudgetTable = observer(function BudgetTable({
                       <td className="py-2 px-3 pr-2 text-sm">
                         <AmountCell amount={ledger.budgetActivityForMonth(budget, currentMonth)} />
                       </td>
-                      <td className="py-2 pr-2">
-                        <AmountCell
-                          amount={ledger.budgetAvailableForMonth(budget, currentMonth)}
-                          highlightNegativeAmount
-                          chip
+                      <td className="py-2 pr-2" {...stopPropagation}>
+                        <MoveMoneyPopover
+                          sourceBudget={budget}
+                          currentMonth={currentMonth}
+                          ledger={ledger}
                         />
                       </td>
                     </tr>
@@ -446,11 +447,11 @@ export const BudgetTable = observer(function BudgetTable({
                       <td className="py-2 px-3 pr-2 text-sm">
                         <AmountCell amount={ledger.budgetActivityForMonth(budget, currentMonth)} />
                       </td>
-                      <td className="py-2 pr-2">
-                        <AmountCell
-                          amount={ledger.budgetAvailableForMonth(budget, currentMonth)}
-                          highlightNegativeAmount
-                          chip
+                      <td className="py-2 pr-2" {...stopPropagation}>
+                        <MoveMoneyPopover
+                          sourceBudget={budget}
+                          currentMonth={currentMonth}
+                          ledger={ledger}
                         />
                       </td>
                     </tr>

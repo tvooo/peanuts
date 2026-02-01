@@ -14,6 +14,8 @@ export interface BudgetOption {
 interface UseBudgetGroupsOptions {
   /** Include "Split transaction" option in the first group */
   includeSplitOption?: boolean;
+  /** Filter out this budget from results */
+  excludeBudgetId?: string;
 }
 
 /**
@@ -25,7 +27,7 @@ export function useBudgetGroups(
   ledger: Ledger | null | undefined,
   options: UseBudgetGroupsOptions = {}
 ): ComboboxGroup<BudgetOption>[] {
-  const { includeSplitOption = false } = options;
+  const { includeSplitOption = false, excludeBudgetId } = options;
 
   return React.useMemo(() => {
     if (!ledger) return [];
@@ -37,9 +39,9 @@ export function useBudgetGroups(
     // Find the inflow budget separately
     const inflowBudget = ledger._budgets.find((b) => b.isToBeBudgeted);
 
-    // Group budgets by their category (exclude archived)
+    // Group budgets by their category (exclude archived and optionally a specific budget)
     ledger._budgets.forEach((budget) => {
-      if (budget.isToBeBudgeted || budget.isArchived) {
+      if (budget.isToBeBudgeted || budget.isArchived || budget.id === excludeBudgetId) {
         return;
       }
 
@@ -109,5 +111,5 @@ export function useBudgetGroups(
     }
 
     return groups;
-  }, [ledger, includeSplitOption]);
+  }, [ledger, includeSplitOption, excludeBudgetId]);
 }
