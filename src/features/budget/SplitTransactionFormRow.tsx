@@ -1,17 +1,16 @@
-import { ArrowDownToLine, Check, Plus, X } from "lucide-react";
-import { runInAction } from "mobx";
+import { ArrowDownToLine, Plus, X } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { Combobox, type ComboboxGroup } from "@/components/Combobox";
 import { DatePicker } from "@/components/DatePicker";
 import { FormInput } from "@/components/FormInput";
+import { FormActionButtons } from "@/components/Table";
+import { useBudgetCreator } from "@/hooks/useBudgetCreator";
 import { useBudgetGroups } from "@/hooks/useBudgetGroups";
 import { usePayeeAccountGroups } from "@/hooks/usePayeeAccountGroups";
+import { usePayeeCreator } from "@/hooks/usePayeeCreator";
 import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
 import { cn } from "@/lib/utils";
-import { Budget } from "@/models/Budget";
-import type { Ledger } from "@/models/Ledger";
-import { Payee } from "@/models/Payee";
 import type { Transaction, TransactionPosting } from "@/models/Transaction";
 import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
@@ -23,7 +22,7 @@ interface PostingRowProps {
   posting: TransactionPosting;
   transaction: Transaction;
   budgetGroups: ComboboxGroup<any>[];
-  ledger: Ledger;
+  createBudget: (name: string) => Promise<any>;
   handleKeyDown: (e: React.KeyboardEvent) => void;
 }
 
@@ -31,7 +30,7 @@ const PostingRow = observer(function PostingRow({
   posting,
   transaction,
   budgetGroups,
-  ledger,
+  createBudget,
   handleKeyDown,
 }: PostingRowProps) {
   // State for amount inputs (text-based for better UX)
@@ -62,20 +61,7 @@ const PostingRow = observer(function PostingRow({
               : null
           }
           onValueChange={(option: any) => posting.setBudget(option.budget)}
-          onCreateNew={(name) => {
-            return new Promise<any>((resolve) => {
-              runInAction(() => {
-                const newBudget = new Budget({ ledger, id: null });
-                newBudget.name = name;
-                ledger._budgets.push(newBudget);
-                resolve({
-                  id: newBudget.id,
-                  label: newBudget.name,
-                  budget: newBudget,
-                });
-              });
-            });
-          }}
+          onCreateNew={createBudget}
           placeholder="Category..."
           emptyText="No categories found."
         />
@@ -211,6 +197,10 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
   // Group budgets by category (without split option - already in split mode)
   const budgetGroups = useBudgetGroups(ledger!);
 
+  // Creators for inline creation
+  const createPayee = usePayeeCreator(ledger!);
+  const createBudget = useBudgetCreator(ledger!);
+
   return (
     <>
       {/* Header row with date and shared payee */}
@@ -251,20 +241,7 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
                 transaction.payee = option.payee;
               }
             }}
-            onCreateNew={(name) => {
-              return new Promise<any>((resolve) => {
-                runInAction(() => {
-                  const newPayee = new Payee({ ledger: ledger!, id: null });
-                  newPayee.name = name;
-                  ledger!.payees.push(newPayee);
-                  resolve({
-                    id: `payee-${newPayee.id}`,
-                    label: newPayee.name,
-                    payee: newPayee,
-                  });
-                });
-              });
-            }}
+            onCreateNew={createPayee}
             placeholder="Select payee..."
             emptyText="No payees found."
           />
@@ -272,32 +249,7 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
         {/* Empty cells for budget, note, out, in */}
         <td colSpan={4} />
         <td className="pr-2 text-center align-top pt-2" onKeyDown={handleKeyDown}>
-          <div className="flex items-center justify-center gap-1">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className={cn(
-                "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
-                "bg-primary text-primary-foreground shadow-sm",
-                "hover:bg-primary/90 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              )}
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className={cn(
-                "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
-                "bg-primary text-primary-foreground shadow-sm",
-                "hover:bg-primary/90 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              )}
-            >
-              <Check className="h-4 w-4" />
-            </button>
-          </div>
+          <FormActionButtons onSave={handleSave} onCancel={handleCancel} />
         </td>
       </tr>
 
@@ -308,7 +260,7 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
           posting={posting}
           transaction={transaction}
           budgetGroups={budgetGroups}
-          ledger={ledger!}
+          createBudget={createBudget}
           handleKeyDown={handleKeyDown}
         />
       ))}

@@ -1,10 +1,15 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: TODO: fix later */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: TODO: fix later */
 
-import { AlertTriangle, ArrowLeftRight, CheckCheck, Dot } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { twJoin } from "tailwind-merge";
-import { OutInAmountCells } from "@/components/Table";
+import {
+  OutInAmountCells,
+  rowStyles,
+  SelectionCheckboxCell,
+  StatusToggleCell,
+} from "@/components/Table";
 import type { Transfer } from "@/models/Transfer";
 import { formatDate } from "@/utils/formatting";
 
@@ -26,9 +31,6 @@ function TransferBudgetCell({ transfer }: { transfer: Transfer }) {
   return <span>Transfer</span>;
 }
 
-// Common cell styling
-const cellBase = "py-2 px-3 pr-2 text-sm";
-
 interface TransferRowProps {
   transfer: Transfer;
   onClick?: () => void;
@@ -44,58 +46,41 @@ export const TransferRow = observer(function TransferRow({
   selectedIds,
   onToggleSelection,
 }: TransferRowProps) {
-  const rowClasses = twJoin(
-    "hover:bg-stone-100 border-b border-stone-200",
-    transfer.isFuture && "bg-stone-50 text-stone-400"
-  );
+  const rowClasses = twJoin(rowStyles.displayRow, transfer.isFuture && rowStyles.futureRow);
 
   return (
     <tr className={rowClasses} onClick={onClick}>
-      <td className="p-1 pl-8 align-middle">
-        <input
-          type="checkbox"
-          checked={selectedIds?.has(transfer.id) || false}
-          onChange={() => onToggleSelection?.(transfer.id)}
-          onClick={(e) => e.stopPropagation()}
-        />
-      </td>
-      <td className={twJoin("tabular-nums", cellBase)}>{formatDate(transfer.date!)}</td>
-      <td className={cellBase}>
+      <SelectionCheckboxCell
+        id={transfer.id}
+        selectedIds={selectedIds}
+        onToggleSelection={onToggleSelection}
+      />
+      <td className={twJoin("tabular-nums", rowStyles.cellBase)}>{formatDate(transfer.date!)}</td>
+      <td className={rowStyles.cellBase}>
         <div className="flex items-center gap-2">
           <ArrowLeftRight className="text-muted-foreground" size={12} />
           {transfer.toAccount?.name}
         </div>
       </td>
-      <td className={twJoin(cellBase, "text-muted-foreground font-normal italic")}>
+      <td className={twJoin(rowStyles.cellBase, "text-muted-foreground font-normal italic")}>
         <TransferBudgetCell transfer={transfer} />
       </td>
-      <td className={cellBase}>{transfer.note}</td>
+      <td className={rowStyles.cellBase}>{transfer.note}</td>
       <OutInAmountCells
         amount={(isInbound ? 1 : -1) * transfer.amount}
         highlightPositiveAmount
         onClick={onClick}
       />
-      <td className="pr-2 text-center">
-        <button
-          type="button"
-          className="cursor-pointer hover:bg-stone-200 rounded-sm size-6 inline-flex items-center justify-center"
-          onClick={(e) => {
-            e.stopPropagation();
-            // Toggle the status for the current account's side
-            if (isInbound) {
-              transfer.toggleToStatus();
-            } else {
-              transfer.toggleFromStatus();
-            }
-          }}
-        >
-          {(isInbound ? transfer.toStatus : transfer.fromStatus) === "cleared" ? (
-            <CheckCheck width={16} className="inline-block" />
-          ) : (
-            <Dot width={16} className="inline-block" />
-          )}
-        </button>
-      </td>
+      <StatusToggleCell
+        status={isInbound ? transfer.toStatus : transfer.fromStatus}
+        onToggle={() => {
+          if (isInbound) {
+            transfer.toggleToStatus();
+          } else {
+            transfer.toggleFromStatus();
+          }
+        }}
+      />
     </tr>
   );
 });
