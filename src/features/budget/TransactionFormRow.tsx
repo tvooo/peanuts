@@ -1,16 +1,15 @@
-import { ArrowDownToLine, Check, Split, X } from "lucide-react";
-import { runInAction } from "mobx";
+import { ArrowDownToLine, Split } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { Combobox } from "@/components/Combobox";
 import { DatePicker } from "@/components/DatePicker";
 import { FormInput } from "@/components/FormInput";
+import { FormActionButtons } from "@/components/Table";
+import { useBudgetCreator } from "@/hooks/useBudgetCreator";
 import { useBudgetGroups } from "@/hooks/useBudgetGroups";
 import { usePayeeAccountGroups } from "@/hooks/usePayeeAccountGroups";
+import { usePayeeCreator } from "@/hooks/usePayeeCreator";
 import { useTransactionFormKeyboard } from "@/hooks/useTransactionFormKeyboard";
-import { cn } from "@/lib/utils";
-import { Budget } from "@/models/Budget";
-import { Payee } from "@/models/Payee";
 import type { Transaction } from "@/models/Transaction";
 import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
@@ -98,6 +97,10 @@ export const TransactionFormRow = observer(function TransactionFormRow({
     ? ledger?.getLastBudgetForPayee(transaction.payee.id)
     : undefined;
 
+  // Creators for inline creation
+  const createPayee = usePayeeCreator(ledger!);
+  const createBudget = useBudgetCreator(ledger!);
+
   return (
     <>
       {/* Main form row */}
@@ -138,20 +141,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
                 transaction.payee = option.payee;
               }
             }}
-            onCreateNew={(name) => {
-              return new Promise<any>((resolve) => {
-                runInAction(() => {
-                  const newPayee = new Payee({ ledger: ledger!, id: null });
-                  newPayee.name = name;
-                  ledger!.payees.push(newPayee);
-                  resolve({
-                    id: `payee-${newPayee.id}`,
-                    label: newPayee.name,
-                    payee: newPayee,
-                  });
-                });
-              });
-            }}
+            onCreateNew={createPayee}
             placeholder="Select payee..."
             emptyText="No payees found."
           />
@@ -181,20 +171,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
               }
               posting.setBudget(option.budget);
             }}
-            onCreateNew={(name) => {
-              return new Promise<any>((resolve) => {
-                runInAction(() => {
-                  const newBudget = new Budget({ ledger: ledger!, id: null });
-                  newBudget.name = name;
-                  ledger!._budgets.push(newBudget);
-                  resolve({
-                    id: newBudget.id,
-                    label: newBudget.name,
-                    budget: newBudget,
-                  });
-                });
-              });
-            }}
+            onCreateNew={createBudget}
             placeholder="Select category..."
             emptyText="No categories found."
           />
@@ -263,32 +240,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
           />
         </td>
         <td className="pr-2 text-center" onKeyDown={handleKeyDown}>
-          <div className="flex items-center justify-center gap-1">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className={cn(
-                "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
-                "bg-primary text-primary-foreground shadow-sm",
-                "hover:bg-primary/90 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              )}
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className={cn(
-                "inline-flex h-8 w-8 items-center gap-1.5 rounded-md px-0 justify-center text-sm font-medium",
-                "bg-primary text-primary-foreground shadow-sm",
-                "hover:bg-primary/90 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              )}
-            >
-              <Check className="h-4 w-4" />
-            </button>
-          </div>
+          <FormActionButtons onSave={handleSave} onCancel={handleCancel} />
         </td>
       </tr>
 

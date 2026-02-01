@@ -1,13 +1,19 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: TODO: fix later */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: TODO: fix later */
 
-import { ArrowDownToLine, CheckCheck, ChevronDown, ChevronRight, Dot, Repeat } from "lucide-react";
+import { ArrowDownToLine, ChevronDown, ChevronRight } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import type * as React from "react";
 import { twJoin } from "tailwind-merge";
-import { BudgetCell, OutInAmountCells } from "@/components/Table";
+import {
+  BudgetCell,
+  DateCell,
+  OutInAmountCells,
+  rowStyles,
+  SelectionCheckboxCell,
+  StatusToggleCell,
+} from "@/components/Table";
 import type { Transaction } from "@/models/Transaction";
-import { formatDate } from "@/utils/formatting";
 
 interface TransactionRowProps {
   transaction: Transaction;
@@ -18,9 +24,6 @@ interface TransactionRowProps {
   onToggleExpand?: (id: string) => void;
 }
 
-// Common cell styling
-const cellBase = "py-2 px-3 pr-2 text-sm";
-
 export const TransactionRow = observer(function TransactionRow({
   transaction,
   onClick,
@@ -30,37 +33,30 @@ export const TransactionRow = observer(function TransactionRow({
   onToggleExpand,
 }: TransactionRowProps) {
   const rowClasses = twJoin(
-    "hover:bg-stone-100 border-b border-stone-200",
-    transaction.isFuture && "bg-stone-50 text-stone-400",
-    transaction.hasMissingCategory && "bg-amber-50"
+    rowStyles.displayRow,
+    transaction.isFuture && rowStyles.futureRow,
+    transaction.hasMissingCategory && rowStyles.missingCategory
   );
 
   // Single posting - render as before
   if (!transaction.isSplit) {
     return (
       <tr className={rowClasses}>
-        <td className="p-1 pl-8 align-middle" onClick={onClick}>
-          <input
-            type="checkbox"
-            checked={selectedIds?.has(transaction.id) || false}
-            onChange={() => onToggleSelection?.(transaction.id)}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </td>
-        <td className={twJoin("tabular-nums", cellBase)} onClick={onClick}>
-          <span className="inline-flex items-center gap-1.5">
-            {formatDate(transaction.date!)}
-            {transaction.recurringTemplateId && (
-              <span title="Created from recurring template">
-                <Repeat size={12} className="text-stone-400" />
-              </span>
-            )}
-          </span>
-        </td>
-        <td className={cellBase} onClick={onClick}>
+        <SelectionCheckboxCell
+          id={transaction.id}
+          selectedIds={selectedIds}
+          onToggleSelection={onToggleSelection}
+          onClick={onClick}
+        />
+        <DateCell
+          date={transaction.date!}
+          recurringTemplateId={transaction.recurringTemplateId}
+          onClick={onClick}
+        />
+        <td className={rowStyles.cellBase} onClick={onClick}>
           {transaction.payee?.name}
         </td>
-        <td className={cellBase} onClick={onClick}>
+        <td className={rowStyles.cellBase} onClick={onClick}>
           <BudgetCell isInflow={transaction.postings[0]?.budget?.isToBeBudgeted}>
             {transaction.postings[0]?.budget?.isToBeBudgeted && (
               <ArrowDownToLine className="inline-block mr-1.5" size={14} />
@@ -70,26 +66,15 @@ export const TransactionRow = observer(function TransactionRow({
               : transaction.postings[0]?.budget?.name}
           </BudgetCell>
         </td>
-        <td className={cellBase} onClick={onClick}>
+        <td className={rowStyles.cellBase} onClick={onClick}>
           {transaction.postings[0]?.note}
         </td>
         <OutInAmountCells amount={transaction.amount} highlightPositiveAmount onClick={onClick} />
-        <td className="pr-2 text-center" onClick={onClick}>
-          <button
-            type="button"
-            className="cursor-pointer hover:bg-stone-200 rounded-sm size-6 inline-flex items-center justify-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              transaction.toggleStatus();
-            }}
-          >
-            {transaction.status === "cleared" ? (
-              <CheckCheck width={16} className="inline-block" />
-            ) : (
-              <Dot width={16} className="inline-block" />
-            )}
-          </button>
-        </td>
+        <StatusToggleCell
+          status={transaction.status}
+          onToggle={() => transaction.toggleStatus()}
+          onClick={onClick}
+        />
       </tr>
     );
   }
@@ -104,56 +89,36 @@ export const TransactionRow = observer(function TransactionRow({
 
     return (
       <tr className={rowClasses}>
-        <td className="p-1 pl-8 align-middle cursor-pointer" onClick={handleClick}>
-          <input
-            type="checkbox"
-            checked={selectedIds?.has(transaction.id) || false}
-            onChange={() => onToggleSelection?.(transaction.id)}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </td>
-        <td className={twJoin("tabular-nums cursor-pointer", cellBase)} onClick={handleClick}>
-          <span className="inline-flex items-center gap-1.5">
-            {formatDate(transaction.date!)}
-            {transaction.recurringTemplateId && (
-              <span title="Created from recurring template">
-                <Repeat size={12} className="text-stone-400" />
-              </span>
-            )}
-          </span>
-        </td>
-        <td className={twJoin("cursor-pointer", cellBase)} onClick={handleClick}>
+        <SelectionCheckboxCell
+          id={transaction.id}
+          selectedIds={selectedIds}
+          onToggleSelection={onToggleSelection}
+          onClick={handleClick}
+          className="cursor-pointer"
+        />
+        <DateCell
+          date={transaction.date!}
+          recurringTemplateId={transaction.recurringTemplateId}
+          onClick={handleClick}
+          className="cursor-pointer"
+        />
+        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={handleClick}>
           {transaction.payee?.name}
         </td>
-        <td className={twJoin("cursor-pointer", cellBase)} onClick={handleClick}>
+        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={handleClick}>
           <div className="flex items-center gap-1.5 text-stone-600">
             <ChevronRight size={14} />
             <span>Split ({transaction.postings.length})</span>
           </div>
         </td>
-        <td className={twJoin("cursor-pointer", cellBase)} onClick={handleClick} />
+        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={handleClick} />
         <OutInAmountCells
           amount={transaction.amount}
           highlightPositiveAmount
           className="cursor-pointer"
           onClick={handleClick}
         />
-        <td className="pr-2 text-center">
-          <button
-            type="button"
-            className="cursor-pointer hover:bg-stone-200 rounded-sm size-6 inline-flex items-center justify-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              transaction.toggleStatus();
-            }}
-          >
-            {transaction.status === "cleared" ? (
-              <CheckCheck width={16} className="inline-block" />
-            ) : (
-              <Dot width={16} className="inline-block" />
-            )}
-          </button>
-        </td>
+        <StatusToggleCell status={transaction.status} onToggle={() => transaction.toggleStatus()} />
       </tr>
     );
   }
@@ -161,42 +126,34 @@ export const TransactionRow = observer(function TransactionRow({
   // Split transaction - expanded (returns multiple rows)
   const expandedRowClasses = twJoin(
     "hover:bg-stone-100",
-    transaction.isFuture && "bg-stone-50 text-stone-400",
-    transaction.hasMissingCategory && "bg-amber-50"
+    transaction.isFuture && rowStyles.futureRow,
+    transaction.hasMissingCategory && rowStyles.missingCategory
   );
 
   return (
     <>
       {/* Main header row */}
       <tr className={expandedRowClasses}>
-        <td
-          className="p-1 pl-8 align-middle cursor-pointer"
+        <SelectionCheckboxCell
+          id={transaction.id}
+          selectedIds={selectedIds}
+          onToggleSelection={onToggleSelection}
           onClick={(e) => {
             if ((e.target as HTMLElement).tagName === "INPUT") return;
             onClick?.();
           }}
-        >
-          <input
-            type="checkbox"
-            checked={selectedIds?.has(transaction.id) || false}
-            onChange={() => onToggleSelection?.(transaction.id)}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </td>
-        <td className={twJoin("tabular-nums cursor-pointer", cellBase)} onClick={onClick}>
-          <span className="inline-flex items-center gap-1.5">
-            {formatDate(transaction.date!)}
-            {transaction.recurringTemplateId && (
-              <span title="Created from recurring template">
-                <Repeat size={12} className="text-stone-400" />
-              </span>
-            )}
-          </span>
-        </td>
-        <td className={twJoin("cursor-pointer", cellBase)} onClick={onClick}>
+          className="cursor-pointer"
+        />
+        <DateCell
+          date={transaction.date!}
+          recurringTemplateId={transaction.recurringTemplateId}
+          onClick={onClick}
+          className="cursor-pointer"
+        />
+        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={onClick}>
           {transaction.payee?.name}
         </td>
-        <td className={twJoin("cursor-pointer", cellBase)} onClick={onClick}>
+        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={onClick}>
           <div
             className="flex items-center gap-1.5 text-stone-600"
             onClick={(e) => {
@@ -208,29 +165,14 @@ export const TransactionRow = observer(function TransactionRow({
             <span>Split Transaction</span>
           </div>
         </td>
-        <td className={twJoin("cursor-pointer", cellBase)} onClick={onClick} />
+        <td className={twJoin("cursor-pointer", rowStyles.cellBase)} onClick={onClick} />
         <OutInAmountCells
           amount={transaction.amount}
           highlightPositiveAmount
           className="cursor-pointer"
           onClick={onClick}
         />
-        <td className="pr-2 text-center">
-          <button
-            type="button"
-            className="cursor-pointer hover:bg-stone-200 rounded-sm size-6 inline-flex items-center justify-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              transaction.toggleStatus();
-            }}
-          >
-            {transaction.status === "cleared" ? (
-              <CheckCheck width={16} className="inline-block" />
-            ) : (
-              <Dot width={16} className="inline-block" />
-            )}
-          </button>
-        </td>
+        <StatusToggleCell status={transaction.status} onToggle={() => transaction.toggleStatus()} />
       </tr>
 
       {/* Sub-rows for each posting */}
