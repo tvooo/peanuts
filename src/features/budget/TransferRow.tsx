@@ -56,16 +56,18 @@ export const TransferRow = observer(function TransferRow({
         onToggleSelection={onToggleSelection}
       />
       <td className={twJoin("tabular-nums", rowStyles.cellBase)}>{formatDate(transfer.date!)}</td>
-      <td className={rowStyles.cellBase}>
+      <td className={twJoin(rowStyles.cellBase, "truncate")}>
         <div className="flex items-center gap-2">
-          <ArrowLeftRight className="text-muted-foreground" size={12} />
-          {transfer.toAccount?.name}
+          <ArrowLeftRight className="text-muted-foreground shrink-0" size={12} />
+          <span className="truncate">{transfer.toAccount?.name}</span>
         </div>
       </td>
-      <td className={twJoin(rowStyles.cellBase, "text-muted-foreground font-normal italic")}>
+      <td
+        className={twJoin(rowStyles.cellBase, "text-muted-foreground font-normal italic truncate")}
+      >
         <TransferBudgetCell transfer={transfer} />
       </td>
-      <td className={rowStyles.cellBase}>{transfer.note}</td>
+      <td className={twJoin(rowStyles.cellBase, "truncate")}>{transfer.note}</td>
       <OutInAmountCells
         amount={(isInbound ? 1 : -1) * transfer.amount}
         highlightPositiveAmount

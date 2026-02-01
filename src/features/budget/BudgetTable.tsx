@@ -26,11 +26,12 @@ const stopPropagation = {
 };
 
 // Component for editing assignment amount with text parsing
+// Allows negative numbers for moving money back to "to be budgeted"
 function AssignmentInput({ assignment, onClose }: { assignment: Assignment; onClose: () => void }) {
   const [value, setValue] = useState(() => formatCurrencyInput(assignment.amount));
 
   const handleBlur = () => {
-    const parsed = parseCurrencyInput(value);
+    const parsed = parseCurrencyInput(value, true);
     assignment.setAmount(parsed);
     setValue(formatCurrencyInput(parsed));
   };
