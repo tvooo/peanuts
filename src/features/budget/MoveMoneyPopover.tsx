@@ -11,7 +11,7 @@ import { type BudgetOption, useBudgetGroups } from "@/hooks/useBudgetGroups";
 import { Assignment } from "@/models/Assignment";
 import type { Budget } from "@/models/Budget";
 import type { Ledger } from "@/models/Ledger";
-import { parseCurrencyInput } from "@/utils/formatting";
+import { formatCurrency, parseCurrencyInput } from "@/utils/formatting";
 
 interface MoveMoneyPopoverProps {
   sourceBudget: Budget;
@@ -26,24 +26,33 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
 }: MoveMoneyPopoverProps) {
   const [open, setOpen] = useState(false);
   const [amountInput, setAmountInput] = useState("");
-  const [targetBudget, setTargetBudget] = useState<BudgetOption | null>(null);
+  const [selectedBudget, setSelectedBudget] = useState<BudgetOption | null>(null);
 
   const budgetGroups = useBudgetGroups(ledger, { excludeBudgetId: sourceBudget.id });
   const availableAmount = ledger.budgetAvailableForMonth(sourceBudget, currentMonth);
+  const isOverspent = availableAmount < 0;
+  const overspentAmount = Math.abs(availableAmount);
 
   const handleMove = () => {
-    if (!targetBudget?.budget) return;
+    if (!selectedBudget?.budget) return;
 
-    const amount = parseCurrencyInput(amountInput);
+    // In overspent mode, amount is fixed; otherwise parse from input
+    const amount = isOverspent ? overspentAmount : parseCurrencyInput(amountInput);
     if (amount === 0) return;
+
+    // Determine actual source and target based on mode
+    // Normal mode: sourceBudget -> selectedBudget
+    // Overspent mode: selectedBudget -> sourceBudget (cover the overspending)
+    const actualSource = isOverspent ? selectedBudget.budget : sourceBudget;
+    const actualTarget = isOverspent ? sourceBudget : selectedBudget.budget;
 
     // Get or create source assignment
     let sourceAssignment = ledger.assignments.find(
-      (a) => a.budget === sourceBudget && isSameMonth(a.date!, currentMonth)
+      (a) => a.budget === actualSource && isSameMonth(a.date!, currentMonth)
     );
     if (!sourceAssignment) {
       sourceAssignment = new Assignment({ ledger, id: null });
-      sourceAssignment.budget = sourceBudget;
+      sourceAssignment.budget = actualSource;
       sourceAssignment.date = currentMonth;
       sourceAssignment.amount = 0;
       ledger.assignments.push(sourceAssignment);
@@ -51,11 +60,11 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
 
     // Get or create target assignment
     let targetAssignment = ledger.assignments.find(
-      (a) => a.budget === targetBudget.budget && isSameMonth(a.date!, currentMonth)
+      (a) => a.budget === actualTarget && isSameMonth(a.date!, currentMonth)
     );
     if (!targetAssignment) {
       targetAssignment = new Assignment({ ledger, id: null });
-      targetAssignment.budget = targetBudget.budget;
+      targetAssignment.budget = actualTarget;
       targetAssignment.date = currentMonth;
       targetAssignment.amount = 0;
       ledger.assignments.push(targetAssignment);
@@ -67,7 +76,7 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
 
     // Reset and close
     setAmountInput("");
-    setTargetBudget(null);
+    setSelectedBudget(null);
     setOpen(false);
   };
 
@@ -76,7 +85,7 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
     if (!newOpen) {
       // Reset state when closing
       setAmountInput("");
-      setTargetBudget(null);
+      setSelectedBudget(null);
     }
   };
 
@@ -94,41 +103,70 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
         onKeyDown={(e) => e.stopPropagation()}
       >
         <div className="space-y-4">
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm">Move money from</h4>
-            <p className="text-sm text-muted-foreground truncate">{sourceBudget.name}</p>
-          </div>
+          {isOverspent ? (
+            <>
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm">Cover overspending</h4>
+                <p className="text-sm text-muted-foreground">
+                  {formatCurrency(overspentAmount)} needed for{" "}
+                  <span className="font-medium text-foreground">{sourceBudget.name}</span>
+                </p>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <Input
-              id="amount"
-              type="text"
-              className="tabular-nums"
-              value={amountInput}
-              onChange={(e) => setAmountInput(e.target.value)}
-              placeholder="0,00"
-              autoFocus
-            />
-          </div>
+              <div className="space-y-2">
+                <Label>From budget</Label>
+                <Combobox
+                  groups={budgetGroups}
+                  value={selectedBudget}
+                  onValueChange={setSelectedBudget}
+                  placeholder="Select budget..."
+                  autoFocus
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label>To budget</Label>
-            <Combobox
-              groups={budgetGroups}
-              value={targetBudget}
-              onValueChange={setTargetBudget}
-              placeholder="Select budget..."
-            />
-          </div>
+              <Button className="w-full" onClick={handleMove} disabled={!selectedBudget}>
+                Cover
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm">Move money from</h4>
+                <p className="text-sm text-muted-foreground truncate">{sourceBudget.name}</p>
+              </div>
 
-          <Button
-            className="w-full"
-            onClick={handleMove}
-            disabled={!targetBudget || parseCurrencyInput(amountInput) === 0}
-          >
-            Move
-          </Button>
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount</Label>
+                <Input
+                  id="amount"
+                  type="text"
+                  className="tabular-nums"
+                  value={amountInput}
+                  onChange={(e) => setAmountInput(e.target.value)}
+                  placeholder="0,00"
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>To budget</Label>
+                <Combobox
+                  groups={budgetGroups}
+                  value={selectedBudget}
+                  onValueChange={setSelectedBudget}
+                  placeholder="Select budget..."
+                />
+              </div>
+
+              <Button
+                className="w-full"
+                onClick={handleMove}
+                disabled={!selectedBudget || parseCurrencyInput(amountInput) === 0}
+              >
+                Move
+              </Button>
+            </>
+          )}
         </div>
       </PopoverContent>
     </Popover>
