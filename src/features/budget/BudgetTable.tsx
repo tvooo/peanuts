@@ -4,13 +4,14 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { isSameMonth } from "date-fns";
+import { isSameMonth, subMonths } from "date-fns";
 import { Archive, CheckCircle2, Circle } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { AmountCell, HeaderCell } from "@/components/Table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Assignment } from "@/models/Assignment";
 import type { Budget } from "@/models/Budget";
@@ -28,33 +29,102 @@ const stopPropagation = {
 
 // Component for editing assignment amount with text parsing
 // Allows negative numbers for moving money back to "to be budgeted"
-function AssignmentInput({ assignment, onClose }: { assignment: Assignment; onClose: () => void }) {
+// Shows a popover with quick budget options (goal, last month, average)
+function AssignmentInput({
+  assignment,
+  budget,
+  ledger,
+  currentMonth,
+  onClose,
+}: {
+  assignment: Assignment;
+  budget: Budget;
+  ledger: Ledger;
+  currentMonth: Date;
+  onClose: () => void;
+}) {
   const [value, setValue] = useState(() => formatCurrencyInput(assignment.amount));
+  const [popoverOpen, setPopoverOpen] = useState(true);
 
   const handleBlur = () => {
     const parsed = parseCurrencyInput(value, true);
     assignment.setAmount(parsed);
     setValue(formatCurrencyInput(parsed));
+    setPopoverOpen(false);
   };
 
+  const handleQuickBudget = (amount: number) => {
+    assignment.setAmount(amount);
+    onClose();
+  };
+
+  // Quick budget options
+  const goal = budget.goal;
+  const goalAmount = goal?.type === "monthly_assignment" ? goal.targetAmount : null;
+
+  const lastMonth = subMonths(currentMonth, 1);
+  const assignedLastMonth =
+    ledger.assignments.find((a) => a.budget === budget && a.date && isSameMonth(a.date, lastMonth))
+      ?.amount ?? 0;
+
+  const pastAssignments = ledger.assignments.filter(
+    (a) => a.budget === budget && a.date && !isSameMonth(a.date, currentMonth) && a.amount !== 0
+  );
+  const averageAssigned =
+    pastAssignments.length > 0
+      ? Math.round(pastAssignments.reduce((sum, a) => sum + a.amount, 0) / pastAssignments.length)
+      : 0;
+
+  const options: { label: string; amount: number }[] = [];
+  if (goalAmount != null && goalAmount !== 0) options.push({ label: "Goal", amount: goalAmount });
+  if (assignedLastMonth !== 0)
+    options.push({ label: "Assigned last month", amount: assignedLastMonth });
+  if (averageAssigned !== 0) options.push({ label: "Average assigned", amount: averageAssigned });
+
   return (
-    <Input
-      autoFocus
-      type="text"
-      className="tabular-nums text-right"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={handleBlur}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          handleBlur();
-          onClose();
-        } else if (e.key === "Escape") {
-          onClose();
-        }
-      }}
-      placeholder="0,00"
-    />
+    <Popover open={popoverOpen && options.length > 0} onOpenChange={setPopoverOpen}>
+      <PopoverAnchor asChild>
+        <Input
+          autoFocus
+          type="text"
+          className="tabular-nums text-right"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onFocus={() => setPopoverOpen(true)}
+          onBlur={handleBlur}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleBlur();
+              onClose();
+            } else if (e.key === "Escape") {
+              onClose();
+            }
+          }}
+          placeholder="0,00"
+        />
+      </PopoverAnchor>
+      <PopoverContent
+        className="w-auto p-1"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onMouseDown={(e) => e.preventDefault()}
+      >
+        <div className="flex flex-col">
+          {options.map((option) => (
+            <button
+              key={option.label}
+              type="button"
+              className="flex items-center justify-between gap-4 rounded px-3 py-1.5 text-sm hover:bg-accent text-left"
+              onClick={() => handleQuickBudget(option.amount)}
+            >
+              <span className="text-muted-foreground">{option.label}</span>
+              <span className="tabular-nums font-medium">{formatCurrency(option.amount)}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -237,6 +307,9 @@ export const BudgetTable = observer(function BudgetTable({
                         <td className="py-2 px-3 pr-2" {...stopPropagation}>
                           <AssignmentInput
                             assignment={assignment}
+                            budget={budget}
+                            ledger={ledger}
+                            currentMonth={currentMonth}
                             onClose={() => setAssignment(null)}
                           />
                         </td>
@@ -322,6 +395,9 @@ export const BudgetTable = observer(function BudgetTable({
                         <td className="py-2 px-3 pr-2" {...stopPropagation}>
                           <AssignmentInput
                             assignment={assignment}
+                            budget={budget}
+                            ledger={ledger}
+                            currentMonth={currentMonth}
                             onClose={() => setAssignment(null)}
                           />
                         </td>
@@ -413,6 +489,9 @@ export const BudgetTable = observer(function BudgetTable({
                         <td className="py-2 px-3 pr-2" {...stopPropagation}>
                           <AssignmentInput
                             assignment={assignment}
+                            budget={budget}
+                            ledger={ledger}
+                            currentMonth={currentMonth}
                             onClose={() => setAssignment(null)}
                           />
                         </td>
