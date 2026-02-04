@@ -18,6 +18,7 @@ import type { Budget } from "@/models/Budget";
 import type { Goal } from "@/models/Goal";
 import type { Ledger } from "@/models/Ledger";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
+import { ActivityPopover } from "./ActivityPopover";
 import { BudgetPanel } from "./BudgetPanel";
 import { MoveMoneyPopover } from "./MoveMoneyPopover";
 
@@ -342,8 +343,12 @@ export const BudgetTable = observer(function BudgetTable({
                         </td>
                       )}
 
-                      <td className="py-2 px-3 pr-2 text-sm">
-                        <AmountCell amount={ledger.budgetActivityForMonth(budget, currentMonth)} />
+                      <td className="align-middle" {...stopPropagation}>
+                        <ActivityPopover
+                          budget={budget}
+                          currentMonth={currentMonth}
+                          ledger={ledger}
+                        />
                       </td>
                       <td className="py-2 pr-2" {...stopPropagation}>
                         <MoveMoneyPopover
@@ -430,8 +435,12 @@ export const BudgetTable = observer(function BudgetTable({
                         </td>
                       )}
 
-                      <td className="py-2 px-3 pr-2 text-sm">
-                        <AmountCell amount={ledger.budgetActivityForMonth(budget, currentMonth)} />
+                      <td className="align-middle" {...stopPropagation}>
+                        <ActivityPopover
+                          budget={budget}
+                          currentMonth={currentMonth}
+                          ledger={ledger}
+                        />
                       </td>
                       <td className="py-2 pr-2" {...stopPropagation}>
                         <MoveMoneyPopover
@@ -523,8 +532,12 @@ export const BudgetTable = observer(function BudgetTable({
                           </button>
                         </td>
                       )}
-                      <td className="py-2 px-3 pr-2 text-sm">
-                        <AmountCell amount={ledger.budgetActivityForMonth(budget, currentMonth)} />
+                      <td className="align-middle" {...stopPropagation}>
+                        <ActivityPopover
+                          budget={budget}
+                          currentMonth={currentMonth}
+                          ledger={ledger}
+                        />
                       </td>
                       <td className="py-2 pr-2" {...stopPropagation}>
                         <MoveMoneyPopover
