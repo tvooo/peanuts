@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createEmptyLedgerJSON } from "@/data/emptyLedger";
 import { useLedger } from "@/utils/useLedger";
 
 export const OpenPage = () => {
@@ -101,9 +102,7 @@ export const OpenPage = () => {
               <FolderOpen size={16} /> Open Ledger
             </Button>
             <Button
-              onClick={async () => {
-                await createEmptyLedger();
-              }}
+              onClick={() => createLedger(openLedger)}
               className="ml-auto"
               variant="secondary"
             >
@@ -116,6 +115,28 @@ export const OpenPage = () => {
   );
 };
 
-async function createEmptyLedger() {
-  window.alert("Creating new ledger is not implemented yet.");
+async function createLedger(openLedger: (fh: FileSystemFileHandle) => Promise<void>) {
+  try {
+    const fileHandle = await (window as any).showSaveFilePicker({
+      suggestedName: "budget.json",
+      types: [
+        {
+          description: "Peanuts Budget File",
+          accept: { "application/json": [".json"] },
+        },
+      ],
+    });
+
+    const emptyLedger = createEmptyLedgerJSON("My Budget");
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(emptyLedger, null, 2));
+    await writable.close();
+
+    await openLedger(fileHandle);
+  } catch (error) {
+    // User cancelled the save dialog
+    if ((error as Error).name !== "AbortError") {
+      console.error("Failed to create ledger:", error);
+    }
+  }
 }
