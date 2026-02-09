@@ -1,4 +1,4 @@
-import { computed, observable } from "mobx";
+import { action, computed, observable } from "mobx";
 import type { Balance } from "@/utils/types";
 import type { Goal } from "./Goal";
 import type { Ledger } from "./Ledger";
@@ -13,9 +13,28 @@ export class Budget extends Model {
 
   balance: Balance = 0;
 
-  budgetCategory: BudgetCategory | null = null;
+  @observable
+  accessor budgetCategory: BudgetCategory | null = null;
 
   isToBeBudgeted: boolean = false;
+
+  @action
+  setName(name: string) {
+    this.name = name;
+    this.notifyChange();
+  }
+
+  @action
+  setIsArchived(archived: boolean) {
+    this.isArchived = archived;
+    this.notifyChange();
+  }
+
+  @action
+  setBudgetCategory(category: BudgetCategory | null) {
+    this.budgetCategory = category;
+    this.notifyChange();
+  }
 
   static fromJSON(json: any, ledger: Ledger): Budget {
     const budget = new Budget({ id: json.id, ledger });

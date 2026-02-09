@@ -100,11 +100,7 @@ export const BudgetPanel = observer(function BudgetPanel({
               <Input
                 id="budget-name"
                 value={budget.name}
-                onChange={(e) => {
-                  runInAction(() => {
-                    budget.name = e.target.value;
-                  });
-                }}
+                onChange={(e) => budget.setName(e.target.value)}
                 placeholder="Budget name"
               />
             </div>
@@ -117,9 +113,7 @@ export const BudgetPanel = observer(function BudgetPanel({
                 value={budget.budgetCategory?.id || ""}
                 onChange={(e) => {
                   const budgetCategory = ledger?.getBudgetCategoryByID(e.target.value);
-                  runInAction(() => {
-                    budget.budgetCategory = budgetCategory || null;
-                  });
+                  budget.setBudgetCategory(budgetCategory || null);
                 }}
               >
                 <option value="">Uncategorized</option>
@@ -135,11 +129,7 @@ export const BudgetPanel = observer(function BudgetPanel({
               <Checkbox
                 id="budget-archived"
                 checked={budget.isArchived}
-                onCheckedChange={(checked) => {
-                  runInAction(() => {
-                    budget.isArchived = checked === true;
-                  });
-                }}
+                onCheckedChange={(checked) => budget.setIsArchived(checked === true)}
               />
               <Label htmlFor="budget-archived" className="text-sm text-stone-500">
                 Archived (hide from budget list)
