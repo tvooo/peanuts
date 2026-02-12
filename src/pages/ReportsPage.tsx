@@ -1,6 +1,8 @@
+import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { Button } from "@/components/ui/button";
 import { InflowOutflowChart } from "@/features/reports/InflowOutflowChart";
 import { NetWorthChart } from "@/features/reports/NetWorthChart";
 import { PageLayout } from "@/PageLayout";
@@ -9,7 +11,7 @@ import { useLedger } from "@/utils/useLedger";
 export const ReportsPage = observer(() => {
   const { ledger } = useLedger();
   const navigate = useNavigate();
-  const currentYear = new Date().getFullYear();
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     if (!ledger) {
@@ -25,7 +27,27 @@ export const ReportsPage = observer(() => {
   return (
     <PageLayout>
       <div className="px-8 py-6">
-        <h2 className="text-2xl font-bold mb-6">Reports</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">Reports</h2>
+          <div className="flex items-center gap-2">
+            <Button size="icon" variant="secondary" onClick={() => setCurrentYear((y) => y - 1)}>
+              <ChevronLeft />
+            </Button>
+            <div className="min-w-[4rem] text-center font-medium">{currentYear}</div>
+            <Button size="icon" variant="secondary" onClick={() => setCurrentYear((y) => y + 1)}>
+              <ChevronRight />
+            </Button>
+            {currentYear !== new Date().getFullYear() && (
+              <Button
+                onClick={() => setCurrentYear(new Date().getFullYear())}
+                size="icon"
+                variant="secondary"
+              >
+                <Calendar />
+              </Button>
+            )}
+          </div>
+        </div>
 
         <div className="space-y-6">
           <NetWorthChart ledger={ledger} year={currentYear} />

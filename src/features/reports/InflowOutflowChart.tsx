@@ -19,12 +19,16 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
   // Memoize the data computation for performance
   // biome-ignore lint/correctness/useExhaustiveDependencies: version change handled
   const data = useMemo(() => {
+    const today = new Date();
     const startDate = startOfYear(new Date(year, 0, 1));
     const endDate = endOfYear(new Date(year, 0, 1));
     const months = eachMonthOfInterval({ start: startDate, end: endDate });
 
     return months.map((month) => {
-      const monthTransactions = ledger.transactions.filter((t) => isSameMonth(t.date!, month));
+      const monthTransactions = ledger.transactions.filter(
+        (t) =>
+          t.date && t.date <= today && t.account?.type !== "tracking" && isSameMonth(t.date, month)
+      );
 
       const inflow = monthTransactions
         .filter((t) => t.amount > 0)
@@ -122,7 +126,7 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
       .attr("y", (d) => yScale(d.inflow))
       .attr("width", barWidth)
       .attr("height", (d) => height - yScale(d.inflow))
-      .attr("fill", "#10b981")
+      .attr("fill", "#16a34a")
       .on("mouseenter", function (_event, d) {
         d3.select(this).attr("opacity", 0.8);
 
@@ -169,7 +173,7 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
       .attr("y", (d) => yScale(d.outflow))
       .attr("width", barWidth)
       .attr("height", (d) => height - yScale(d.outflow))
-      .attr("fill", "#ef4444")
+      .attr("fill", "#dc2626")
       .on("mouseenter", function (_event, d) {
         d3.select(this).attr("opacity", 0.8);
 
@@ -214,7 +218,7 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
       .attr("y", 0)
       .attr("width", 15)
       .attr("height", 15)
-      .attr("fill", "#10b981");
+      .attr("fill", "#16a34a");
 
     legend.append("text").attr("x", 20).attr("y", 12).style("font-size", "12px").text("Inflow");
 
@@ -224,7 +228,7 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
       .attr("y", 0)
       .attr("width", 15)
       .attr("height", 15)
-      .attr("fill", "#ef4444");
+      .attr("fill", "#dc2626");
 
     legend.append("text").attr("x", 100).attr("y", 12).style("font-size", "12px").text("Outflow");
   }, [data]);
