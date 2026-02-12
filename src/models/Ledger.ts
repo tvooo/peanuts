@@ -229,6 +229,27 @@ export class Ledger {
   }
 
   @action
+  addBudgetCategory(category: BudgetCategory) {
+    this.budgetCategories.push(category);
+    this.incrementVersion();
+  }
+
+  @action
+  removeBudgetCategory(category: BudgetCategory) {
+    // Unassign all budgets from this category
+    for (const budget of this._budgets) {
+      if (budget.budgetCategory === category) {
+        budget.budgetCategory = null;
+      }
+    }
+    const index = this.budgetCategories.indexOf(category);
+    if (index !== -1) {
+      this.budgetCategories.splice(index, 1);
+    }
+    this.incrementVersion();
+  }
+
+  @action
   incrementVersion() {
     this._version++;
   }
