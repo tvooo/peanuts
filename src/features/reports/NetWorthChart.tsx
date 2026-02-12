@@ -15,34 +15,32 @@ export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: N
 
   // Memoize the data computation for performance
   const data = useMemo(() => {
+    const today = new Date();
     const startDate = startOfYear(new Date(year, 0, 1));
     const endDate = endOfYear(new Date(year, 0, 1));
-    const months = eachMonthOfInterval({ start: startDate, end: endDate });
+    const allMonths = eachMonthOfInterval({ start: startDate, end: endDate });
 
-    // Pre-sort transactions and transfers by date for more efficient filtering
+    // Only compute data for months that have started (future months show no data points)
+    const months = allMonths.filter((m) => m <= today);
+
+    // Pre-sort transactions by date for more efficient filtering
     const sortedTransactions = [...ledger.transactions].sort(
       (a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0)
     );
-    const _sortedTransfers = [...ledger.transfers].sort(
-      (a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0)
-    );
+
+    const todayTime = today.getTime();
 
     return months.map((month) => {
       const monthEnd = endOfMonth(month);
-      const monthEndTime = monthEnd.getTime();
+      // For the current month, only count transactions up to today
+      const cutoffTime = Math.min(monthEnd.getTime(), todayTime);
 
-      // Calculate total net worth by summing all accounts
       let netWorth = 0;
 
-      // Sum transactions up to this month
       for (const t of sortedTransactions) {
-        if (!t.date || t.date.getTime() >= monthEndTime) break;
+        if (!t.date || t.date.getTime() >= cutoffTime) break;
         netWorth += t.amount;
       }
-
-      // Add transfers (they net to zero across accounts, but we need to count correctly)
-      // Actually, transfers between accounts cancel out, so we don't need to add them
-      // They only move money between accounts, not create or destroy it
 
       return {
         date: month,
@@ -50,7 +48,7 @@ export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: N
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledger.transactions, ledger.transfers, year]);
+  }, [ledger.transactions, year]);
 
   useEffect(() => {
     if (!svgRef.current) return;
