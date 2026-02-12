@@ -5,16 +5,16 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { isSameMonth, subMonths } from "date-fns";
-import { Archive, CheckCircle2, Circle } from "lucide-react";
+import { Archive, CheckCircle2, Circle, Trash2 } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { AmountCell, HeaderCell } from "@/components/Table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Assignment } from "@/models/Assignment";
-import type { Budget } from "@/models/Budget";
+import type { Budget, BudgetCategory } from "@/models/Budget";
 import type { Goal } from "@/models/Goal";
 import type { Ledger } from "@/models/Ledger";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
@@ -162,6 +162,78 @@ function GoalIndicator({
   );
 }
 
+// Editable category group header with inline rename and delete
+const CategoryHeader = observer(function CategoryHeader({
+  category,
+  ledger,
+}: {
+  category: BudgetCategory;
+  ledger: Ledger;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(category.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const commit = () => {
+    const trimmed = name.trim();
+    if (trimmed && trimmed !== category.name) {
+      category.setName(trimmed);
+    } else {
+      setName(category.name);
+    }
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className="text-sm font-bold bg-transparent outline-none border-b border-stone-400 py-0"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") {
+            setName(category.name);
+            setEditing(false);
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 group">
+      <button
+        type="button"
+        className="text-sm font-bold hover:underline cursor-pointer text-left"
+        onClick={() => {
+          setName(category.name);
+          setEditing(true);
+        }}
+      >
+        {category.name}
+      </button>
+      <button
+        type="button"
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-stone-400 hover:text-red-500"
+        title="Delete group"
+        onClick={() => ledger.removeBudgetCategory(category)}
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+});
+
 interface BudgetTableProps {
   ledger: Ledger;
   currentMonth: Date;
@@ -274,8 +346,8 @@ export const BudgetTable = observer(function BudgetTable({
               <Fragment key={budgetCategory.id}>
                 <tr className="border-b border-stone-200 bg-stone-50">
                   <td className="p-1 pl-8 w-[64px]" />
-                  <td colSpan={4} className="py-2 px-3 pr-2 text-sm font-bold">
-                    {budgetCategory.name}
+                  <td colSpan={4} className="py-2 px-3 pr-2">
+                    <CategoryHeader category={budgetCategory} ledger={ledger} />
                   </td>
                 </tr>
                 {data

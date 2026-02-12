@@ -69,6 +69,12 @@ export class BudgetCategory extends Model {
   @observable
   accessor name: string = "Unnamed budget category";
 
+  @action
+  setName(name: string) {
+    this.name = name;
+    this.notifyChange();
+  }
+
   static fromJSON(json: any, ledger: Ledger): BudgetCategory {
     const budgetCategory = new BudgetCategory({ id: json.id, ledger });
     budgetCategory.name = json.name;

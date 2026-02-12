@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Budget } from "@/models/Budget";
+import { Budget, BudgetCategory } from "@/models/Budget";
 import { useLedger } from "@/utils/useLedger";
 
 export const AddBudgetModal = observer(function AddBudgetModal() {
@@ -19,8 +19,13 @@ export const AddBudgetModal = observer(function AddBudgetModal() {
   const [newEnvelope, setNewEnvelope] = useState<Budget | null>(null);
   const [name, setName] = useState("");
   const [group, setGroup] = useState(ledger?.budgetCategories[0] ?? null);
+
+  const [newGroupOpen, setNewGroupOpen] = useState(false);
+  const [groupName, setGroupName] = useState("");
+
   return (
     <div className="flex justify-between items-center px-8 py-4">
+      {/* New Envelope dialog */}
       <Dialog open={!!newEnvelope} onOpenChange={() => setNewEnvelope(null)}>
         <DialogContent>
           <DialogHeader>
@@ -45,14 +50,19 @@ export const AddBudgetModal = observer(function AddBudgetModal() {
                 Group
               </label>
               <select
-                value={group?.id}
+                value={group?.id ?? ""}
                 onChange={(e) => {
-                  const budgetCategory = ledger!.getBudgetCategoryByID(e.target.value);
-                  if (budgetCategory) {
-                    setGroup(budgetCategory);
+                  if (e.target.value === "") {
+                    setGroup(null);
+                  } else {
+                    const budgetCategory = ledger!.getBudgetCategoryByID(e.target.value);
+                    if (budgetCategory) {
+                      setGroup(budgetCategory);
+                    }
                   }
                 }}
               >
+                <option value="">Uncategorized</option>
                 {ledger!.budgetCategories.map((budgetCategory) => (
                   <option key={budgetCategory.id} value={budgetCategory.id}>
                     {budgetCategory.name}
@@ -79,13 +89,79 @@ export const AddBudgetModal = observer(function AddBudgetModal() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Button
-        onClick={() => {
-          setNewEnvelope(new Budget({ ledger: ledger!, id: null }));
-        }}
-      >
-        New Envelope
-      </Button>
+
+      {/* New Group dialog */}
+      <Dialog open={newGroupOpen} onOpenChange={setNewGroupOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Group</DialogTitle>
+            <DialogDescription>Create a new budget category group.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="group-name" className="text-right">
+                Group name
+              </label>
+              <Input
+                id="group-name"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                className="col-span-3"
+                placeholder="Bills"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && groupName.trim()) {
+                    runInAction(() => {
+                      const category = new BudgetCategory({ ledger: ledger!, id: null });
+                      category.name = groupName.trim();
+                      ledger!.addBudgetCategory(category);
+                      setGroupName("");
+                      setNewGroupOpen(false);
+                    });
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="submit"
+              disabled={!groupName.trim()}
+              onClick={() => {
+                runInAction(() => {
+                  const category = new BudgetCategory({ ledger: ledger!, id: null });
+                  category.name = groupName.trim();
+                  ledger!.addBudgetCategory(category);
+                  setGroupName("");
+                  setNewGroupOpen(false);
+                });
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          onClick={() => {
+            setGroupName("");
+            setNewGroupOpen(true);
+          }}
+        >
+          New Group
+        </Button>
+        <Button
+          onClick={() => {
+            setNewEnvelope(new Budget({ ledger: ledger!, id: null }));
+          }}
+        >
+          New Envelope
+        </Button>
+      </div>
     </div>
   );
 });
