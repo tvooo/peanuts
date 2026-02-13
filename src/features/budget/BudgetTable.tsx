@@ -237,6 +237,8 @@ const CategoryHeader = observer(function CategoryHeader({
 interface BudgetTableProps {
   ledger: Ledger;
   currentMonth: Date;
+  searchQuery?: string;
+  overspentOnly?: boolean;
 }
 
 type BudgetRow = Budget;
@@ -246,6 +248,8 @@ const columnHelper = createColumnHelper<BudgetRow>();
 export const BudgetTable = observer(function BudgetTable({
   currentMonth,
   ledger,
+  searchQuery = "",
+  overspentOnly = false,
 }: BudgetTableProps) {
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
@@ -263,9 +267,22 @@ export const BudgetTable = observer(function BudgetTable({
   }, [selectedBudget]);
 
   // Get all budgets excluding "To be budgeted" and optionally archived
-  const data = ledger.budgets.filter((budget) => !budget.isToBeBudgeted && !budget.isArchived);
+  const query = searchQuery.toLowerCase();
+  const matchesFilter = (budget: Budget) => {
+    if (
+      query &&
+      !budget.name.toLowerCase().includes(query) &&
+      !budget.budgetCategory?.name.toLowerCase().includes(query)
+    )
+      return false;
+    if (overspentOnly && ledger.budgetAvailableForMonth(budget, currentMonth) >= 0) return false;
+    return true;
+  };
+  const data = ledger.budgets.filter(
+    (budget) => !budget.isToBeBudgeted && !budget.isArchived && matchesFilter(budget)
+  );
   const archivedData = ledger.budgets.filter(
-    (budget) => !budget.isToBeBudgeted && budget.isArchived
+    (budget) => !budget.isToBeBudgeted && budget.isArchived && matchesFilter(budget)
   );
 
   // Define columns
@@ -342,17 +359,20 @@ export const BudgetTable = observer(function BudgetTable({
           </thead>
           <tbody>
             {/* Render budgets grouped by category */}
-            {ledger.budgetCategories.map((budgetCategory) => (
-              <Fragment key={budgetCategory.id}>
-                <tr className="border-b border-stone-200 bg-stone-50">
-                  <td className="p-1 pl-8 w-[64px]" />
-                  <td colSpan={4} className="py-2 px-3 pr-2">
-                    <CategoryHeader category={budgetCategory} ledger={ledger} />
-                  </td>
-                </tr>
-                {data
-                  .filter((budget) => budget.budgetCategory === budgetCategory)
-                  .map((budget, idx) => (
+            {ledger.budgetCategories.map((budgetCategory) => {
+              const categoryBudgets = data.filter(
+                (budget) => budget.budgetCategory === budgetCategory
+              );
+              if (categoryBudgets.length === 0) return null;
+              return (
+                <Fragment key={budgetCategory.id}>
+                  <tr className="border-b border-stone-200 bg-stone-50">
+                    <td className="p-1 pl-8 w-[64px]" />
+                    <td colSpan={4} className="py-2 px-3 pr-2">
+                      <CategoryHeader category={budgetCategory} ledger={ledger} />
+                    </td>
+                  </tr>
+                  {categoryBudgets.map((budget, idx) => (
                     <tr
                       className={`hover:bg-stone-100 rounded-md border-b border-stone-200 cursor-pointer ${selectedBudget === budget ? "bg-blue-50 hover:bg-blue-50" : ""}`}
                       key={idx}
@@ -431,8 +451,9 @@ export const BudgetTable = observer(function BudgetTable({
                       </td>
                     </tr>
                   ))}
-              </Fragment>
-            ))}
+                </Fragment>
+              );
+            })}
             {/* Uncategorized budgets */}
             {data.filter((budget) => !budget.budgetCategory).length > 0 && (
               <Fragment>

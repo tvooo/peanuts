@@ -5,6 +5,8 @@ import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { AddBudgetModal } from "@/features/budget/AddBudgetModal";
 import { AvailableToBudgetPopover } from "@/features/budget/AvailableToBudgetPopover";
 import { BudgetTable } from "@/features/budget/BudgetTable";
@@ -15,6 +17,8 @@ import { useLedger } from "@/utils/useLedger";
 export default function BudgetPage() {
   const { ledger } = useLedger();
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
+  const [searchQuery, setSearchQuery] = useState("");
+  const [overspentOnly, setOverspentOnly] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,14 +66,36 @@ export default function BudgetPage() {
           <AvailableToBudgetPopover currentMonth={currentMonth} ledger={ledger} />
         </div>
 
-        {/* Fixed header - Actions */}
+        {/* Fixed header - Filters and actions */}
         <div className="flex justify-between items-center px-8 py-4 shrink-0">
+          <div className="flex gap-2 items-center">
+            <Input
+              type="text"
+              placeholder="Filter envelopes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-64"
+            />
+            {/** biome-ignore lint/a11y/noLabelWithoutControl: Checkbox is inside the label, so htmlFor is not necessary */}
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
+              <Checkbox
+                checked={overspentOnly}
+                onCheckedChange={(checked) => setOverspentOnly(checked === true)}
+              />
+              Overspent
+            </label>
+          </div>
           <AddBudgetModal />
         </div>
 
         {/* Table container */}
         <div className="flex-1 min-h-0">
-          <BudgetTable currentMonth={currentMonth} ledger={ledger} />
+          <BudgetTable
+            currentMonth={currentMonth}
+            ledger={ledger}
+            searchQuery={searchQuery}
+            overspentOnly={overspentOnly}
+          />
         </div>
       </div>
     </PageLayout>
