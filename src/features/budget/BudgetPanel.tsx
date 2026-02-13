@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Star, X } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useState } from "react";
@@ -85,9 +85,24 @@ export const BudgetPanel = observer(function BudgetPanel({
             <h2 className="text-lg font-semibold">Edit Budget</h2>
             <p className="text-sm text-muted-foreground">Configure budget settings and goals.</p>
           </div>
-          <Button variant="ghost" size="icon" className="shrink-0 -mr-2 -mt-1" onClick={onClose}>
-            <X size={16} />
-          </Button>
+          <div className="flex items-center shrink-0 -mr-2 -mt-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => budget.setIsFavorited(!budget.isFavorited)}
+              title={budget.isFavorited ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Star
+                size={16}
+                className={
+                  budget.isFavorited ? "fill-amber-400 text-amber-400" : "text-muted-foreground"
+                }
+              />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X size={16} />
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-6">

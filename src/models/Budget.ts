@@ -11,6 +11,9 @@ export class Budget extends Model {
   @observable
   accessor isArchived: boolean = false;
 
+  @observable
+  accessor isFavorited: boolean = false;
+
   balance: Balance = 0;
 
   @observable
@@ -31,6 +34,12 @@ export class Budget extends Model {
   }
 
   @action
+  setIsFavorited(value: boolean) {
+    this.isFavorited = value;
+    this.notifyChange();
+  }
+
+  @action
   setBudgetCategory(category: BudgetCategory | null) {
     this.budgetCategory = category;
     this.notifyChange();
@@ -42,6 +51,7 @@ export class Budget extends Model {
     budget.budgetCategory = ledger.getBudgetCategoryByIdFast(json.budget_category_id) || null;
     budget.isToBeBudgeted = json.is_to_be_budgeted;
     budget.isArchived = json.is_archived ?? false;
+    budget.isFavorited = json.is_favorited ?? false;
     return budget;
   }
 
@@ -52,6 +62,7 @@ export class Budget extends Model {
       budget_category_id: this.budgetCategory?.id || null,
       is_to_be_budgeted: this.isToBeBudgeted,
       is_archived: this.isArchived,
+      is_favorited: this.isFavorited,
     };
   }
 
