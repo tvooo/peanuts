@@ -324,6 +324,11 @@ export class Ledger {
     return this._budgets.filter((b) => !b.isToBeBudgeted && b.isArchived);
   }
 
+  @computed
+  get favoritedBudgets(): Budget[] {
+    return this.activeBudgets.filter((b) => b.isFavorited);
+  }
+
   /**
    * Returns active savings goals (available type, non-archived).
    */

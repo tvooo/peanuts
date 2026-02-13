@@ -9,6 +9,7 @@ import {
   PiggyBank,
   Plus,
   Save,
+  Star,
   Users,
   Wallet,
 } from "lucide-react";
@@ -70,7 +71,7 @@ const items = [
 
 export const AppSidebar = observer(function AppSidebar() {
   const { ledger, saveLedger } = useLedger();
-  const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
+  const [createAccountType, setCreateAccountType] = useState<"budget" | "tracking" | null>(null);
   const location = useLocation();
   return (
     <Sidebar>
@@ -121,51 +122,122 @@ export const AppSidebar = observer(function AppSidebar() {
         </SidebarGroup>
         {ledger && (
           <>
+            {/* Favorited Budgets */}
+            {ledger.favoritedBudgets.length > 0 && (
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarGroup>
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger>
+                      <Star size={14} className="mr-1" />
+                      Favorites
+                      <ChevronDown
+                        size={16}
+                        className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                      />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {ledger.favoritedBudgets.map((budget) => {
+                          const available = ledger.budgetAvailableForMonth(budget, new Date());
+                          return (
+                            <SidebarMenuItem key={budget.id}>
+                              <div className="flex justify-between items-center px-2 py-1.5">
+                                <span className="text-sm truncate" title={budget.name}>
+                                  {budget.name}
+                                </span>
+                                <span
+                                  className={`text-xs tabular-nums ml-2 shrink-0 ${
+                                    available < 0
+                                      ? "text-red-600"
+                                      : available === 0
+                                        ? "text-muted-foreground"
+                                        : "text-sidebar-foreground/70"
+                                  }`}
+                                >
+                                  {formatCurrency(available)}
+                                </span>
+                              </div>
+                            </SidebarMenuItem>
+                          );
+                        })}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
+            )}
             {/* Regular Accounts */}
             <Collapsible defaultOpen className="group/collapsible">
-              <SidebarGroup>
+              <SidebarGroup className="group/accounts">
                 <SidebarGroupLabel asChild>
                   <CollapsibleTrigger>
                     Accounts
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCreateAccountType("budget");
+                      }}
+                      className="opacity-0 group-hover/accounts:opacity-100 transition-opacity ml-auto p-1 rounded-md hover:bg-sidebar-accent"
+                    >
+                      <Plus size={14} className="text-sidebar-foreground/70" />
+                    </button>
                     <ChevronDown
                       size={16}
-                      className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                      className="transition-transform group-data-[state=open]/collapsible:rotate-180"
                     />
                   </CollapsibleTrigger>
                 </SidebarGroupLabel>
                 <CollapsibleContent>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {ledger.accounts
-                        .filter((a) => !a.archived && a.type === "budget")
-                        .map((account) => (
-                          <SidebarMenuItem key={account.name}>
-                            <SidebarMenuButton
-                              asChild
-                              isActive={
-                                decodeURIComponent(location.pathname) === `/ledger/${account.name}`
-                              }
-                            >
-                              <Link to={`/ledger/${account.name}`} className="justify-between">
-                                <span
-                                  className="truncate flex items-center gap-1.5"
-                                  title={account.name}
-                                >
-                                  {account.name}
-                                  {account.uncategorizedTransactionCount > 0 && (
-                                    <span
-                                      className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
-                                      title={`${account.uncategorizedTransactionCount} uncategorized`}
-                                    />
-                                  )}
-                                </span>
-                                <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 shrink-0">
-                                  {formatCurrency(account.currentBalance)}
-                                </span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
+                      {ledger.accounts.filter((a) => !a.archived && a.type === "budget").length ===
+                      0 ? (
+                        <div className="px-2 py-4 text-center">
+                          <p className="text-xs text-muted-foreground">No accounts yet.</p>
+                          <button
+                            type="button"
+                            onClick={() => setCreateAccountType("budget")}
+                            className="text-xs text-muted-foreground underline hover:text-foreground mt-1"
+                          >
+                            Add your first account
+                          </button>
+                        </div>
+                      ) : (
+                        ledger.accounts
+                          .filter((a) => !a.archived && a.type === "budget")
+                          .map((account) => (
+                            <SidebarMenuItem key={account.name}>
+                              <SidebarMenuButton
+                                asChild
+                                isActive={
+                                  decodeURIComponent(location.pathname) ===
+                                  `/ledger/${account.name}`
+                                }
+                              >
+                                <Link to={`/ledger/${account.name}`} className="justify-between">
+                                  <span
+                                    className="truncate flex items-center gap-1.5"
+                                    title={account.name}
+                                  >
+                                    {account.name}
+                                    {account.uncategorizedTransactionCount > 0 && (
+                                      <span
+                                        className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
+                                        title={`${account.uncategorizedTransactionCount} uncategorized`}
+                                      />
+                                    )}
+                                  </span>
+                                  <span className="text-xs tabular-nums text-sidebar-foreground/70 ml-2 shrink-0">
+                                    {formatCurrency(account.currentBalance)}
+                                  </span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))
+                      )}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </CollapsibleContent>
@@ -174,14 +246,24 @@ export const AppSidebar = observer(function AppSidebar() {
             {/* Tracking Accounts */}
             {ledger.accounts.some((a) => !a.archived && a.type === "tracking") && (
               <Collapsible defaultOpen className="group/collapsible">
-                <SidebarGroup>
+                <SidebarGroup className="group/tracking">
                   <SidebarGroupLabel asChild>
                     <CollapsibleTrigger>
                       <ChartSpline size={14} className="mr-1" />
                       Tracking Accounts
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCreateAccountType("tracking");
+                        }}
+                        className="opacity-0 group-hover/tracking:opacity-100 transition-opacity ml-auto p-1 rounded-md hover:bg-sidebar-accent"
+                      >
+                        <Plus size={14} className="text-sidebar-foreground/70" />
+                      </button>
                       <ChevronDown
                         size={16}
-                        className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                        className="transition-transform group-data-[state=open]/collapsible:rotate-180"
                       />
                     </CollapsibleTrigger>
                   </SidebarGroupLabel>
@@ -326,17 +408,14 @@ export const AppSidebar = observer(function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter>
-        <Button variant="secondary" onClick={() => setIsCreateAccountOpen(true)}>
-          <Plus size={16} /> New Account
-        </Button>
-        <Button
+        {/* <Button
           variant="secondary"
           onClick={async () => {
             console.log(ledger!.toJSON());
           }}
         >
           Debug
-        </Button>
+        </Button> */}
         <Button onClick={saveLedger} disabled={!ledger?.isDirty} className="relative">
           <Save size={16} /> Save
           {ledger?.isDirty && (
@@ -344,7 +423,13 @@ export const AppSidebar = observer(function AppSidebar() {
           )}
         </Button>
       </SidebarFooter>
-      <CreateAccountModal open={isCreateAccountOpen} onOpenChange={setIsCreateAccountOpen} />
+      <CreateAccountModal
+        open={createAccountType !== null}
+        onOpenChange={(open) => {
+          if (!open) setCreateAccountType(null);
+        }}
+        defaultType={createAccountType ?? "budget"}
+      />
     </Sidebar>
   );
 });

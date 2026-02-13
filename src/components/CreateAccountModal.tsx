@@ -18,15 +18,17 @@ import { useLedger } from "@/utils/useLedger";
 interface CreateAccountModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultType?: "budget" | "tracking";
 }
 
 export const CreateAccountModal = observer(function CreateAccountModal({
   open,
   onOpenChange,
+  defaultType = "budget",
 }: CreateAccountModalProps) {
   const { ledger } = useLedger();
   const [name, setName] = useState("");
-  const [type, setType] = useState<"budget" | "tracking">("budget");
+  const [type, setType] = useState<"budget" | "tracking">(defaultType);
 
   const handleCreate = () => {
     if (!ledger || !name.trim()) return;
@@ -39,14 +41,14 @@ export const CreateAccountModal = observer(function CreateAccountModal({
 
       // Reset and close
       setName("");
-      setType("budget");
+      setType(defaultType);
       onOpenChange(false);
     });
   };
 
   const handleCancel = () => {
     setName("");
-    setType("budget");
+    setType(defaultType);
     onOpenChange(false);
   };
 
