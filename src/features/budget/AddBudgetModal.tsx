@@ -24,7 +24,7 @@ export const AddBudgetModal = observer(function AddBudgetModal() {
   const [groupName, setGroupName] = useState("");
 
   return (
-    <div className="flex justify-between items-center px-8 py-4">
+    <>
       {/* New Envelope dialog */}
       <Dialog open={!!newEnvelope} onOpenChange={() => setNewEnvelope(null)}>
         <DialogContent>
@@ -162,6 +162,6 @@ export const AddBudgetModal = observer(function AddBudgetModal() {
           New Envelope
         </Button>
       </div>
-    </div>
+    </>
   );
 });
