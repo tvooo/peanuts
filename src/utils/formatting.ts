@@ -57,7 +57,8 @@ export function formatCurrency(n: number): string {
   const cents = Math.ceil(centsRaw);
   const euros = Math.floor(abs / 100);
 
-  return `${negative ? "-" : ""}${euros},${padStart(String(cents), 2, "0")} €`;
+  const eurosFormatted = euros.toLocaleString("de-DE");
+  return `${negative ? "-" : ""}${eurosFormatted},${padStart(String(cents), 2, "0")} €`;
 }
 
 export function formatDate(d: Date): string {
