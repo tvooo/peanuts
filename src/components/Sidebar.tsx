@@ -407,22 +407,7 @@ export const AppSidebar = observer(function AppSidebar() {
           </>
         )}
       </SidebarContent>
-      <SidebarFooter>
-        {/* <Button
-          variant="secondary"
-          onClick={async () => {
-            console.log(ledger!.toJSON());
-          }}
-        >
-          Debug
-        </Button> */}
-        <Button onClick={saveLedger} disabled={!ledger?.isDirty} className="relative">
-          <Save size={16} /> Save
-          {ledger?.isDirty && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full" />
-          )}
-        </Button>
-      </SidebarFooter>
+      <SidebarFooter />
       <CreateAccountModal
         open={createAccountType !== null}
         onOpenChange={(open) => {
