@@ -8,7 +8,6 @@ import {
   Milestone,
   PiggyBank,
   Plus,
-  Save,
   Star,
   Users,
   Wallet,
@@ -32,7 +31,6 @@ import {
 import { formatCurrency } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
 import { CreateAccountModal } from "./CreateAccountModal";
-import { Button } from "./ui/button";
 
 // Menu items.
 const items = [
@@ -70,7 +68,7 @@ const items = [
 ];
 
 export const AppSidebar = observer(function AppSidebar() {
-  const { ledger, saveLedger } = useLedger();
+  const { ledger } = useLedger();
   const [createAccountType, setCreateAccountType] = useState<"budget" | "tracking" | null>(null);
   const location = useLocation();
   return (
