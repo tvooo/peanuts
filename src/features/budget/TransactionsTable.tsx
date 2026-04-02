@@ -6,20 +6,30 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { startOfDay } from "date-fns";
 import { sortBy } from "lodash";
-import { CheckCheck } from "lucide-react";
+import { CalendarPlus, CheckCheck, CheckCircle, Trash2 } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import * as React from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { HeaderCell } from "@/components/Table";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import type { Account } from "@/models/Account";
 import type { BalanceAssertion } from "@/models/BalanceAssertion";
 import type { Ledger } from "@/models/Ledger";
+import { RecurringTemplate } from "@/models/RecurringTemplate";
 import { Transaction } from "@/models/Transaction";
 import { Transfer } from "@/models/Transfer";
 import { formatCurrency } from "@/utils/formatting";
 import { BalanceAssertionRow } from "./BalanceAssertionRow";
+import { RecurringTemplateModal } from "./RecurringTemplateModal";
 import { SplitTransactionFormRow } from "./SplitTransactionFormRow";
 import { TransactionFormRow } from "./TransactionFormRow";
 import { TransactionRow } from "./TransactionRow";
@@ -45,6 +55,8 @@ interface TransactionsTableProps {
   onAutoEditProcessed?: () => void;
   /** Called after saving a new transaction to enable rapid entry. Receives the date from the saved item. */
   onRequestNewTransaction?: (lastDate: Date) => void;
+  /** Called to delete a single item via context menu */
+  onDeleteItem?: (item: Transaction | Transfer) => void;
   /** Search query to filter transactions */
   searchQuery?: string;
 }
@@ -76,6 +88,7 @@ export const TransactionsTable = observer(function TransactionsTable({
   autoEditTransactionId,
   autoEditTransferId,
   onAutoEditProcessed,
+  onDeleteItem,
   onRequestNewTransaction,
   searchQuery = "",
 }: TransactionsTableProps) {
@@ -93,6 +106,16 @@ export const TransactionsTable = observer(function TransactionsTable({
     | { type: "transfer"; original: Transfer; draft: Transfer; isNew?: boolean }
     | null
   >(null);
+
+  // Context menu state
+  const [contextTarget, setContextTarget] = useState<{
+    item: Transaction | Transfer;
+    isInbound?: boolean;
+  } | null>(null);
+  const contextTargetRef = useRef<typeof contextTarget>(null);
+
+  // Recurring template modal state
+  const [recurringTemplate, setRecurringTemplate] = useState<RecurringTemplate | null>(null);
 
   // Auto-enter edit mode for newly created transactions/transfers
   React.useEffect(() => {
@@ -381,6 +404,11 @@ export const TransactionsTable = observer(function TransactionsTable({
           <TransactionRow
             transaction={rowData}
             key={row.id}
+            onContextMenu={(_e) => {
+              const target = { item: rowData };
+              contextTargetRef.current = target;
+              setContextTarget(target);
+            }}
             onClick={() => {
               // If already editing this row, do nothing
               if (editingState?.type === "transaction" && editingState.original === rowData) {
@@ -452,11 +480,17 @@ export const TransactionsTable = observer(function TransactionsTable({
             />
           );
         }
+        const isInbound = rowData.toAccount?.id === currentAccount.id;
         return (
           <TransferRow
             transfer={rowData}
-            isInbound={rowData.toAccount?.id === currentAccount.id}
+            isInbound={isInbound}
             key={row.id}
+            onContextMenu={(_e) => {
+              const target = { item: rowData, isInbound };
+              contextTargetRef.current = target;
+              setContextTarget(target);
+            }}
             onClick={() => {
               if (!editingState) {
                 // Create draft
@@ -492,63 +526,142 @@ export const TransactionsTable = observer(function TransactionsTable({
   const virtualItems = virtualizer.getVirtualItems();
   const lastVirtualItem = virtualItems[virtualItems.length - 1];
 
+  const handleToggleCleared = useCallback(() => {
+    const target = contextTargetRef.current;
+    if (!target) return;
+    if (target.item instanceof Transaction) {
+      target.item.toggleStatus();
+    } else if (target.item instanceof Transfer) {
+      if (target.isInbound) {
+        target.item.toggleToStatus();
+      } else {
+        target.item.toggleFromStatus();
+      }
+    }
+  }, []);
+
+  const handleContextDelete = useCallback(() => {
+    const target = contextTargetRef.current;
+    if (!target) return;
+    onDeleteItem?.(target.item);
+  }, [onDeleteItem]);
+
+  const handleCreateRecurringTemplate = useCallback(() => {
+    const target = contextTargetRef.current;
+    if (!target || !(target.item instanceof Transaction)) return;
+    const txn = target.item;
+
+    const template = new RecurringTemplate({ ledger, id: null });
+    template.account = txn.account;
+    template.payee = txn.payee;
+    template.budget = txn.postings[0]?.budget ?? null;
+    template.amount = txn.postings.reduce((sum, p) => sum + p.amount, 0);
+    template.note = txn.postings[0]?.note ?? "";
+    template.startDate = startOfDay(new Date());
+
+    // Monthly rrule using the transaction's day-of-month
+    const day = txn.date?.getDate() ?? 1;
+    template.rruleString = `FREQ=MONTHLY;BYMONTHDAY=${day}`;
+    template.nextScheduledDate = template.calculateNextOccurrence(startOfDay(new Date()));
+
+    setRecurringTemplate(template);
+  }, [ledger]);
+
   return (
-    <div ref={scrollContainerRef} className="h-full overflow-auto" style={{ contain: "strict" }}>
-      <table className="w-full table-fixed">
-        {/* Column widths: checkbox, date, payee (flex), budget, note (flex), out, in, status */}
-        <colgroup>
-          <col style={{ width: "64px" }} />
-          <col style={{ width: "110px" }} />
-          <col />
-          <col style={{ width: "150px" }} />
-          <col />
-          <col style={{ width: "100px" }} />
-          <col style={{ width: "100px" }} />
-          <col style={{ width: "50px" }} />
-        </colgroup>
-        <thead className="sticky top-0 bg-slate-50 z-10">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                const headerClasses =
-                  header.id === "checkbox"
-                    ? "p-1 pl-8"
-                    : header.id === "cleared"
-                      ? "pr-2"
-                      : "px-3 pr-2";
-                return (
-                  <th key={header.id} className={headerClasses}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                );
-              })}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {/* Top spacer row */}
-          {virtualItems[0]?.start > 0 && (
-            <tr style={{ height: virtualItems[0].start }}>
-              <td colSpan={8} />
-            </tr>
-          )}
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div
+            ref={scrollContainerRef}
+            className="h-full overflow-auto"
+            style={{ contain: "strict" }}
+          >
+            <table className="w-full table-fixed">
+              {/* Column widths: checkbox, date, payee (flex), budget, note (flex), out, in, status */}
+              <colgroup>
+                <col style={{ width: "64px" }} />
+                <col style={{ width: "110px" }} />
+                <col />
+                <col style={{ width: "150px" }} />
+                <col />
+                <col style={{ width: "100px" }} />
+                <col style={{ width: "100px" }} />
+                <col style={{ width: "50px" }} />
+              </colgroup>
+              <thead className="sticky top-0 bg-slate-50 z-10">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      const headerClasses =
+                        header.id === "checkbox"
+                          ? "p-1 pl-8"
+                          : header.id === "cleared"
+                            ? "pr-2"
+                            : "px-3 pr-2";
+                      return (
+                        <th key={header.id} className={headerClasses}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </thead>
+              <tbody>
+                {/* Top spacer row */}
+                {virtualItems[0]?.start > 0 && (
+                  <tr
+                    style={{ height: virtualItems[0].start }}
+                    onContextMenu={(e) => e.stopPropagation()}
+                  >
+                    <td colSpan={8} />
+                  </tr>
+                )}
 
-          {/* Visible rows */}
-          {virtualItems.map((virtualRow) => {
-            const row = rows[virtualRow.index];
-            return renderRow(row);
-          })}
+                {/* Visible rows */}
+                {virtualItems.map((virtualRow) => {
+                  const row = rows[virtualRow.index];
+                  return renderRow(row);
+                })}
 
-          {/* Bottom spacer row */}
-          {lastVirtualItem && virtualizer.getTotalSize() - lastVirtualItem.end > 0 && (
-            <tr style={{ height: virtualizer.getTotalSize() - lastVirtualItem.end }}>
-              <td colSpan={8} />
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+                {/* Bottom spacer row */}
+                {lastVirtualItem && virtualizer.getTotalSize() - lastVirtualItem.end > 0 && (
+                  <tr
+                    style={{ height: virtualizer.getTotalSize() - lastVirtualItem.end }}
+                    onContextMenu={(e) => e.stopPropagation()}
+                  >
+                    <td colSpan={8} />
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </ContextMenuTrigger>
+        {contextTarget && (
+          <ContextMenuContent>
+            <ContextMenuItem onClick={handleToggleCleared}>
+              <CheckCircle />
+              Toggle cleared
+            </ContextMenuItem>
+            <ContextMenuItem onClick={handleContextDelete}>
+              <Trash2 />
+              Delete
+            </ContextMenuItem>
+            {contextTarget.item instanceof Transaction && (
+              <>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={handleCreateRecurringTemplate}>
+                  <CalendarPlus />
+                  Create recurring template
+                </ContextMenuItem>
+              </>
+            )}
+          </ContextMenuContent>
+        )}
+      </ContextMenu>
+      <RecurringTemplateModal template={recurringTemplate} onOpenChange={setRecurringTemplate} />
+    </>
   );
 });

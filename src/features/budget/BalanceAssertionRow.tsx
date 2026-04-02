@@ -11,7 +11,13 @@ const cellBase = "py-2 px-3 pr-2 text-sm";
 
 export const BalanceAssertionRow = ({ transaction }: BalanceAssertionRowProps) => {
   return (
-    <tr className={rowClasses}>
+    <tr
+      className={rowClasses}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
       <td className="p-1 pl-8 align-middle">
         <input type="checkbox" disabled />
       </td>
