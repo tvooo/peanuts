@@ -18,6 +18,7 @@ import type { Transaction } from "@/models/Transaction";
 interface TransactionRowProps {
   transaction: Transaction;
   onClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   selectedIds?: Set<string>;
   onToggleSelection?: (id: string) => void;
   isExpanded?: boolean;
@@ -27,6 +28,7 @@ interface TransactionRowProps {
 export const TransactionRow = observer(function TransactionRow({
   transaction,
   onClick,
+  onContextMenu,
   selectedIds,
   onToggleSelection,
   isExpanded,
@@ -41,7 +43,7 @@ export const TransactionRow = observer(function TransactionRow({
   // Single posting - render as before
   if (!transaction.isSplit) {
     return (
-      <tr className={rowClasses}>
+      <tr className={rowClasses} onContextMenu={onContextMenu}>
         <SelectionCheckboxCell
           id={transaction.id}
           selectedIds={selectedIds}
@@ -88,7 +90,7 @@ export const TransactionRow = observer(function TransactionRow({
     };
 
     return (
-      <tr className={rowClasses}>
+      <tr className={rowClasses} onContextMenu={onContextMenu}>
         <SelectionCheckboxCell
           id={transaction.id}
           selectedIds={selectedIds}
@@ -136,7 +138,7 @@ export const TransactionRow = observer(function TransactionRow({
   return (
     <>
       {/* Main header row */}
-      <tr className={expandedRowClasses}>
+      <tr className={expandedRowClasses} onContextMenu={onContextMenu}>
         <SelectionCheckboxCell
           id={transaction.id}
           selectedIds={selectedIds}

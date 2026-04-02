@@ -3,6 +3,7 @@
 
 import { AlertTriangle, ArrowLeftRight } from "lucide-react";
 import { observer } from "mobx-react-lite";
+import type * as React from "react";
 import { twJoin } from "tailwind-merge";
 import {
   OutInAmountCells,
@@ -34,6 +35,7 @@ function TransferBudgetCell({ transfer }: { transfer: Transfer }) {
 interface TransferRowProps {
   transfer: Transfer;
   onClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   isInbound: boolean;
   selectedIds?: Set<string>;
   onToggleSelection?: (id: string) => void;
@@ -43,13 +45,14 @@ export const TransferRow = observer(function TransferRow({
   transfer,
   isInbound,
   onClick,
+  onContextMenu,
   selectedIds,
   onToggleSelection,
 }: TransferRowProps) {
   const rowClasses = twJoin(rowStyles.displayRow, transfer.isFuture && rowStyles.futureRow);
 
   return (
-    <tr className={rowClasses} onClick={onClick}>
+    <tr className={rowClasses} onClick={onClick} onContextMenu={onContextMenu}>
       <SelectionCheckboxCell
         id={transfer.id}
         selectedIds={selectedIds}

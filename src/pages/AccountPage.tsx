@@ -289,6 +289,15 @@ export const AccountPage = observer(function AccountPage() {
             onConvertTransferToTransaction={handleConvertTransferToTransaction}
             autoEditTransactionId={autoEditTransactionId}
             onAutoEditProcessed={() => setAutoEditTransactionId(null)}
+            onDeleteItem={(item) => {
+              runInAction(() => {
+                if (item instanceof Transaction) {
+                  ledger.deleteTransaction(item);
+                } else if (item instanceof Transfer) {
+                  ledger.deleteTransfer(item);
+                }
+              });
+            }}
             onRequestNewTransaction={createNewTransaction}
             searchQuery={searchQuery}
           />
