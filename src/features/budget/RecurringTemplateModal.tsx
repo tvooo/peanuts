@@ -626,16 +626,37 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => resetForm()}>
-              Cancel
-            </Button>
-            <Button
-              onClick={isEditing ? handleUpdate : handleCreate}
-              disabled={!account || !previewInfo.isValid}
-            >
-              {isEditing ? "Update" : "Create"} Template
-            </Button>
+          <DialogFooter className="flex !justify-between">
+            {isEditing ? (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!ledger || !template) return;
+                  runInAction(() => {
+                    const index = ledger.recurringTemplates.indexOf(template);
+                    if (index !== -1) {
+                      ledger.recurringTemplates.splice(index, 1);
+                    }
+                  });
+                  resetForm();
+                }}
+              >
+                Delete
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => resetForm()}>
+                Cancel
+              </Button>
+              <Button
+                onClick={isEditing ? handleUpdate : handleCreate}
+                disabled={!account || !previewInfo.isValid}
+              >
+                {isEditing ? "Update" : "Create"} Template
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
