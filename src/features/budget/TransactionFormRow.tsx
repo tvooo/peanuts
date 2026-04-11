@@ -59,9 +59,6 @@ export const TransactionFormRow = observer(function TransactionFormRow({
       if (!transaction.payee) {
         return payeeComboboxRef.current;
       }
-      if (!posting.budget) {
-        return budgetComboboxRef.current;
-      }
       // Sync amount from input fields before checking (Enter may fire before blur)
       if (outValue) {
         const parsed = parseCurrencyInput(outValue);

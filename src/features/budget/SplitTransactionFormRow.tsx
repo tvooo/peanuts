@@ -176,12 +176,6 @@ export const SplitTransactionFormRow = observer(function SplitTransactionFormRow
       if (!transaction.payee) {
         return payeeComboboxRef.current;
       }
-      // For split transactions, all postings must have budgets (checked by transaction.isValid)
-      if (!transaction.isValid) {
-        // Find first posting without a budget and focus it
-        // We don't have refs for individual posting budgets, so just return null
-        return null;
-      }
       return null;
     },
   });

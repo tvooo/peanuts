@@ -70,9 +70,6 @@ export class Transaction extends Model {
     // At least one posting required
     if (this.postings.length === 0) return false;
 
-    // All postings must have a budget
-    if (this.postings.some((p) => !p.budget)) return false;
-
     return true;
   }
 

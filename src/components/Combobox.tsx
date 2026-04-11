@@ -269,6 +269,9 @@ function ComboboxInner<T extends ComboboxOption>(
         const selected = filteredOptions.find((opt) => opt.id === selectedValue);
         if (selected) {
           handleSelect(selected);
+        } else {
+          // Nothing selected - just close the dropdown
+          setOpen(false);
         }
       }
     }
