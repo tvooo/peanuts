@@ -1,5 +1,6 @@
 import { isSameMonth } from "date-fns";
 import { action, computed, observable } from "mobx";
+import { deserializeDate, serializeDate } from "@/utils/dateSerialize";
 import type { Amount } from "@/utils/types";
 import type { Budget } from "./Budget";
 import type { Ledger } from "./Ledger";
@@ -29,7 +30,7 @@ export class Goal extends Model {
     goal.targetAmount = json.target_amount;
     goal.budget = ledger.getBudgetByIdFast(json.budget_id) || null;
     goal.isArchived = json.is_archived ?? false;
-    goal.createdAt = json.created_at ? new Date(json.created_at) : new Date();
+    goal.createdAt = json.created_at ? deserializeDate(json.created_at) : new Date();
     return goal;
   }
 
@@ -40,7 +41,7 @@ export class Goal extends Model {
       target_amount: this.targetAmount,
       budget_id: this.budget?.id || null,
       is_archived: this.isArchived,
-      created_at: this.createdAt.toISOString(),
+      created_at: serializeDate(this.createdAt),
     };
   }
 

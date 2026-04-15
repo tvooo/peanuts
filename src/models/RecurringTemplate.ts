@@ -1,6 +1,7 @@
 import { startOfDay } from "date-fns";
 import { computed, observable } from "mobx";
 import { RRule } from "rrule";
+import { deserializeDate, serializeDate } from "@/utils/dateSerialize";
 import type { Amount } from "@/utils/types";
 import type { Account } from "./Account";
 import type { Budget } from "./Budget";
@@ -124,9 +125,9 @@ export class RecurringTemplate extends Model {
   static fromJSON(json: any, ledger: Ledger): RecurringTemplate {
     const template = new RecurringTemplate({ id: json.id, ledger });
     template.rruleString = json.rrule_string || "FREQ=MONTHLY;BYMONTHDAY=1";
-    template.nextScheduledDate = startOfDay(new Date(json.next_scheduled_date));
-    template.startDate = startOfDay(new Date(json.start_date));
-    template.endDate = json.end_date ? startOfDay(new Date(json.end_date)) : null;
+    template.nextScheduledDate = deserializeDate(json.next_scheduled_date);
+    template.startDate = deserializeDate(json.start_date);
+    template.endDate = json.end_date ? deserializeDate(json.end_date) : null;
 
     template.account = ledger.getAccountByIdFast(json.account_id) || null;
     template.amount = json.amount || 0;
@@ -141,9 +142,9 @@ export class RecurringTemplate extends Model {
     return {
       id: this.id,
       rrule_string: this.rruleString,
-      next_scheduled_date: this.nextScheduledDate.toISOString(),
-      start_date: this.startDate.toISOString(),
-      end_date: this.endDate?.toISOString() || null,
+      next_scheduled_date: serializeDate(this.nextScheduledDate),
+      start_date: serializeDate(this.startDate),
+      end_date: this.endDate ? serializeDate(this.endDate) : null,
       account_id: this.account?.id || null,
       amount: this.amount,
       budget_id: this.budget?.id || null,
