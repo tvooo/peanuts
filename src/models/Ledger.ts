@@ -336,7 +336,9 @@ export class Ledger {
    */
   @computed
   get savingsGoals(): Goal[] {
-    return this.goals.filter((g) => g.type === "available" && !g.isArchived);
+    return this.goals.filter(
+      (g) => g.type === "available" && !g.isArchived && !g.budget?.isArchived
+    );
   }
 
   /**

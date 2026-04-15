@@ -231,6 +231,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
       newTemplate.endDate = hasEndDate && endDate ? startOfDay(endDate) : null;
 
       ledger.recurringTemplates.push(newTemplate);
+      ledger.incrementVersion();
 
       // Immediately process the new template to create the first transaction
       processRecurringTemplates(ledger);
@@ -252,6 +253,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
       template.startDate = startOfDay(startDate);
       template.nextScheduledDate = startOfDay(previewInfo.nextDate || startDate);
       template.endDate = hasEndDate && endDate ? startOfDay(endDate) : null;
+      ledger.incrementVersion();
 
       // Process templates to update scheduled transactions
       processRecurringTemplates(ledger);
@@ -636,6 +638,7 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
                     const index = ledger.recurringTemplates.indexOf(template);
                     if (index !== -1) {
                       ledger.recurringTemplates.splice(index, 1);
+                      ledger.incrementVersion();
                     }
                   });
                   resetForm();
