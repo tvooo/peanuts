@@ -1,0 +1,18 @@
+language js
+
+// Flag `new Date(<string>)` / `Date(<string>)` with a string literal.
+// These parse date strings and have timezone-dependent behaviour. Use
+// `parseISO()` from date-fns (or `deserializeDate()` from
+// @/utils/dateSerialize for ledger values) instead.
+//
+// Allowed:
+//   - `new Date()` (current time)
+//   - `new Date(year, month, day)` (numeric parts constructor)
+//   - `new Date(someIdentifier)` (not inspected — suppress or refactor)
+or {
+  `new Date($arg)`,
+  `Date($arg)`
+} where {
+  $arg <: string(),
+  register_diagnostic(span=$arg, message="Do not parse date strings with `new Date()` / `Date()`. Use `parseISO()` from date-fns (or `deserializeDate()` from @/utils/dateSerialize for ledger values) to avoid timezone ambiguity. Suppress with `// biome-ignore lint/plugin/no-new-date-string` when truly necessary.", severity="error")
+}

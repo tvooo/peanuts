@@ -1,5 +1,6 @@
 import { endOfToday, isAfter } from "date-fns";
 import { action, computed, observable } from "mobx";
+import { deserializeDate, serializeDate } from "@/utils/dateSerialize";
 import type { Amount } from "@/utils/types";
 import type { Account } from "./Account";
 import type { Budget } from "./Budget";
@@ -38,7 +39,7 @@ export class Transfer extends Model {
     transfer.amount = json.amount;
     transfer.fromStatus = json.from_status;
     transfer.toStatus = json.to_status;
-    transfer.date = new Date(json.date);
+    transfer.date = json.date ? deserializeDate(json.date) : null;
     transfer.note = json.note;
     transfer.budget = json.budget_id ? ledger.getBudgetByIdFast(json.budget_id) || null : null;
     return transfer;
@@ -52,7 +53,7 @@ export class Transfer extends Model {
       amount: this.amount,
       from_status: this.fromStatus,
       to_status: this.toStatus,
-      date: this.date?.toISOString() || null,
+      date: this.date ? serializeDate(this.date) : null,
       note: this.note,
       budget_id: this.budget?.id || null,
     };

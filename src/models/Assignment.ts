@@ -1,4 +1,5 @@
 import { action, observable } from "mobx";
+import { deserializeDate, serializeDate } from "@/utils/dateSerialize";
 import type { Amount } from "@/utils/types";
 import type { Budget } from "./Budget";
 import type { Ledger } from "./Ledger";
@@ -16,7 +17,7 @@ export class Assignment extends Model {
 
   static fromJSON(json: any, ledger: Ledger) {
     const assignment = new Assignment({ id: json.id, ledger });
-    assignment.date = new Date(json.date);
+    assignment.date = json.date ? deserializeDate(json.date) : null;
     assignment.budget = ledger.getBudgetByIdFast(json.budget_id) || null;
     assignment.amount = json.amount;
     return assignment;
@@ -25,7 +26,7 @@ export class Assignment extends Model {
   toJSON() {
     return {
       id: this.id,
-      date: this.date?.toISOString() || null,
+      date: this.date ? serializeDate(this.date) : null,
       budget_id: this.budget!.id,
       amount: this.amount,
     };

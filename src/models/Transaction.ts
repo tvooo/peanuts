@@ -1,5 +1,6 @@
 import { endOfToday, isAfter } from "date-fns";
 import { action, computed, observable } from "mobx";
+import { deserializeDate, serializeDate } from "@/utils/dateSerialize";
 import type { Amount } from "@/utils/types";
 import type { Account } from "./Account";
 import type { Budget } from "./Budget";
@@ -33,7 +34,7 @@ export class Transaction extends Model {
       (p_id: string) => ledger.getPostingByIdFast(p_id) || null
     );
     transaction.status = json.status;
-    transaction.date = new Date(json.date);
+    transaction.date = json.date ? deserializeDate(json.date) : null;
     transaction.recurringTemplateId = json.recurring_template_id || null;
     return transaction;
   }
@@ -45,7 +46,7 @@ export class Transaction extends Model {
       payee_id: this.payee?.id,
       transaction_posting_ids: this.postings.map((p) => p.id),
       status: this.status,
-      date: this.date?.toISOString() || null,
+      date: this.date ? serializeDate(this.date) : null,
       recurring_template_id: this.recurringTemplateId,
     };
   }

@@ -25,6 +25,7 @@
     "lineWidth": 100
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "plugins": ["./biome-plugins/no-new-date-string.grit"],
   "linter": {
     "enabled": true,
     "rules": {

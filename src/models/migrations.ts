@@ -1,0 +1,70 @@
+import { format } from "date-fns";
+
+export const CURRENT_VERSION = 2;
+
+type Migration = {
+  version: number;
+  migrate: (data: any) => void;
+};
+
+/**
+ * Convert a legacy ISO datetime string (e.g. "2015-12-31T23:00:00.000Z") to a
+ * plain YYYY-MM-DD string in the local timezone. Idempotent: values without a
+ * time component (already migrated) and null/undefined values pass through.
+ */
+function convertDateField(obj: any, key: string) {
+  const value = obj?.[key];
+  if (value == null) return;
+  if (typeof value !== "string") return;
+  if (!value.includes("T")) return; // already in YYYY-MM-DD
+  obj[key] = format(new Date(value), "yyyy-MM-dd");
+}
+
+const migrations: Migration[] = [
+  {
+    version: 2,
+    migrate: (data: any) => {
+      // Strip time components from all date fields. Old files stored dates
+      // as local midnight -> UTC, so the hour shifts with DST. Converting
+      // back to a local YYYY-MM-DD string eliminates the ambiguity.
+      data.transactions?.forEach((t: any) => {
+        convertDateField(t, "date");
+      });
+      data.assignments?.forEach((a: any) => {
+        convertDateField(a, "date");
+      });
+      data.transfers?.forEach((t: any) => {
+        convertDateField(t, "date");
+      });
+      data.recurring_templates?.forEach((r: any) => {
+        convertDateField(r, "next_scheduled_date");
+        convertDateField(r, "start_date");
+        convertDateField(r, "end_date");
+      });
+      data.goals?.forEach((g: any) => {
+        convertDateField(g, "created_at");
+      });
+    },
+  },
+];
+
+/**
+ * Migrate a parsed ledger JSON object in-place to the current schema version.
+ * Files with no version field are treated as v1.
+ */
+export function migrateLedger(data: any): any {
+  const from = data.version ?? 1;
+  if (from < CURRENT_VERSION) {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.info(
+      `Migrating ledger from v${from} to v${CURRENT_VERSION}. Interpreting legacy timestamps in timezone: ${tz}`
+    );
+  }
+  for (const m of migrations) {
+    if (m.version > from) {
+      m.migrate(data);
+    }
+  }
+  data.version = CURRENT_VERSION;
+  return data;
+}

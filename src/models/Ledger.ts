@@ -7,6 +7,7 @@ import type { Balance } from "@/utils/types";
 import { Assignment } from "./Assignment";
 import type { BalanceAssertion } from "./BalanceAssertion";
 import { Goal } from "./Goal";
+import { CURRENT_VERSION, migrateLedger } from "./migrations";
 import { Payee } from "./Payee";
 import { RecurringTemplate } from "./RecurringTemplate";
 import { Transfer } from "./Transfer";
@@ -111,7 +112,7 @@ export class Ledger {
     const ledger = new Ledger();
     ledger.source = json;
 
-    const collections = JSON.parse(json);
+    const collections = migrateLedger(JSON.parse(json));
 
     ledger.name = collections.name || "Untitled Ledger";
 
@@ -184,6 +185,7 @@ export class Ledger {
 
   toJSON() {
     return {
+      version: CURRENT_VERSION,
       name: this.name,
       accounts: this.accounts.map((a) => a.toJSON()),
       budget_categories: this.budgetCategories.map((a) => a.toJSON()),
