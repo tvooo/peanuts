@@ -1,16 +1,18 @@
 import { startOfToday } from "date-fns";
-import { Archive, Eye } from "lucide-react";
+import { Archive, Eye, FileDown } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TransactionsTable } from "@/features/budget/TransactionsTable";
+import { ImportStatementModal } from "@/features/import/ImportStatementModal";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
 import { Transfer } from "@/models/Transfer";
 import { PageLayout } from "@/PageLayout";
 import { formatCurrency } from "@/utils/formatting";
+import { type ParsedStatement, parseStatementFile, StatementParseError } from "@/utils/import";
 import { useLedger } from "@/utils/useLedger";
 
 export const AccountPage = observer(function AccountPage() {
@@ -20,8 +22,26 @@ export const AccountPage = observer(function AccountPage() {
   const [autoEditTransactionId, setAutoEditTransactionId] = useState<string | null>(null);
   const [lastUsedDate, setLastUsedDate] = useState<Date>(startOfToday());
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingImport, setPendingImport] = useState<{
+    statement: ParsedStatement;
+    fileName: string;
+  } | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const dragDepth = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const currentAccount = ledger?.getAccount(params.accountName || "");
+
+  const handleImportFile = useCallback(async (file: File) => {
+    try {
+      const statement = parseStatementFile(await file.arrayBuffer());
+      setPendingImport({ statement, fileName: file.name });
+    } catch (e) {
+      const message =
+        e instanceof StatementParseError ? e.message : "Could not read the statement file.";
+      window.alert(`Import failed: ${message}`);
+    }
+  }, []);
 
   useEffect(() => {
     if (!ledger) {
@@ -210,7 +230,41 @@ export const AccountPage = observer(function AccountPage() {
 
   return (
     <PageLayout>
-      <div className="flex flex-col h-full">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: page-level drop target; the Import button is the accessible path */}
+      <div
+        className="flex flex-col h-full relative"
+        onDragEnter={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          dragDepth.current++;
+          setIsDraggingFile(true);
+        }}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+        }}
+        onDragLeave={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          dragDepth.current = Math.max(0, dragDepth.current - 1);
+          if (dragDepth.current === 0) setIsDraggingFile(false);
+        }}
+        onDrop={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          dragDepth.current = 0;
+          setIsDraggingFile(false);
+          const file = e.dataTransfer.files[0];
+          if (file) handleImportFile(file);
+        }}
+      >
+        {isDraggingFile && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-white/80 pointer-events-none">
+            <div className="flex items-center gap-2 text-primary font-medium">
+              <FileDown size={20} />
+              Drop bank statement to import
+            </div>
+          </div>
+        )}
         {/* Fixed header - Account info */}
         <div className="flex justify-between items-center px-8 py-4 shrink-0">
           <div className="flex items-center gap-3">
@@ -275,7 +329,24 @@ export const AccountPage = observer(function AccountPage() {
               className="w-64"
             />
           </div>
-          <Button onClick={handleCreateNewTransaction}>New Transaction</Button>
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImportFile(file);
+                e.target.value = "";
+              }}
+            />
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+              <FileDown size={16} />
+              Import
+            </Button>
+            <Button onClick={handleCreateNewTransaction}>New Transaction</Button>
+          </div>
         </div>
 
         {/* Scrollable table container */}
@@ -302,6 +373,13 @@ export const AccountPage = observer(function AccountPage() {
             searchQuery={searchQuery}
           />
         </div>
+
+        <ImportStatementModal
+          account={currentAccount}
+          statement={pendingImport?.statement ?? null}
+          fileName={pendingImport?.fileName ?? ""}
+          onClose={() => setPendingImport(null)}
+        />
       </div>
     </PageLayout>
   );
