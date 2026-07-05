@@ -562,7 +562,7 @@ export const TransactionsTable = observer(function TransactionsTable({
     // Monthly rrule using the transaction's day-of-month
     const day = txn.date?.getDate() ?? 1;
     template.rruleString = `FREQ=MONTHLY;BYMONTHDAY=${day}`;
-    template.nextScheduledDate = template.calculateNextOccurrence(startOfDay(new Date()));
+    // lastGeneratedDate stays null; the next occurrence is generated going forward.
 
     setRecurringTemplate(template);
   }, [ledger]);
