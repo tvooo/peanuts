@@ -334,7 +334,7 @@ export const RecurringTransactionsTable = observer(function RecurringTransaction
                       </td>
                       <td className="py-2 pr-2 px-3 text-sm align-middle">
                         <span className="text-xs text-muted-foreground">
-                          {template.nextScheduledDate.toLocaleDateString()}
+                          {template.nextOccurrence?.toLocaleDateString() ?? "—"}
                         </span>
                       </td>
                     </tr>

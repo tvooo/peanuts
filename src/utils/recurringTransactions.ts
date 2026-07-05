@@ -1,46 +1,68 @@
 import { createId } from "@paralleldrive/cuid2";
-import { isAfter, isSameDay, startOfDay } from "date-fns";
+import { endOfDay, startOfDay } from "date-fns";
 import { runInAction } from "mobx";
 import type { Ledger } from "@/models/Ledger";
 import type { RecurringTemplate } from "@/models/RecurringTemplate";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
 
-export function processRecurringTemplates(ledger: Ledger) {
-  console.log("Processing recurring templates...");
-
+/**
+ * Materialize recurring templates into transactions.
+ *
+ * For each template we generate every occurrence in the half-open range
+ * `(lastGeneratedDate, horizon]`, where `horizon` is the first occurrence
+ * strictly after today (the single upcoming instance the user should see).
+ * `lastGeneratedDate` is the watermark / run log: the source of truth for what
+ * has already been created. This makes the function idempotent — running it
+ * repeatedly on the same day creates nothing new — and decouples generated
+ * transactions from the template once created (editing or deleting a generated
+ * transaction never regenerates it).
+ *
+ * See docs/recurring-transactions.md for the full design.
+ */
+export function processRecurringTemplates(ledger: Ledger, now: Date = new Date()) {
   runInAction(() => {
+    let createdAny = false;
+
     for (const template of ledger.recurringTemplates) {
-      // Normalize nextScheduledDate to start of day
-      template.nextScheduledDate = startOfDay(template.nextScheduledDate);
+      // Horizon: the first occurrence strictly after today. Everything up to and
+      // including today (backfill of missed occurrences) plus this single future
+      // occurrence will be generated.
+      const horizon = template.calculateNextOccurrence(endOfDay(now));
+      if (!horizon) continue; // schedule exhausted
 
-      // Check if we have a transaction scheduled for nextScheduledDate or later
-      const hasFutureInstance = ledger.transactions.some(
-        (t) =>
-          t.recurringTemplateId === template.id &&
-          t.date &&
-          (isSameDay(t.date, template.nextScheduledDate) ||
-            isAfter(t.date, template.nextScheduledDate))
-      );
+      const endDate = template.endDate ? startOfDay(template.endDate) : null;
 
-      // If no future instance exists, create one
-      if (!hasFutureInstance) {
-        // Check end date
-        if (template.endDate && isAfter(template.nextScheduledDate, startOfDay(template.endDate))) {
-          continue; // Template has ended
-        }
+      // Walk occurrences strictly after the watermark, up to the horizon.
+      let cursor = template.lastGeneratedDate
+        ? startOfDay(template.lastGeneratedDate)
+        : // Start just before the first scheduled occurrence so it is included.
+          startOfDay(new Date(template.startDate.getTime() - 24 * 60 * 60 * 1000));
 
-        // Create transaction at nextScheduledDate
-        createTransactionFromTemplate(ledger, template);
+      while (true) {
+        const occ = template.calculateNextOccurrence(cursor);
+        if (!occ || occ > horizon) break;
+        if (endDate && occ > endDate) break;
 
-        // Advance nextScheduledDate to the occurrence AFTER the one we just created
-        const newNextDate = template.calculateNextOccurrence(template.nextScheduledDate);
-        template.nextScheduledDate = startOfDay(newNextDate);
+        createTransactionFromTemplate(ledger, template, occ);
+        template.lastGeneratedDate = occ;
+        createdAny = true;
+        cursor = occ;
       }
+    }
+
+    // Only mark the ledger dirty if we actually created something, so a plain
+    // load with no new occurrences does not trigger a save.
+    if (createdAny) {
+      ledger.incrementVersion();
     }
   });
 }
 
-function createTransactionFromTemplate(ledger: Ledger, template: RecurringTemplate) {
+function createTransactionFromTemplate(
+  ledger: Ledger,
+  template: RecurringTemplate,
+  date: Date
+) {
   // Create posting
   const posting = new TransactionPosting({ ledger, id: createId() });
   posting.amount = template.amount;
@@ -50,7 +72,7 @@ function createTransactionFromTemplate(ledger: Ledger, template: RecurringTempla
 
   // Create transaction with date normalized to start of day
   const transaction = new Transaction({ ledger, id: createId() });
-  transaction.date = startOfDay(template.nextScheduledDate);
+  transaction.date = startOfDay(date);
   transaction.account = template.account;
   transaction.payee = template.payee;
   transaction.postings.push(posting);

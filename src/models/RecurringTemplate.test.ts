@@ -4,16 +4,11 @@ import { Ledger } from "./Ledger";
 import { RecurringTemplate } from "./RecurringTemplate";
 
 // Helper to create a template with the given rrule and start date
-function createTemplate(
-  rruleString: string,
-  startDate: Date,
-  nextScheduledDate?: Date
-): RecurringTemplate {
+function createTemplate(rruleString: string, startDate: Date): RecurringTemplate {
   const ledger = new Ledger();
   const template = new RecurringTemplate({ id: "test-template", ledger });
   template.rruleString = rruleString;
   template.startDate = startOfDay(startDate);
-  template.nextScheduledDate = startOfDay(nextScheduledDate || startDate);
   return template;
 }
 
@@ -29,7 +24,7 @@ describe("RecurringTemplate", () => {
         const jan15 = new Date(2024, 0, 15);
         const next = template.calculateNextOccurrence(jan15);
 
-        expect(isSameDay(next, new Date(2024, 1, 15))).toBe(true); // Feb 15
+        expect(isSameDay(next!, new Date(2024, 1, 15))).toBe(true); // Feb 15
       });
 
       it("advances from Feb 15 to Mar 15", () => {
@@ -38,7 +33,7 @@ describe("RecurringTemplate", () => {
         const feb15 = new Date(2024, 1, 15);
         const next = template.calculateNextOccurrence(feb15);
 
-        expect(isSameDay(next, new Date(2024, 2, 15))).toBe(true); // Mar 15
+        expect(isSameDay(next!, new Date(2024, 2, 15))).toBe(true); // Mar 15
       });
 
       it("handles last day of month", () => {
@@ -48,7 +43,7 @@ describe("RecurringTemplate", () => {
         const next = template.calculateNextOccurrence(jan31);
 
         // Feb 29 (2024 is a leap year)
-        expect(isSameDay(next, new Date(2024, 1, 29))).toBe(true);
+        expect(isSameDay(next!, new Date(2024, 1, 29))).toBe(true);
       });
     });
 
@@ -59,7 +54,7 @@ describe("RecurringTemplate", () => {
 
         // From Jan 1 (the start), next should be Jan 15 (2 weeks later)
         const next = template.calculateNextOccurrence(startDate);
-        expect(isSameDay(next, new Date(2024, 0, 15))).toBe(true);
+        expect(isSameDay(next!, new Date(2024, 0, 15))).toBe(true);
       });
 
       it("maintains correct 2-week interval", () => {
@@ -69,7 +64,7 @@ describe("RecurringTemplate", () => {
         // From Jan 15, next should be Jan 29
         const jan15 = new Date(2024, 0, 15);
         const next = template.calculateNextOccurrence(jan15);
-        expect(isSameDay(next, new Date(2024, 0, 29))).toBe(true);
+        expect(isSameDay(next!, new Date(2024, 0, 29))).toBe(true);
       });
 
       it("dtstart affects which weeks are valid", () => {
@@ -79,7 +74,7 @@ describe("RecurringTemplate", () => {
 
         // From Jan 8, next should be Jan 22 (not Jan 15!)
         const next = template.calculateNextOccurrence(startDate);
-        expect(isSameDay(next, new Date(2024, 0, 22))).toBe(true);
+        expect(isSameDay(next!, new Date(2024, 0, 22))).toBe(true);
       });
     });
 
@@ -89,7 +84,7 @@ describe("RecurringTemplate", () => {
         const template = createTemplate("FREQ=WEEKLY;BYDAY=MO", startDate);
 
         const next = template.calculateNextOccurrence(startDate);
-        expect(isSameDay(next, new Date(2024, 0, 8))).toBe(true);
+        expect(isSameDay(next!, new Date(2024, 0, 8))).toBe(true);
       });
     });
 
@@ -99,7 +94,7 @@ describe("RecurringTemplate", () => {
         const template = createTemplate("FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1", startDate);
 
         const next = template.calculateNextOccurrence(startDate);
-        expect(isSameDay(next, new Date(2025, 0, 1))).toBe(true);
+        expect(isSameDay(next!, new Date(2025, 0, 1))).toBe(true);
       });
 
       it("handles Feb 29 on non-leap year", () => {
@@ -108,7 +103,7 @@ describe("RecurringTemplate", () => {
 
         // Next Feb 29 is in 2028
         const next = template.calculateNextOccurrence(startDate);
-        expect(isSameDay(next, new Date(2028, 1, 29))).toBe(true);
+        expect(isSameDay(next!, new Date(2028, 1, 29))).toBe(true);
       });
     });
 
@@ -122,24 +117,18 @@ describe("RecurringTemplate", () => {
         const next = template.calculateNextOccurrence(jan10);
 
         // Should return Jan 15, not skip to Feb 15
-        expect(isSameDay(next, new Date(2024, 0, 15))).toBe(true);
+        expect(isSameDay(next!, new Date(2024, 0, 15))).toBe(true);
       });
 
-      it("handles template with no more valid occurrences gracefully", () => {
+      it("returns null when the schedule is exhausted", () => {
         const startDate = new Date(2024, 0, 1);
-        const template = createTemplate(
-          "FREQ=MONTHLY;BYMONTHDAY=15;COUNT=1",
-          startDate,
-          new Date(2024, 0, 15) // Already used the one occurrence
-        );
+        const template = createTemplate("FREQ=MONTHLY;BYMONTHDAY=15;COUNT=1", startDate);
 
-        // After the COUNT=1 is exhausted, should not crash
+        // The single COUNT=1 occurrence is Jan 15; nothing comes after it.
         const jan15 = new Date(2024, 0, 15);
         const next = template.calculateNextOccurrence(jan15);
 
-        // Should return something (even if it's the fallback)
-        expect(next).toBeDefined();
-        expect(next instanceof Date).toBe(true);
+        expect(next).toBeNull();
       });
     });
   });
