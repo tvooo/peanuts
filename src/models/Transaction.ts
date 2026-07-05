@@ -26,6 +26,14 @@ export class Transaction extends Model {
   @observable
   accessor recurringTemplateId: string | null = null;
 
+  /** Stable identifier from a bank statement import, used to detect duplicates */
+  @observable
+  accessor importId: string | null = null;
+
+  /** Raw counterparty name as it appeared in the imported statement */
+  @observable
+  accessor importPayee: string | null = null;
+
   static fromJSON(json: any, ledger: Ledger) {
     const transaction = new Transaction({ id: json.id, ledger });
     transaction.account = ledger.getAccountByIdFast(json.account_id) || null;
@@ -36,6 +44,8 @@ export class Transaction extends Model {
     transaction.status = json.status;
     transaction.date = json.date ? deserializeDate(json.date) : null;
     transaction.recurringTemplateId = json.recurring_template_id || null;
+    transaction.importId = json.import_id || null;
+    transaction.importPayee = json.import_payee || null;
     return transaction;
   }
 
@@ -48,6 +58,8 @@ export class Transaction extends Model {
       status: this.status,
       date: this.date ? serializeDate(this.date) : null,
       recurring_template_id: this.recurringTemplateId,
+      import_id: this.importId,
+      import_payee: this.importPayee,
     };
   }
 
@@ -129,6 +141,8 @@ export class Transaction extends Model {
     draft.payee = this.payee;
     draft.status = this.status;
     draft.recurringTemplateId = this.recurringTemplateId;
+    draft.importId = this.importId;
+    draft.importPayee = this.importPayee;
 
     // Clone postings (not added to ledger)
     draft.postings = this.postings.map((posting) => posting.clone());
@@ -146,6 +160,8 @@ export class Transaction extends Model {
     this.payee = draft.payee;
     this.status = draft.status;
     this.recurringTemplateId = draft.recurringTemplateId;
+    this.importId = draft.importId;
+    this.importPayee = draft.importPayee;
 
     // Handle postings: remove deleted ones, update existing, add new
     const draftPostingIds = new Set(draft.postings.map((p) => p.id));
