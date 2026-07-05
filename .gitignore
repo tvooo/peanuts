@@ -34,3 +34,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local working files
+anon-budget.json
+SECURITY_ANALYSIS.md
+.vscode/
