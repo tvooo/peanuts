@@ -89,11 +89,6 @@ export const TransactionFormRow = observer(function TransactionFormRow({
   // Group budgets by category (with split option)
   const budgetGroups = useBudgetGroups(ledger!, { includeSplitOption: true });
 
-  // Get suggested budget based on selected payee
-  const suggestedBudget = transaction.payee
-    ? ledger?.getLastBudgetForPayee(transaction.payee.id)
-    : undefined;
-
   // Creators for inline creation
   const createPayee = usePayeeCreator(ledger!);
   const createBudget = useBudgetCreator(ledger!);
@@ -136,6 +131,14 @@ export const TransactionFormRow = observer(function TransactionFormRow({
               } else if (option.payee) {
                 // Set payee
                 transaction.payee = option.payee;
+                // Pre-fill the category with the last one used for this payee,
+                // so the user can tab straight through without picking it again.
+                if (!posting.budget) {
+                  const lastBudget = ledger?.getLastBudgetForPayee(option.payee.id);
+                  if (lastBudget) {
+                    posting.setBudget(lastBudget);
+                  }
+                }
               }
             }}
             onCreateNew={createPayee}
@@ -147,7 +150,6 @@ export const TransactionFormRow = observer(function TransactionFormRow({
           <Combobox
             ref={budgetComboboxRef}
             groups={budgetGroups}
-            suggestedId={suggestedBudget?.id}
             value={
               posting.budget
                 ? {
