@@ -121,7 +121,12 @@ export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: N
       .y1((d) => yScale(d.value))
       .curve(d3.curveMonotoneX);
 
-    svg.append("path").datum(data).attr("fill", chartColors.green).attr("opacity", 0.12).attr("d", area);
+    svg
+      .append("path")
+      .datum(data)
+      .attr("fill", chartColors.green)
+      .attr("opacity", 0.12)
+      .attr("d", area);
 
     // Line generator
     const line = d3

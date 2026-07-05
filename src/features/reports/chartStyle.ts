@@ -1,4 +1,4 @@
-import * as d3 from "d3";
+import type * as d3 from "d3";
 
 /**
  * Cushion-inspired chart styling: a muted, clean palette plus small helpers for
