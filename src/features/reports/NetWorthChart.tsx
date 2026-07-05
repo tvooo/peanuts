@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 import { useEffect, useMemo, useRef } from "react";
 import type { Ledger } from "@/models/Ledger";
 import { formatCurrency } from "@/utils/formatting";
+import { chartColors, drawTooltip, tidyAxis } from "./chartStyle";
 
 interface NetWorthChartProps {
   ledger: Ledger;
@@ -64,11 +65,15 @@ export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: N
     const width = 800 - margin.left - margin.right;
     const height = 300 - margin.top - margin.bottom;
 
-    // Create SVG
+    // Create SVG (responsive via viewBox)
+    const totalWidth = width + margin.left + margin.right;
+    const totalHeight = height + margin.top + margin.bottom;
     const svg = d3
       .select(svgRef.current)
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
+      .attr("viewBox", `0 0 ${totalWidth} ${totalHeight}`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
+      .style("width", "100%")
+      .style("height", "auto")
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -88,45 +93,54 @@ export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: N
       .ticks(6)
       .tickFormat((d) => formatCurrency(d.valueOf()));
 
-    svg
-      .append("g")
-      .attr("transform", `translate(0,${height})`)
-      .call(xAxis)
-      .selectAll("text")
-      .style("font-size", "12px");
-
-    svg.append("g").call(yAxis).selectAll("text").style("font-size", "12px");
-
-    // Add grid lines
+    // Grid lines first
     svg
       .append("g")
       .attr("class", "grid")
-      .attr("opacity", 0.1)
       .call(
         d3
           .axisLeft(yScale)
           .ticks(6)
           .tickSize(-width)
           .tickFormat(() => "")
-      );
+      )
+      .call((g) => {
+        g.select(".domain").remove();
+        g.selectAll(".tick line").attr("stroke", chartColors.grid);
+        g.selectAll("text").remove();
+      });
 
-    // Create line generator
+    svg.append("g").attr("transform", `translate(0,${height})`).call(xAxis).call(tidyAxis);
+    svg.append("g").call(yAxis).call(tidyAxis);
+
+    // Soft area fill under the line
+    const area = d3
+      .area<{ date: Date; value: number }>()
+      .x((d) => xScale(d.date))
+      .y0(yScale(Math.max(0, yScale.domain()[0])))
+      .y1((d) => yScale(d.value))
+      .curve(d3.curveMonotoneX);
+
+    svg.append("path").datum(data).attr("fill", chartColors.green).attr("opacity", 0.12).attr("d", area);
+
+    // Line generator
     const line = d3
       .line<{ date: Date; value: number }>()
       .x((d) => xScale(d.date))
       .y((d) => yScale(d.value))
       .curve(d3.curveMonotoneX);
 
-    // Add the line
     svg
       .append("path")
       .datum(data)
       .attr("fill", "none")
-      .attr("stroke", "#3b82f6")
-      .attr("stroke-width", 2)
+      .attr("stroke", chartColors.green)
+      .attr("stroke-width", 2.5)
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-linecap", "round")
       .attr("d", line);
 
-    // Add dots
+    // Dots
     svg
       .selectAll("circle")
       .data(data)
@@ -135,42 +149,20 @@ export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: N
       .attr("cx", (d) => xScale(d.date))
       .attr("cy", (d) => yScale(d.value))
       .attr("r", 4)
-      .attr("fill", "#3b82f6")
+      .attr("fill", chartColors.green)
       .attr("stroke", "white")
       .attr("stroke-width", 2)
+      .style("cursor", "pointer")
       .on("mouseenter", function (_event, d) {
         d3.select(this).attr("r", 6);
-
-        // Show tooltip
-        const tooltip = svg
-          .append("g")
-          .attr("class", "tooltip")
-          .attr("transform", `translate(${xScale(d.date)},${yScale(d.value) - 10})`);
-
-        tooltip
-          .append("rect")
-          .attr("x", -60)
-          .attr("y", -30)
-          .attr("width", 120)
-          .attr("height", 25)
-          .attr("fill", "black")
-          .attr("opacity", 0.8)
-          .attr("rx", 4);
-
-        tooltip
-          .append("text")
-          .attr("text-anchor", "middle")
-          .attr("y", -12)
-          .attr("fill", "white")
-          .style("font-size", "12px")
-          .text(formatCurrency(d.value));
+        drawTooltip(svg, xScale(d.date), yScale(d.value), formatCurrency(d.value));
       })
       .on("mouseleave", function () {
         d3.select(this).attr("r", 4);
         svg.selectAll(".tooltip").remove();
       });
 
-    // Add zero line if needed
+    // Zero line if needed
     if (yScale.domain()[0] < 0) {
       svg
         .append("line")
@@ -178,16 +170,16 @@ export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: N
         .attr("x2", width)
         .attr("y1", yScale(0))
         .attr("y2", yScale(0))
-        .attr("stroke", "#666")
+        .attr("stroke", chartColors.zero)
         .attr("stroke-width", 1)
         .attr("stroke-dasharray", "4,4");
     }
   }, [data, year]);
 
   return (
-    <div className="border rounded-lg p-4 bg-white">
-      <h3 className="text-lg font-semibold mb-4">Net Worth</h3>
-      <svg ref={svgRef}></svg>
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <h3 className="mb-4 text-base font-semibold">Net Worth</h3>
+      <svg ref={svgRef} className="w-full"></svg>
     </div>
   );
 });

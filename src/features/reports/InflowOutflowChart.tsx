@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite";
 import { useEffect, useMemo, useRef } from "react";
 import type { Ledger } from "@/models/Ledger";
 import { formatCurrency } from "@/utils/formatting";
+import { chartColors, drawTooltip, tidyAxis, topRoundedRect } from "./chartStyle";
 
 interface InflowOutflowChartProps {
   ledger: Ledger;
@@ -24,6 +25,10 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
     const endDate = endOfYear(new Date(year, 0, 1));
     const months = eachMonthOfInterval({ start: startDate, end: endDate });
 
+    // Inflow / outflow = money entering / leaving your accounts from the outside.
+    // Computed by sign over (non-tracking) transactions. Transfers are NOT included
+    // here — they live in a separate `ledger.transfers` collection and represent
+    // internal moves between your own accounts, so they never count as in/outflow.
     return months.map((month) => {
       const monthTransactions = ledger.transactions.filter(
         (t) =>
@@ -59,11 +64,15 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
     const width = 800 - margin.left - margin.right;
     const height = 300 - margin.top - margin.bottom;
 
-    // Create SVG
+    // Create SVG (responsive via viewBox)
+    const totalWidth = width + margin.left + margin.right;
+    const totalHeight = height + margin.top + margin.bottom;
     const svg = d3
       .select(svgRef.current)
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
+      .attr("viewBox", `0 0 ${totalWidth} ${totalHeight}`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
+      .style("width", "100%")
+      .style("height", "auto")
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -90,153 +99,91 @@ export const InflowOutflowChart = observer(function InflowOutflowChart({
       .ticks(6)
       .tickFormat((d) => formatCurrency(d.valueOf()));
 
-    svg
-      .append("g")
-      .attr("transform", `translate(0,${height})`)
-      .call(xAxis)
-      .selectAll("text")
-      .style("font-size", "12px");
-
-    svg.append("g").call(yAxis).selectAll("text").style("font-size", "12px");
-
-    // Add grid lines
+    // Add grid lines first so bars sit on top
     svg
       .append("g")
       .attr("class", "grid")
-      .attr("opacity", 0.1)
       .call(
         d3
           .axisLeft(yScale)
           .ticks(6)
           .tickSize(-width)
           .tickFormat(() => "")
-      );
+      )
+      .call((g) => {
+        g.select(".domain").remove();
+        g.selectAll(".tick line").attr("stroke", chartColors.grid);
+        g.selectAll("text").remove();
+      });
 
-    // Calculate bar width
+    svg.append("g").attr("transform", `translate(0,${height})`).call(xAxis).call(tidyAxis);
+    svg.append("g").call(yAxis).call(tidyAxis);
+
     const barWidth = xScale.bandwidth() / 2;
+    const radius = 5;
 
-    // Add inflow bars
-    svg
-      .selectAll(".bar-inflow")
-      .data(data)
-      .enter()
-      .append("rect")
-      .attr("class", "bar-inflow")
-      .attr("x", (d) => (xScale(d.monthName) || 0) + barWidth / 2)
-      .attr("y", (d) => yScale(d.inflow))
-      .attr("width", barWidth)
-      .attr("height", (d) => height - yScale(d.inflow))
-      .attr("fill", "#16a34a")
-      .on("mouseenter", function (_event, d) {
-        d3.select(this).attr("opacity", 0.8);
-
-        // Show tooltip
-        const tooltip = svg
-          .append("g")
-          .attr("class", "tooltip")
-          .attr(
-            "transform",
-            `translate(${(xScale(d.monthName) || 0) + barWidth},${yScale(d.inflow) - 10})`
+    const addBars = (
+      className: string,
+      valueKey: "inflow" | "outflow",
+      offset: number,
+      color: string
+    ) => {
+      svg
+        .selectAll(`.${className}`)
+        .data(data)
+        .enter()
+        .append("path")
+        .attr("class", className)
+        .attr("d", (d) =>
+          topRoundedRect(
+            (xScale(d.monthName) || 0) + offset,
+            yScale(d[valueKey]),
+            barWidth,
+            height - yScale(d[valueKey]),
+            radius
+          )
+        )
+        .attr("fill", color)
+        .style("cursor", "pointer")
+        .on("mouseenter", function (_event, d) {
+          d3.select(this).attr("opacity", 0.85);
+          drawTooltip(
+            svg,
+            (xScale(d.monthName) || 0) + offset + barWidth / 2,
+            yScale(d[valueKey]),
+            formatCurrency(d[valueKey])
           );
+        })
+        .on("mouseleave", function () {
+          d3.select(this).attr("opacity", 1);
+          svg.selectAll(".tooltip").remove();
+        });
+    };
 
-        tooltip
-          .append("rect")
-          .attr("x", -60)
-          .attr("y", -30)
-          .attr("width", 120)
-          .attr("height", 25)
-          .attr("fill", "black")
-          .attr("opacity", 0.8)
-          .attr("rx", 4);
+    addBars("bar-inflow", "inflow", barWidth / 2, chartColors.green);
+    addBars("bar-outflow", "outflow", barWidth * 1.5, chartColors.coral);
 
-        tooltip
-          .append("text")
-          .attr("text-anchor", "middle")
-          .attr("y", -12)
-          .attr("fill", "white")
-          .style("font-size", "12px")
-          .text(formatCurrency(d.inflow));
-      })
-      .on("mouseleave", function () {
-        d3.select(this).attr("opacity", 1);
-        svg.selectAll(".tooltip").remove();
-      });
-
-    // Add outflow bars
-    svg
-      .selectAll(".bar-outflow")
-      .data(data)
-      .enter()
-      .append("rect")
-      .attr("class", "bar-outflow")
-      .attr("x", (d) => (xScale(d.monthName) || 0) + barWidth * 1.5)
-      .attr("y", (d) => yScale(d.outflow))
-      .attr("width", barWidth)
-      .attr("height", (d) => height - yScale(d.outflow))
-      .attr("fill", "#dc2626")
-      .on("mouseenter", function (_event, d) {
-        d3.select(this).attr("opacity", 0.8);
-
-        // Show tooltip
-        const tooltip = svg
-          .append("g")
-          .attr("class", "tooltip")
-          .attr(
-            "transform",
-            `translate(${(xScale(d.monthName) || 0) + barWidth * 2},${yScale(d.outflow) - 10})`
-          );
-
-        tooltip
-          .append("rect")
-          .attr("x", -60)
-          .attr("y", -30)
-          .attr("width", 120)
-          .attr("height", 25)
-          .attr("fill", "black")
-          .attr("opacity", 0.8)
-          .attr("rx", 4);
-
-        tooltip
-          .append("text")
-          .attr("text-anchor", "middle")
-          .attr("y", -12)
-          .attr("fill", "white")
-          .style("font-size", "12px")
-          .text(formatCurrency(d.outflow));
-      })
-      .on("mouseleave", function () {
-        d3.select(this).attr("opacity", 1);
-        svg.selectAll(".tooltip").remove();
-      });
-
-    // Add legend
-    const legend = svg.append("g").attr("transform", `translate(${width - 150}, 0)`);
-
-    legend
-      .append("rect")
-      .attr("x", 0)
-      .attr("y", 0)
-      .attr("width", 15)
-      .attr("height", 15)
-      .attr("fill", "#16a34a");
-
-    legend.append("text").attr("x", 20).attr("y", 12).style("font-size", "12px").text("Inflow");
-
-    legend
-      .append("rect")
-      .attr("x", 80)
-      .attr("y", 0)
-      .attr("width", 15)
-      .attr("height", 15)
-      .attr("fill", "#dc2626");
-
-    legend.append("text").attr("x", 100).attr("y", 12).style("font-size", "12px").text("Outflow");
+    // Legend
+    const legend = svg.append("g").attr("transform", `translate(${width - 150}, -8)`);
+    const legendItem = (x: number, color: string, label: string) => {
+      const g = legend.append("g").attr("transform", `translate(${x},0)`);
+      g.append("rect").attr("width", 12).attr("height", 12).attr("rx", 3).attr("fill", color);
+      g.append("text")
+        .attr("x", 18)
+        .attr("y", 10)
+        .style("font-size", "12px")
+        .style("fill", chartColors.axis)
+        .style("font-family", "inherit")
+        .text(label);
+    };
+    legendItem(0, chartColors.green, "Inflow");
+    legendItem(80, chartColors.coral, "Outflow");
   }, [data]);
 
   return (
-    <div className="border rounded-lg p-4 bg-white">
-      <h3 className="text-lg font-semibold mb-4">Inflow / Outflow</h3>
-      <svg ref={svgRef}></svg>
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <h3 className="mb-4 text-base font-semibold">Inflow / Outflow</h3>
+      <svg ref={svgRef} className="w-full"></svg>
     </div>
   );
 });
