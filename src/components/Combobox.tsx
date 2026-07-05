@@ -1,4 +1,4 @@
-import { Plus, Star } from "lucide-react";
+import { Plus } from "lucide-react";
 import * as React from "react";
 import {
   Command,
@@ -34,8 +34,6 @@ interface ComboboxProps<T extends ComboboxOption>
   className?: string;
   getLabel?: (option: T) => string;
   filterFn?: (option: T, search: string) => boolean;
-  /** ID of a suggested option to highlight (e.g., last used budget for a payee) */
-  suggestedId?: string;
 }
 
 function ComboboxInner<T extends ComboboxOption>(
@@ -50,7 +48,6 @@ function ComboboxInner<T extends ComboboxOption>(
     className,
     getLabel = (option) => option.label,
     filterFn,
-    suggestedId,
     ...inputProps
   }: ComboboxProps<T>,
   ref: React.ForwardedRef<HTMLInputElement>
@@ -79,39 +76,19 @@ function ComboboxInner<T extends ComboboxOption>(
     [getLabel]
   );
 
-  // Filter options based on search, with suggested option first
+  // Filter options based on search
   const filteredOptions = React.useMemo(() => {
     const filter = filterFn || defaultFilterFn;
-    const baseOptions = !search
+    return !search
       ? allOptions
       : allOptions.filter((option) => filter(option, search.toLowerCase()));
+  }, [allOptions, search, filterFn, defaultFilterFn]);
 
-    // Sort suggested option to the front for keyboard navigation
-    if (suggestedId) {
-      const suggestedIndex = baseOptions.findIndex((opt) => opt.id === suggestedId);
-      if (suggestedIndex > 0) {
-        const suggested = baseOptions[suggestedIndex];
-        return [
-          suggested,
-          ...baseOptions.slice(0, suggestedIndex),
-          ...baseOptions.slice(suggestedIndex + 1),
-        ];
-      }
-    }
-    return baseOptions;
-  }, [allOptions, search, filterFn, defaultFilterFn, suggestedId]);
-
-  // Find the suggested option for rendering
-  const suggestedOption = React.useMemo(() => {
-    if (!suggestedId) return null;
-    return filteredOptions.find((opt) => opt.id === suggestedId) || null;
-  }, [filteredOptions, suggestedId]);
-
-  // Filter groups based on search, excluding the suggested option (shown separately)
+  // Filter groups based on search
   const filteredGroups = React.useMemo(() => {
     if (!groups) return null;
     const filter = filterFn || defaultFilterFn;
-    const baseGroups = !search
+    return !search
       ? groups
       : groups
           .map((group) => ({
@@ -119,18 +96,7 @@ function ComboboxInner<T extends ComboboxOption>(
             options: group.options.filter((option) => filter(option, search.toLowerCase())),
           }))
           .filter((group) => group.options.length > 0);
-
-    // If we have a suggested option, remove it from its original group (it will be shown at the top)
-    if (suggestedId) {
-      return baseGroups
-        .map((group) => ({
-          ...group,
-          options: group.options.filter((opt) => opt.id !== suggestedId),
-        }))
-        .filter((group) => group.options.length > 0);
-    }
-    return baseGroups;
-  }, [groups, search, filterFn, defaultFilterFn, suggestedId]);
+  }, [groups, search, filterFn, defaultFilterFn]);
 
   // Check if we should show the "Create" option
   const showCreateOption = React.useMemo(() => {
@@ -164,8 +130,6 @@ function ComboboxInner<T extends ComboboxOption>(
   const wasOpenRef = React.useRef(false);
   // Track previous search to detect filter changes
   const prevSearchRef = React.useRef(search);
-  // Track previous suggestedId to detect when it changes
-  const prevSuggestedIdRef = React.useRef(suggestedId);
   // Track if user has manually navigated (arrow keys)
   const hasManuallyNavigatedRef = React.useRef(false);
 
@@ -183,15 +147,13 @@ function ComboboxInner<T extends ComboboxOption>(
     }
   }, [value, open, getLabel]);
 
-  // Set default selection when popover opens, search changes, or suggestedId changes
+  // Set default selection when popover opens or search changes
   React.useEffect(() => {
     const justOpened = open && !wasOpenRef.current;
     const searchChanged = search !== prevSearchRef.current;
-    const suggestedIdChanged = suggestedId !== prevSuggestedIdRef.current;
 
     wasOpenRef.current = open;
     prevSearchRef.current = search;
-    prevSuggestedIdRef.current = suggestedId;
 
     // Clear selection when popover closes and no value
     if (!open && !value) {
@@ -204,23 +166,20 @@ function ComboboxInner<T extends ComboboxOption>(
       return;
     }
 
-    // Update selection when: popover opens, search changes, or suggestedId changes
+    // Update selection when: popover opens or search changes
     const shouldUpdateSelection =
-      open && filteredOptions.length > 0 && (justOpened || searchChanged || suggestedIdChanged);
+      open && filteredOptions.length > 0 && (justOpened || searchChanged);
 
     if (shouldUpdateSelection) {
       // When opening, if current value is in filtered options, keep it selected
       if (value && filteredOptions.find((opt) => opt.id === value.id)) {
         setSelectedValue(value.id);
-      } else if (suggestedId && filteredOptions.find((opt) => opt.id === suggestedId)) {
-        // If there's a suggested option, select it
-        setSelectedValue(suggestedId);
       } else {
         // Otherwise, default to first filtered option
         setSelectedValue(filteredOptions[0].id);
       }
     }
-  }, [open, search, filteredOptions, value, suggestedId]);
+  }, [open, search, filteredOptions, value]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -355,26 +314,8 @@ function ComboboxInner<T extends ComboboxOption>(
             {filteredGroups ? (
               // Render grouped options
               <>
-                {filteredGroups.length === 0 && !suggestedOption && !showCreateOption && (
+                {filteredGroups.length === 0 && !showCreateOption && (
                   <CommandEmpty>{emptyText}</CommandEmpty>
-                )}
-                {/* Show suggested option at the top */}
-                {suggestedOption && (
-                  <>
-                    <CommandGroup heading="Suggested">
-                      <CommandItem
-                        key={suggestedOption.id}
-                        value={suggestedOption.id}
-                        onSelect={() => handleSelect(suggestedOption)}
-                        className="bg-amber-50"
-                      >
-                        {suggestedOption.icon}
-                        {getLabel(suggestedOption)}
-                        <Star className="ml-auto h-3 w-3 text-amber-500 fill-amber-500" />
-                      </CommandItem>
-                    </CommandGroup>
-                    {filteredGroups.length > 0 && <CommandSeparator />}
-                  </>
                 )}
                 {filteredGroups.map((group, idx) => (
                   <React.Fragment key={group.label}>
@@ -405,13 +346,9 @@ function ComboboxInner<T extends ComboboxOption>(
                     key={option.id}
                     value={option.id}
                     onSelect={() => handleSelect(option)}
-                    className={cn(suggestedId === option.id && "bg-amber-50")}
                   >
                     {option.icon}
                     {getLabel(option)}
-                    {suggestedId === option.id && (
-                      <span className="ml-auto text-xs text-amber-600">suggested</span>
-                    )}
                   </CommandItem>
                 ))}
               </CommandGroup>
