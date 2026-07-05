@@ -11,7 +11,7 @@ import { type BudgetOption, useBudgetGroups } from "@/hooks/useBudgetGroups";
 import { Assignment } from "@/models/Assignment";
 import type { Budget } from "@/models/Budget";
 import type { Ledger } from "@/models/Ledger";
-import { formatCurrency, parseCurrencyInput } from "@/utils/formatting";
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 
 interface MoveMoneyPopoverProps {
   sourceBudget: Budget;
@@ -33,12 +33,20 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
   const isOverspent = availableAmount < 0;
   const overspentAmount = Math.abs(availableAmount);
 
+  // When covering an overspend, never pull more than the source budget actually has
+  // available — otherwise we'd just push the source into overspending instead.
+  const selectedAvailable =
+    selectedBudget?.budget != null
+      ? ledger.budgetAvailableForMonth(selectedBudget.budget, currentMonth)
+      : 0;
+  const coverAmount = Math.min(overspentAmount, Math.max(0, selectedAvailable));
+
   const handleMove = () => {
     if (!selectedBudget?.budget) return;
 
-    // In overspent mode, amount is fixed; otherwise parse from input
-    const amount = isOverspent ? overspentAmount : parseCurrencyInput(amountInput);
-    if (amount === 0) return;
+    // In overspent mode, amount is capped to the source's available; otherwise parse input
+    const amount = isOverspent ? coverAmount : parseCurrencyInput(amountInput);
+    if (amount <= 0) return;
 
     // Determine actual source and target based on mode
     // Normal mode: sourceBudget -> selectedBudget
@@ -82,7 +90,12 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
-    if (!newOpen) {
+    if (newOpen) {
+      // Prefill the amount with everything currently available to move
+      if (!isOverspent) {
+        setAmountInput(formatCurrencyInput(availableAmount));
+      }
+    } else {
       // Reset state when closing
       setAmountInput("");
       setSelectedBudget(null);
@@ -122,10 +135,28 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
                   placeholder="Select budget..."
                   autoFocus
                 />
+                {selectedBudget?.budget && coverAmount < overspentAmount && (
+                  <p className="text-xs text-muted-foreground">
+                    {coverAmount > 0 ? (
+                      <>
+                        Only {formatCurrency(coverAmount)} available here —{" "}
+                        {formatCurrency(overspentAmount - coverAmount)} will stay overspent.
+                      </>
+                    ) : (
+                      <>Nothing available in this budget to move.</>
+                    )}
+                  </p>
+                )}
               </div>
 
-              <Button className="w-full" onClick={handleMove} disabled={!selectedBudget}>
-                Cover
+              <Button
+                className="w-full"
+                onClick={handleMove}
+                disabled={!selectedBudget || coverAmount <= 0}
+              >
+                {coverAmount > 0 && coverAmount < overspentAmount
+                  ? `Cover ${formatCurrency(coverAmount)}`
+                  : "Cover"}
               </Button>
             </>
           ) : (
