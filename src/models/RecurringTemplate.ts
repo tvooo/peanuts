@@ -29,8 +29,14 @@ export class RecurringTemplate extends Model {
   @observable
   accessor rruleString: string = "FREQ=MONTHLY;BYMONTHDAY=1"; // Default: monthly on 1st
 
+  /**
+   * Watermark: the occurrence date of the most recently materialized
+   * transaction. This is the single source of truth for what has already been
+   * generated. `null` means nothing has been generated yet. Generation only
+   * ever creates occurrences strictly after this date.
+   */
   @observable
-  accessor nextScheduledDate: Date = new Date();
+  accessor lastGeneratedDate: Date | null = null;
 
   @observable
   accessor startDate: Date = new Date();
@@ -100,32 +106,51 @@ export class RecurringTemplate extends Model {
     }
   }
 
-  calculateNextOccurrence(fromDate: Date): Date {
+  /**
+   * The first occurrence strictly after `fromDate`, or `null` if the rule is
+   * exhausted (e.g. COUNT or UNTIL reached). Returning `null` lets the
+   * generator stop cleanly instead of looping on a fallback date.
+   */
+  calculateNextOccurrence(fromDate: Date): Date | null {
     try {
       const rule = this.rrule;
       // Convert to UTC for RRule calculation to avoid timezone issues
       const fromUTC = toUTCDate(fromDate);
       const next = rule.after(fromUTC, false); // not inclusive
-      if (!next) {
-        // This indicates the rule is exhausted (e.g., COUNT limit reached)
-        // or there's a configuration issue. Log for debugging.
-        console.warn(
-          `No next occurrence found for recurring template after ${fromDate.toISOString()}`
-        );
-        return startOfDay(fromDate);
-      }
+      if (!next) return null;
       // Convert back from UTC to local date
-      return fromUTCDate(next);
+      return startOfDay(fromUTCDate(next));
     } catch (e) {
       console.error("Error calculating next occurrence:", e);
-      return startOfDay(fromDate);
+      return null;
+    }
+  }
+
+  /**
+   * The next occurrence on or after today, for display ("Next date").
+   * Clamped to `endDate`. Returns `null` if the schedule has no more
+   * occurrences.
+   */
+  @computed
+  get nextOccurrence(): Date | null {
+    try {
+      const next = this.rrule.after(toUTCDate(startOfDay(new Date())), true);
+      if (!next) return null;
+      const local = startOfDay(fromUTCDate(next));
+      if (this.endDate && local > startOfDay(this.endDate)) return null;
+      return local;
+    } catch (e) {
+      console.error("Error calculating next occurrence:", e);
+      return null;
     }
   }
 
   static fromJSON(json: any, ledger: Ledger): RecurringTemplate {
     const template = new RecurringTemplate({ id: json.id, ledger });
     template.rruleString = json.rrule_string || "FREQ=MONTHLY;BYMONTHDAY=1";
-    template.nextScheduledDate = deserializeDate(json.next_scheduled_date);
+    template.lastGeneratedDate = json.last_generated_date
+      ? deserializeDate(json.last_generated_date)
+      : null;
     template.startDate = deserializeDate(json.start_date);
     template.endDate = json.end_date ? deserializeDate(json.end_date) : null;
 
@@ -142,7 +167,7 @@ export class RecurringTemplate extends Model {
     return {
       id: this.id,
       rrule_string: this.rruleString,
-      next_scheduled_date: serializeDate(this.nextScheduledDate),
+      last_generated_date: this.lastGeneratedDate ? serializeDate(this.lastGeneratedDate) : null,
       start_date: serializeDate(this.startDate),
       end_date: this.endDate ? serializeDate(this.endDate) : null,
       account_id: this.account?.id || null,

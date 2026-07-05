@@ -12,7 +12,7 @@ import { processRecurringTemplates } from "./recurringTransactions";
 function createTestLedger(
   rruleString: string,
   startDate: Date,
-  nextScheduledDate?: Date
+  lastGeneratedDate: Date | null = null
 ): { ledger: Ledger; template: RecurringTemplate; account: Account } {
   const ledger = new Ledger();
 
@@ -33,7 +33,7 @@ function createTestLedger(
   const template = new RecurringTemplate({ id: "template-1", ledger });
   template.rruleString = rruleString;
   template.startDate = startOfDay(startDate);
-  template.nextScheduledDate = startOfDay(nextScheduledDate || startDate);
+  template.lastGeneratedDate = lastGeneratedDate ? startOfDay(lastGeneratedDate) : null;
   template.account = account;
   template.budget = budget;
   template.payee = payee;
@@ -44,209 +44,163 @@ function createTestLedger(
   return { ledger, template, account };
 }
 
+const txnDates = (ledger: Ledger): Date[] =>
+  ledger.transactions.map((t) => t.date!).sort((a, b) => a.getTime() - b.getTime());
+
 describe("processRecurringTemplates", () => {
   describe("basic lifecycle", () => {
-    it("creates a transaction at nextScheduledDate", () => {
-      const jan15 = new Date(2024, 0, 15);
-      const { ledger } = createTestLedger(
-        "FREQ=MONTHLY;BYMONTHDAY=15",
-        new Date(2024, 0, 1),
-        jan15
-      );
+    it("creates exactly one upcoming transaction", () => {
+      // "now" is Jan 10; next occurrence after today is Jan 15.
+      const { ledger } = createTestLedger("FREQ=MONTHLY;BYMONTHDAY=15", new Date(2024, 0, 1));
 
-      expect(ledger.transactions.length).toBe(0);
-
-      processRecurringTemplates(ledger);
+      processRecurringTemplates(ledger, new Date(2024, 0, 10));
 
       expect(ledger.transactions.length).toBe(1);
-      expect(isSameDay(ledger.transactions[0].date!, jan15)).toBe(true);
+      expect(isSameDay(ledger.transactions[0].date!, new Date(2024, 0, 15))).toBe(true);
       expect(ledger.transactions[0].recurringTemplateId).toBe("template-1");
     });
 
-    it("advances nextScheduledDate after creating a transaction", () => {
-      const jan15 = new Date(2024, 0, 15);
+    it("advances the watermark to the generated occurrence", () => {
       const { ledger, template } = createTestLedger(
         "FREQ=MONTHLY;BYMONTHDAY=15",
-        new Date(2024, 0, 1),
-        jan15
+        new Date(2024, 0, 1)
       );
 
-      processRecurringTemplates(ledger);
+      processRecurringTemplates(ledger, new Date(2024, 0, 10));
 
-      // nextScheduledDate should now be Feb 15
-      const expectedNext = new Date(2024, 1, 15);
-      expect(isSameDay(template.nextScheduledDate, expectedNext)).toBe(true);
-    });
-
-    it("does not create duplicate transactions for the same scheduled date", () => {
-      const jan15 = new Date(2024, 0, 15);
-      const { ledger, template } = createTestLedger(
-        "FREQ=MONTHLY;BYMONTHDAY=15",
-        new Date(2024, 0, 1),
-        jan15
-      );
-
-      // First run - should create transaction and advance nextScheduledDate
-      processRecurringTemplates(ledger);
-      expect(ledger.transactions.length).toBe(1);
-      const _nextAfterFirstRun = template.nextScheduledDate;
-
-      // Reset nextScheduledDate to the same date as the existing transaction
-      // to simulate re-processing the same date (e.g., after reload without save)
-      template.nextScheduledDate = jan15;
-
-      // Second run - should NOT create another transaction because one already exists
-      processRecurringTemplates(ledger);
-      expect(ledger.transactions.length).toBe(1);
+      expect(template.lastGeneratedDate).not.toBeNull();
+      expect(isSameDay(template.lastGeneratedDate!, new Date(2024, 0, 15))).toBe(true);
     });
   });
 
-  describe("multiple occurrences lifecycle", () => {
-    it("creates next transaction after first one is processed", () => {
-      const jan15 = new Date(2024, 0, 15);
-      const { ledger, template } = createTestLedger(
+  describe("idempotency (the regression)", () => {
+    it("does NOT create a new transaction when run repeatedly on the same day", () => {
+      const { ledger } = createTestLedger("FREQ=MONTHLY;BYMONTHDAY=15", new Date(2024, 0, 1));
+      const now = new Date(2024, 0, 10);
+
+      processRecurringTemplates(ledger, now);
+      expect(ledger.transactions.length).toBe(1);
+
+      // Re-run several times simulating repeated ledger loads on the same day.
+      processRecurringTemplates(ledger, now);
+      processRecurringTemplates(ledger, now);
+      processRecurringTemplates(ledger, now);
+
+      expect(ledger.transactions.length).toBe(1);
+    });
+
+    it("does not regenerate after the watermark has passed the next occurrence", () => {
+      // Watermark already at Jan 15; today is Jan 12 so horizon is also Jan 15.
+      const { ledger } = createTestLedger(
         "FREQ=MONTHLY;BYMONTHDAY=15",
         new Date(2024, 0, 1),
-        jan15
+        new Date(2024, 0, 15)
       );
 
-      // First run - creates Jan 15 transaction
-      processRecurringTemplates(ledger);
+      processRecurringTemplates(ledger, new Date(2024, 0, 12));
+
+      expect(ledger.transactions.length).toBe(0);
+    });
+  });
+
+  describe("advancing over time", () => {
+    it("creates the next occurrence once the previous one is due", () => {
+      const { ledger, template } = createTestLedger(
+        "FREQ=MONTHLY;BYMONTHDAY=15",
+        new Date(2024, 0, 1)
+      );
+
+      // Jan 10: generates Jan 15.
+      processRecurringTemplates(ledger, new Date(2024, 0, 10));
       expect(ledger.transactions.length).toBe(1);
-      expect(isSameDay(ledger.transactions[0].date!, jan15)).toBe(true);
 
-      // Verify nextScheduledDate was advanced to Feb 15
-      expect(isSameDay(template.nextScheduledDate, new Date(2024, 1, 15))).toBe(true);
-
-      // Second run - should create Feb 15 transaction
-      processRecurringTemplates(ledger);
+      // Feb 1 (Jan 15 now in the past): generates Feb 15.
+      processRecurringTemplates(ledger, new Date(2024, 1, 1));
       expect(ledger.transactions.length).toBe(2);
-      expect(isSameDay(ledger.transactions[1].date!, new Date(2024, 1, 15))).toBe(true);
+      expect(isSameDay(txnDates(ledger)[1], new Date(2024, 1, 15))).toBe(true);
+      expect(isSameDay(template.lastGeneratedDate!, new Date(2024, 1, 15))).toBe(true);
+    });
+  });
 
-      // Verify nextScheduledDate was advanced to Mar 15
-      expect(isSameDay(template.nextScheduledDate, new Date(2024, 2, 15))).toBe(true);
+  describe("backfill of missed occurrences", () => {
+    it("creates all occurrences from start up to the next upcoming one", () => {
+      // Start Jan 15; app first opened on Apr 1. Expect Jan, Feb, Mar (past/today)
+      // plus Apr 15 (the single upcoming occurrence) = 4 transactions.
+      const { ledger, template } = createTestLedger(
+        "FREQ=MONTHLY;BYMONTHDAY=15",
+        new Date(2024, 0, 15)
+      );
+
+      processRecurringTemplates(ledger, new Date(2024, 3, 1));
+
+      const dates = txnDates(ledger);
+      expect(dates.length).toBe(4);
+      expect(isSameDay(dates[0], new Date(2024, 0, 15))).toBe(true);
+      expect(isSameDay(dates[1], new Date(2024, 1, 15))).toBe(true);
+      expect(isSameDay(dates[2], new Date(2024, 2, 15))).toBe(true);
+      expect(isSameDay(dates[3], new Date(2024, 3, 15))).toBe(true);
+      expect(isSameDay(template.lastGeneratedDate!, new Date(2024, 3, 15))).toBe(true);
     });
   });
 
   describe("biweekly recurrence (interval-based)", () => {
-    it("creates transactions at correct 2-week intervals", () => {
-      const jan1 = new Date(2024, 0, 1); // Monday
-      const { ledger, template } = createTestLedger("FREQ=WEEKLY;INTERVAL=2;BYDAY=MO", jan1, jan1);
-
-      // First run - creates Jan 1 transaction
-      processRecurringTemplates(ledger);
-      expect(ledger.transactions.length).toBe(1);
-      expect(isSameDay(ledger.transactions[0].date!, jan1)).toBe(true);
-
-      // Verify nextScheduledDate was advanced to Jan 15 (2 weeks later)
-      expect(isSameDay(template.nextScheduledDate, new Date(2024, 0, 15))).toBe(true);
-
-      // Second run - creates Jan 15 transaction
-      processRecurringTemplates(ledger);
-      expect(ledger.transactions.length).toBe(2);
-      expect(isSameDay(ledger.transactions[1].date!, new Date(2024, 0, 15))).toBe(true);
-
-      // Verify nextScheduledDate was advanced to Jan 29 (2 more weeks)
-      expect(isSameDay(template.nextScheduledDate, new Date(2024, 0, 29))).toBe(true);
-    });
-
     it("respects startDate for interval calculation", () => {
-      // Start on Jan 8 (second Monday of the month)
-      const jan8 = new Date(2024, 0, 8);
-      const { ledger, template } = createTestLedger("FREQ=WEEKLY;INTERVAL=2;BYDAY=MO", jan8, jan8);
+      // Start Jan 8; biweekly Mondays => Jan 8, Jan 22, Feb 5, ...
+      const { ledger } = createTestLedger(
+        "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO",
+        new Date(2024, 0, 8)
+      );
 
-      // First run - creates Jan 8 transaction
-      processRecurringTemplates(ledger);
-      expect(ledger.transactions.length).toBe(1);
+      // now = Jan 10: occurrences <= today are Jan 8; next upcoming is Jan 22.
+      processRecurringTemplates(ledger, new Date(2024, 0, 10));
 
-      // Verify nextScheduledDate is Jan 22 (NOT Jan 15!)
-      expect(isSameDay(template.nextScheduledDate, new Date(2024, 0, 22))).toBe(true);
+      const dates = txnDates(ledger);
+      expect(dates.length).toBe(2);
+      expect(isSameDay(dates[0], new Date(2024, 0, 8))).toBe(true);
+      expect(isSameDay(dates[1], new Date(2024, 0, 22))).toBe(true); // NOT Jan 15
     });
   });
 
   describe("end date handling", () => {
-    it("does not create transactions after end date", () => {
-      const jan15 = new Date(2024, 0, 15);
-      const { ledger, template } = createTestLedger(
-        "FREQ=MONTHLY;BYMONTHDAY=15",
-        new Date(2024, 0, 1),
-        jan15
-      );
+    it("does not create occurrences after the end date", () => {
+      const { ledger } = createTestLedger("FREQ=MONTHLY;BYMONTHDAY=15", new Date(2024, 0, 15));
+      // End date Jan 20: only Jan 15 is valid, even though horizon would be Feb 15.
+      ledger.recurringTemplates[0].endDate = new Date(2024, 0, 20);
 
-      // Set end date to Jan 20 (before Feb 15)
-      template.endDate = new Date(2024, 0, 20);
+      processRecurringTemplates(ledger, new Date(2024, 1, 1));
 
-      // First run - creates Jan 15 transaction (before end date)
-      processRecurringTemplates(ledger);
       expect(ledger.transactions.length).toBe(1);
-
-      // Now nextScheduledDate is Feb 15, which is after end date
-      // Second run - should NOT create another transaction
-      processRecurringTemplates(ledger);
-      expect(ledger.transactions.length).toBe(1);
+      expect(isSameDay(ledger.transactions[0].date!, new Date(2024, 0, 15))).toBe(true);
     });
   });
 
-  describe("future instance detection", () => {
-    it("skips creation if a transaction already exists at nextScheduledDate", () => {
-      const jan15 = new Date(2024, 0, 15);
-      const { ledger } = createTestLedger(
+  describe("user edits to generated transactions", () => {
+    it("does not regenerate a deleted past occurrence", () => {
+      const { ledger, template } = createTestLedger(
         "FREQ=MONTHLY;BYMONTHDAY=15",
-        new Date(2024, 0, 1),
-        jan15
+        new Date(2024, 0, 1)
       );
 
-      // Manually create a transaction at nextScheduledDate
-      const posting = new TransactionPosting({ id: "p-1", ledger });
-      posting.amount = -5000;
-      ledger.transactionPostings.push(posting);
-
-      const transaction = new Transaction({ id: "t-1", ledger });
-      transaction.date = jan15;
-      transaction.recurringTemplateId = "template-1";
-      transaction.postings.push(posting);
-      ledger.transactions.push(transaction);
-
-      // Run processing - should NOT create another transaction
-      processRecurringTemplates(ledger);
+      processRecurringTemplates(ledger, new Date(2024, 0, 10));
       expect(ledger.transactions.length).toBe(1);
-    });
 
-    it("skips creation if a transaction exists AFTER nextScheduledDate", () => {
-      const jan15 = new Date(2024, 0, 15);
-      const { ledger } = createTestLedger(
-        "FREQ=MONTHLY;BYMONTHDAY=15",
-        new Date(2024, 0, 1),
-        jan15
-      );
+      // User deletes the generated transaction. The watermark stays put.
+      ledger.transactions.length = 0;
+      ledger.transactionPostings.length = 0;
 
-      // Manually create a transaction AFTER nextScheduledDate (e.g., user moved it)
-      const posting = new TransactionPosting({ id: "p-1", ledger });
-      posting.amount = -5000;
-      ledger.transactionPostings.push(posting);
-
-      const transaction = new Transaction({ id: "t-1", ledger });
-      transaction.date = new Date(2024, 0, 20); // 5 days after scheduled
-      transaction.recurringTemplateId = "template-1";
-      transaction.postings.push(posting);
-      ledger.transactions.push(transaction);
-
-      // Run processing - should NOT create another transaction
-      processRecurringTemplates(ledger);
-      expect(ledger.transactions.length).toBe(1);
+      // Re-run on the same day: the occurrence is at/behind the watermark, so it
+      // is considered done and is NOT recreated.
+      processRecurringTemplates(ledger, new Date(2024, 0, 10));
+      expect(ledger.transactions.length).toBe(0);
+      expect(isSameDay(template.lastGeneratedDate!, new Date(2024, 0, 15))).toBe(true);
     });
   });
 
   describe("transaction properties", () => {
     it("creates transaction with correct properties from template", () => {
-      const jan15 = new Date(2024, 0, 15);
-      const { ledger } = createTestLedger(
-        "FREQ=MONTHLY;BYMONTHDAY=15",
-        new Date(2024, 0, 1),
-        jan15
-      );
+      const { ledger } = createTestLedger("FREQ=MONTHLY;BYMONTHDAY=15", new Date(2024, 0, 1));
 
-      processRecurringTemplates(ledger);
+      processRecurringTemplates(ledger, new Date(2024, 0, 10));
 
       const transaction = ledger.transactions[0];
       expect(transaction.account?.id).toBe("acc-1");
@@ -257,6 +211,40 @@ describe("processRecurringTemplates", () => {
       expect(transaction.postings[0].amount).toBe(-5000);
       expect(transaction.postings[0].budget?.id).toBe("budget-1");
       expect(transaction.postings[0].note).toBe("Test recurring transaction");
+    });
+
+    it("registers the posting in the ledger collection", () => {
+      const { ledger } = createTestLedger("FREQ=MONTHLY;BYMONTHDAY=15", new Date(2024, 0, 1));
+
+      processRecurringTemplates(ledger, new Date(2024, 0, 10));
+
+      expect(ledger.transactionPostings.length).toBe(1);
+    });
+  });
+
+  describe("pre-existing transactions", () => {
+    it("does not double-generate when a matching transaction already exists", () => {
+      // Simulates a freshly-migrated ledger: watermark seeded from the latest
+      // existing transaction.
+      const { ledger } = createTestLedger(
+        "FREQ=MONTHLY;BYMONTHDAY=15",
+        new Date(2024, 0, 1),
+        new Date(2024, 0, 15)
+      );
+
+      const posting = new TransactionPosting({ id: "p-1", ledger });
+      posting.amount = -5000;
+      ledger.transactionPostings.push(posting);
+
+      const transaction = new Transaction({ id: "t-1", ledger });
+      transaction.date = new Date(2024, 0, 15);
+      transaction.recurringTemplateId = "template-1";
+      transaction.postings.push(posting);
+      ledger.transactions.push(transaction);
+
+      // now = Jan 12 so horizon is Jan 15, which equals the watermark -> nothing.
+      processRecurringTemplates(ledger, new Date(2024, 0, 12));
+      expect(ledger.transactions.length).toBe(1);
     });
   });
 });

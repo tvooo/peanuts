@@ -10,8 +10,9 @@ export function useRecurringTransactions() {
   useEffect(() => {
     if (!ledger) return;
 
-    // Initial check on mount
-    processRecurringTemplates(ledger);
+    // Note: the initial on-load run happens in App.tsx, after the auto-save
+    // reaction is set up, so generated transactions get persisted. Here we only
+    // handle the case where the app stays open across midnight.
 
     // Check every minute if date has changed (midnight check)
     const interval = setInterval(() => {

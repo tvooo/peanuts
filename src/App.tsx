@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { Ledger } from "@/models/Ledger";
 import { LedgerContext } from "@/utils/useLedger";
+import { processRecurringTemplates } from "@/utils/recurringTransactions";
 import { AccountPage } from "./pages/AccountPage";
 import BudgetPage from "./pages/BudgetPage";
 import { LedgerPage } from "./pages/LedgerPage";
@@ -94,6 +95,11 @@ export default function App() {
         saveLedger();
       }
     }, 60000);
+
+    // Materialize recurring transactions. This runs AFTER the reaction above is
+    // established (and after markClean) so that any transactions it generates
+    // bump the version, mark the ledger dirty, and get persisted by auto-save.
+    processRecurringTemplates(ledger);
 
     return () => {
       dispose();

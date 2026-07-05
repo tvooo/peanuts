@@ -227,8 +227,9 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
       newTemplate.amount = parseInt(amount, 10) || 0;
       newTemplate.note = note;
       newTemplate.startDate = startOfDay(startDate);
-      newTemplate.nextScheduledDate = startOfDay(previewInfo.nextDate || startDate);
       newTemplate.endDate = hasEndDate && endDate ? startOfDay(endDate) : null;
+      // Fresh template: lastGeneratedDate stays null so generation starts from
+      // startDate.
 
       ledger.recurringTemplates.push(newTemplate);
       ledger.incrementVersion();
@@ -251,7 +252,6 @@ export const RecurringTemplateModal = observer(function RecurringTemplateModal({
       template.amount = parseInt(amount, 10) || 0;
       template.note = note;
       template.startDate = startOfDay(startDate);
-      template.nextScheduledDate = startOfDay(previewInfo.nextDate || startDate);
       template.endDate = hasEndDate && endDate ? startOfDay(endDate) : null;
       ledger.incrementVersion();
 
