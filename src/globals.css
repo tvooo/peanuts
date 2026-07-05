@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 @font-face {
   font-family: Inter;
@@ -16,44 +17,104 @@
   src: url("./fonts/InterVariable-Italic.woff2") format("woff2");
 }
 
-/* @import "tw-animate-css"; */
-
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Reset Tailwind's default colour palette and re-declare only the named shades
+ * actually used in the app (audited across src/). Values are copied verbatim from
+ * tailwindcss/theme.css so existing utilities render identically. The warm-leaning
+ * neutrals (stone) and amber/green/red accents fit the Cushion aesthetic. Semantic
+ * tokens (background, card, primary, …) are mapped separately in `@theme inline` below.
+ */
+@theme {
+  --color-*: initial;
+
+  --color-white: #fff;
+  --color-black: #000;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* neutral – cool grey (re-tinted from warm stone to match the cool theme,
+     so the many existing `stone-*` utilities read cool without touching call sites) */
+  --color-stone-50: oklch(98.5% 0.002 247);
+  --color-stone-100: oklch(96.8% 0.003 247);
+  --color-stone-200: oklch(92.2% 0.004 250);
+  --color-stone-300: oklch(87% 0.006 250);
+  --color-stone-400: oklch(70.8% 0.012 256);
+  --color-stone-500: oklch(55.3% 0.014 257);
+  --color-stone-600: oklch(45% 0.014 257);
+  --color-stone-700: oklch(37.2% 0.013 257);
+  --color-stone-900: oklch(21% 0.012 260);
+
+  /* warning / uncategorised */
+  --color-amber-50: oklch(98.7% 0.022 95.277);
+  --color-amber-200: oklch(92.4% 0.12 95.746);
+  --color-amber-400: oklch(82.8% 0.189 84.429);
+  --color-amber-500: oklch(76.9% 0.188 70.08);
+  --color-amber-600: oklch(66.6% 0.179 58.318);
+
+  /* positive amounts / brand mark */
+  --color-green-500: oklch(72.3% 0.219 149.579);
+  --color-green-600: oklch(62.7% 0.194 149.214);
+  --color-green-700: oklch(52.7% 0.154 150.069);
+
+  /* negative amounts */
+  --color-red-500: oklch(63.7% 0.237 25.331);
+  --color-red-600: oklch(57.7% 0.245 27.325);
+
+  /* incidental accents */
+  --color-orange-500: oklch(70.5% 0.213 47.604);
+  --color-orange-600: oklch(64.6% 0.222 41.116);
+  --color-blue-50: oklch(97% 0.014 254.604);
+  --color-slate-50: oklch(98.4% 0.003 247.858);
+  --color-slate-100: oklch(96.8% 0.007 247.896);
+  --color-slate-600: oklch(44.6% 0.043 257.281);
+  --color-lime-50: oklch(98.6% 0.031 120.757);
+  --color-lime-700: oklch(53.2% 0.157 131.589);
+  --color-emerald-700: oklch(50.8% 0.118 165.612);
+}
+
+/*
+ * Cushion-inspired light theme: clean and cool, not warm/sandy. A very light
+ * cool-grey page background, white cards, near-black cool text, a fresh green
+ * brand accent, and neutral grey borders/hovers. Dark mode is left functional
+ * but untuned for this pass.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --background: oklch(0.968 0.004 247); /* light cool grey page */
+  --foreground: oklch(0.22 0.012 260); /* near-black, cool */
+  --card: oklch(1 0 0); /* white panels */
+  --card-foreground: oklch(0.22 0.012 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --popover-foreground: oklch(0.22 0.012 260);
+  --primary: oklch(0.66 0.16 145); /* Cushion green */
+  --primary-foreground: oklch(0.99 0.005 145);
+  --secondary: oklch(0.96 0.004 247); /* subtle cool grey */
+  --secondary-foreground: oklch(0.28 0.012 260);
+  --muted: oklch(0.96 0.004 247);
+  --muted-foreground: oklch(0.52 0.014 258);
+  --accent: oklch(0.95 0.005 247); /* neutral hover */
+  --accent-foreground: oklch(0.28 0.012 260);
+  --destructive: oklch(0.58 0.22 27); /* red */
+  --destructive-foreground: oklch(0.99 0.005 145);
+  --border: oklch(0.915 0.005 250); /* cool grey hairline */
+  --input: oklch(0.915 0.005 250);
+  --ring: oklch(0.66 0.16 145);
+  /* Cushion-style chart palette: green, teal, blue, orange, purple */
+  --chart-1: oklch(0.66 0.16 145);
+  --chart-2: oklch(0.64 0.1 195);
+  --chart-3: oklch(0.6 0.14 250);
+  --chart-4: oklch(0.71 0.16 55);
+  --chart-5: oklch(0.55 0.16 300);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.22 0.012 260);
+  --sidebar-primary: oklch(0.66 0.16 145);
+  --sidebar-primary-foreground: oklch(0.99 0.005 145);
+  --sidebar-accent: oklch(0.96 0.004 247);
+  --sidebar-accent-foreground: oklch(0.28 0.012 260);
+  --sidebar-border: oklch(0.915 0.005 250);
+  --sidebar-ring: oklch(0.66 0.16 145);
 }
 
 .dark {
