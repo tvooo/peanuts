@@ -397,7 +397,7 @@ export const BudgetTable = observer(function BudgetTable({
                       ledger.assignments.find(
                         (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
                       ) ? (
-                        <td className="py-2 px-3 pr-2" {...stopPropagation}>
+                        <td className="align-middle" {...stopPropagation}>
                           <AssignmentInput
                             assignment={assignment}
                             budget={budget}
@@ -490,7 +490,7 @@ export const BudgetTable = observer(function BudgetTable({
                       ledger.assignments.find(
                         (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
                       ) ? (
-                        <td className="py-2 px-3 pr-2" {...stopPropagation}>
+                        <td className="align-middle" {...stopPropagation}>
                           <AssignmentInput
                             assignment={assignment}
                             budget={budget}
@@ -588,7 +588,7 @@ export const BudgetTable = observer(function BudgetTable({
                       ledger.assignments.find(
                         (a) => a.budget === budget && isSameMonth(a.date!, currentMonth)
                       ) ? (
-                        <td className="py-2 px-3 pr-2" {...stopPropagation}>
+                        <td className="align-middle" {...stopPropagation}>
                           <AssignmentInput
                             assignment={assignment}
                             budget={budget}
