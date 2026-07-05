@@ -32,7 +32,7 @@ export const OpenPage = () => {
 
   useEffect(() => {
     if (ledger) {
-      navigate("/budget");
+      navigate("/dashboard");
     }
   }, [navigate, ledger]);
 

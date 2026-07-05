@@ -2,13 +2,14 @@ import { get, set } from "idb-keyval";
 import { reaction } from "mobx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HashRouter, Route, Routes } from "react-router";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { Ledger } from "@/models/Ledger";
-import { LedgerContext } from "@/utils/useLedger";
 import { processRecurringTemplates } from "@/utils/recurringTransactions";
+import { LedgerContext } from "@/utils/useLedger";
 import { AccountPage } from "./pages/AccountPage";
 import BudgetPage from "./pages/BudgetPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { LedgerPage } from "./pages/LedgerPage";
 import { OpenPage } from "./pages/OpenPage";
 import { PayeesPage } from "./pages/PayeesPage";
@@ -26,10 +27,11 @@ function AppContent() {
   useRecurringTransactions();
 
   return (
-    <SidebarProvider>
+    <TooltipProvider>
       <HashRouter>
         <Routes>
           <Route path="/" element={<OpenPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/budget" element={<BudgetPage />} />
           <Route path="/recurring" element={<RecurringTransactionsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
@@ -38,7 +40,7 @@ function AppContent() {
           <Route path="/payees" element={<PayeesPage />} />
         </Routes>
       </HashRouter>
-    </SidebarProvider>
+    </TooltipProvider>
   );
 }
 
