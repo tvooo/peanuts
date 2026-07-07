@@ -146,10 +146,7 @@ describe("processRecurringTemplates", () => {
   describe("biweekly recurrence (interval-based)", () => {
     it("respects startDate for interval calculation", () => {
       // Start Jan 8; biweekly Mondays => Jan 8, Jan 22, Feb 5, ...
-      const { ledger } = createTestLedger(
-        "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO",
-        new Date(2024, 0, 8)
-      );
+      const { ledger } = createTestLedger("FREQ=WEEKLY;INTERVAL=2;BYDAY=MO", new Date(2024, 0, 8));
 
       // now = Jan 10: occurrences <= today are Jan 8; next upcoming is Jan 22.
       processRecurringTemplates(ledger, new Date(2024, 0, 10));

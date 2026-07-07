@@ -14,11 +14,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { CreateAccountModal } from "@/components/CreateAccountModal";
 import { Card } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PageLayout } from "@/PageLayout";
 import { formatCurrency } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
@@ -234,15 +230,7 @@ function AddCard({ label, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
-function QuickLink({
-  to,
-  icon,
-  label,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-}) {
+function QuickLink({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
   return (
     <Link to={to}>
       <Card className="flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors hover:bg-secondary/40">

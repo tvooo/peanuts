@@ -58,11 +58,7 @@ export function processRecurringTemplates(ledger: Ledger, now: Date = new Date()
   });
 }
 
-function createTransactionFromTemplate(
-  ledger: Ledger,
-  template: RecurringTemplate,
-  date: Date
-) {
+function createTransactionFromTemplate(ledger: Ledger, template: RecurringTemplate, date: Date) {
   // Create posting
   const posting = new TransactionPosting({ ledger, id: createId() });
   posting.amount = template.amount;
