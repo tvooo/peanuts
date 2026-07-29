@@ -1,4 +1,4 @@
-import { ArrowDownToLine } from "lucide-react";
+import { ArrowDownToLine, ArrowLeftRight } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
@@ -12,17 +12,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useBudgetCreator } from "@/hooks/useBudgetCreator";
 import { type BudgetOption, useBudgetGroups } from "@/hooks/useBudgetGroups";
-import type { PayeeOption } from "@/hooks/usePayeeCreator";
+import { type PayeeAccountOption, usePayeeAccountGroups } from "@/hooks/usePayeeAccountGroups";
+import { usePayeeCreator } from "@/hooks/usePayeeCreator";
 import type { Account } from "@/models/Account";
 import type { Budget } from "@/models/Budget";
 import type { Ledger } from "@/models/Ledger";
 import { Payee } from "@/models/Payee";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
+import { Transfer } from "@/models/Transfer";
 import { formatCurrency, formatDate } from "@/utils/formatting";
 import {
   type DuplicateMatch,
   findDuplicate,
+  isAlreadyImported,
   normalizePayeeName,
   resolvePayee,
   suggestBudget,
@@ -33,7 +37,9 @@ import { useLedger } from "@/utils/useLedger";
 interface ReviewRow {
   row: StatementRow;
   include: boolean;
+  /** Target of the row: either a payee, or another account (making it a transfer) */
   payee: Payee | null;
+  transferAccount: Account | null;
   budget: Budget | null;
   duplicate: DuplicateMatch | null;
 }
@@ -57,12 +63,33 @@ export function cleanPayeeName(rawName: string): string {
   return trimmed.toLowerCase().replace(/(^|[\s\-.&/])\p{L}/gu, (c) => c.toUpperCase());
 }
 
+/** The row's target as a combobox value: an account (transfer) or a payee. */
+function payeeCellValue(reviewRow: ReviewRow): PayeeAccountOption | null {
+  if (reviewRow.transferAccount) {
+    return {
+      id: `account-${reviewRow.transferAccount.id}`,
+      label: reviewRow.transferAccount.name,
+      account: reviewRow.transferAccount,
+    };
+  }
+  if (reviewRow.payee) {
+    return {
+      id: `payee-${reviewRow.payee.id}`,
+      label: reviewRow.payee.name,
+      payee: reviewRow.payee,
+    };
+  }
+  return null;
+}
+
 function buildReviewRows(ledger: Ledger, account: Account, statement: ParsedStatement) {
   const claimed = new Set<string>();
   return statement.rows.map((row): ReviewRow => {
     const duplicate = findDuplicate(ledger, account, row, claimed);
     if (duplicate?.kind === "manual") {
       claimed.add(duplicate.transaction.id);
+    } else if (duplicate?.kind === "manual-transfer") {
+      claimed.add(duplicate.transfer.id);
     }
     const match = resolvePayee(ledger, row.rawPayee);
     const payee = match?.payee ?? null;
@@ -71,8 +98,9 @@ function buildReviewRows(ledger: Ledger, account: Account, statement: ParsedStat
       suggestBudget(ledger, payee) ?? (row.amount > 0 ? (ledger.getInflowBudget() ?? null) : null);
     return {
       row,
-      include: duplicate?.kind !== "imported",
+      include: !isAlreadyImported(duplicate),
       payee,
+      transferAccount: null,
       budget,
       duplicate,
     };
@@ -96,13 +124,10 @@ export const ImportStatementModal = observer(function ImportStatementModal({
     }
   }, [ledger, account, statement]);
 
-  const budgetGroups = useBudgetGroups(ledger);
-  // Computed each render: payees is a MobX observable array, so memoizing
-  // would go stale when a payee is created inline in a combobox.
-  const payeeOptions: PayeeOption[] = (ledger?.payees ?? [])
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((p) => ({ id: p.id, label: p.name, payee: p }));
+  const budgetGroups = useBudgetGroups(ledger, { includeNoneOption: true });
+  const payeeGroups = usePayeeAccountGroups(ledger!, account.id);
+  const createPayee = usePayeeCreator(ledger!);
+  const createBudget = useBudgetCreator(ledger!);
 
   const updateRow = (index: number, patch: Partial<ReviewRow>) => {
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -112,11 +137,14 @@ export const ImportStatementModal = observer(function ImportStatementModal({
 
   const included = rows.filter((r) => r.include);
   const newCount = included.filter((r) => r.duplicate === null).length;
-  const matchedCount = included.filter((r) => r.duplicate?.kind === "manual").length;
+  const transferCount = included.filter((r) => r.duplicate === null && r.transferAccount).length;
+  const matchedCount = included.filter(
+    (r) => r.duplicate?.kind === "manual" || r.duplicate?.kind === "manual-transfer"
+  ).length;
   const skippedCount = rows.length - included.length;
   const newPayeeCount = new Set(
     included
-      .filter((r) => r.duplicate === null && !r.payee && r.row.rawPayee)
+      .filter((r) => r.duplicate === null && !r.payee && !r.transferAccount && r.row.rawPayee)
       .map((r) => normalizePayeeName(r.row.rawPayee))
   ).size;
 
@@ -129,7 +157,7 @@ export const ImportStatementModal = observer(function ImportStatementModal({
         if (!reviewRow.include) continue;
         const { row } = reviewRow;
 
-        if (reviewRow.duplicate?.kind === "imported") continue;
+        if (isAlreadyImported(reviewRow.duplicate)) continue;
 
         if (reviewRow.duplicate?.kind === "manual") {
           // Link the statement row to the manually entered transaction
@@ -138,6 +166,34 @@ export const ImportStatementModal = observer(function ImportStatementModal({
           existing.importId = row.importId;
           existing.importPayee = row.rawPayee || null;
           existing.status = "cleared";
+          continue;
+        }
+
+        if (reviewRow.duplicate?.kind === "manual-transfer") {
+          // Same, for a transfer entered by hand: only this account's side of
+          // it is on this statement.
+          reviewRow.duplicate.transfer.markImported(account, row.importId);
+          continue;
+        }
+
+        if (reviewRow.transferAccount) {
+          const transfer = new Transfer({ ledger, id: null });
+          transfer.date = row.date;
+          transfer.amount = Math.abs(row.amount);
+          transfer.note = row.memo;
+          if (row.amount < 0) {
+            transfer.fromAccount = account;
+            transfer.toAccount = reviewRow.transferAccount;
+          } else {
+            transfer.fromAccount = reviewRow.transferAccount;
+            transfer.toAccount = account;
+          }
+          // Only cross-type transfers move money in or out of the budget
+          if (transfer.isCrossType) {
+            transfer.budget = reviewRow.budget;
+          }
+          ledger.transfers.push(transfer);
+          transfer.markImported(account, row.importId);
           continue;
         }
 
@@ -224,8 +280,13 @@ export const ImportStatementModal = observer(function ImportStatementModal({
             <tbody>
               {rows.map((reviewRow, index) => {
                 const { row, duplicate } = reviewRow;
-                const isAlreadyImported = duplicate?.kind === "imported";
-                const dimmed = isAlreadyImported || !reviewRow.include;
+                const alreadyImported = isAlreadyImported(duplicate);
+                const dimmed = alreadyImported || !reviewRow.include;
+                const matchedManually =
+                  duplicate?.kind === "manual" || duplicate?.kind === "manual-transfer";
+                // Same-type transfers never carry a category
+                const needsCategory =
+                  !reviewRow.transferAccount || reviewRow.transferAccount.type !== account.type;
                 return (
                   <tr
                     key={row.importId}
@@ -236,7 +297,7 @@ export const ImportStatementModal = observer(function ImportStatementModal({
                         type="checkbox"
                         className="rounded"
                         checked={reviewRow.include}
-                        disabled={isAlreadyImported}
+                        disabled={alreadyImported}
                         onChange={(e) => updateRow(index, { include: e.target.checked })}
                       />
                     </td>
@@ -253,37 +314,44 @@ export const ImportStatementModal = observer(function ImportStatementModal({
                           {row.memo}
                         </div>
                       )}
-                      {isAlreadyImported && (
+                      {alreadyImported && (
                         <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-medium">
                           Already imported
+                          {duplicate?.kind === "imported-transfer" && " as a transfer"}
                         </span>
                       )}
-                      {duplicate?.kind === "manual" && (
+                      {matchedManually && (
                         <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-xs font-medium">
-                          Matches existing entry — will be marked cleared
+                          Matches existing{" "}
+                          {duplicate?.kind === "manual-transfer" ? "transfer" : "entry"} — will be
+                          marked cleared
                         </span>
                       )}
                     </td>
                     <td className="py-2 pr-4">
                       {duplicate === null && (
                         <Combobox
-                          options={payeeOptions}
-                          value={
-                            reviewRow.payee
-                              ? {
-                                  id: reviewRow.payee.id,
-                                  label: reviewRow.payee.name,
-                                  payee: reviewRow.payee,
-                                }
-                              : null
-                          }
-                          onValueChange={(option: PayeeOption) => {
-                            updateRow(index, {
-                              payee: option.payee,
-                              // Refresh the category suggestion unless already set
-                              budget: reviewRow.budget ?? suggestBudget(ledger, option.payee),
-                            });
+                          groups={payeeGroups}
+                          value={payeeCellValue(reviewRow)}
+                          onValueChange={(option: PayeeAccountOption) => {
+                            if (option.account) {
+                              // Turn the row into a transfer to/from that account
+                              updateRow(index, {
+                                transferAccount: option.account,
+                                payee: null,
+                                budget:
+                                  option.account.type === account.type ? null : reviewRow.budget,
+                              });
+                            } else if (option.payee) {
+                              updateRow(index, {
+                                payee: option.payee,
+                                transferAccount: null,
+                                // Refresh the category suggestion unless already set
+                                budget: reviewRow.budget ?? suggestBudget(ledger, option.payee),
+                              });
+                            }
                           }}
+                          onCreateNew={createPayee}
                           placeholder={
                             row.rawPayee ? `Create "${cleanPayeeName(row.rawPayee)}"` : "No payee"
                           }
@@ -292,7 +360,13 @@ export const ImportStatementModal = observer(function ImportStatementModal({
                       )}
                     </td>
                     <td className="py-2 pr-4">
-                      {duplicate === null && (
+                      {duplicate === null && !needsCategory && (
+                        <div className="flex items-center gap-1.5 h-9 text-muted-foreground italic">
+                          <ArrowLeftRight size={12} />
+                          Transfer
+                        </div>
+                      )}
+                      {duplicate === null && needsCategory && (
                         <Combobox
                           groups={budgetGroups}
                           value={
@@ -312,6 +386,7 @@ export const ImportStatementModal = observer(function ImportStatementModal({
                           onValueChange={(option: BudgetOption) =>
                             updateRow(index, { budget: option.budget })
                           }
+                          onCreateNew={createBudget}
                           placeholder="No category"
                           emptyText="No categories found."
                         />
@@ -334,6 +409,7 @@ export const ImportStatementModal = observer(function ImportStatementModal({
         <DialogFooter className="flex items-center !justify-between border-t pt-4">
           <div className="text-sm text-muted-foreground">
             {newCount} new
+            {transferCount > 0 && <> ({transferCount} as transfers)</>}
             {matchedCount > 0 && <> · {matchedCount} matched to existing entries</>}
             {skippedCount > 0 && <> · {skippedCount} skipped</>}
             {newPayeeCount > 0 && <> · {newPayeeCount} new payees will be created</>}

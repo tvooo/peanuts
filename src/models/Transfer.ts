@@ -32,6 +32,16 @@ export class Transfer extends Model {
   @observable
   accessor toStatus: "open" | "cleared" = "open";
 
+  /**
+   * Import ids are per side: a transfer between two own accounts shows up on
+   * both bank statements, with a different id in each.
+   */
+  @observable
+  accessor fromImportId: string | null = null;
+
+  @observable
+  accessor toImportId: string | null = null;
+
   static fromJSON(json: any, ledger: Ledger) {
     const transfer = new Transfer({ id: json.id, ledger });
     transfer.fromAccount = ledger.getAccountByIdFast(json.from_account_id) || null;
@@ -42,6 +52,8 @@ export class Transfer extends Model {
     transfer.date = json.date ? deserializeDate(json.date) : null;
     transfer.note = json.note;
     transfer.budget = json.budget_id ? ledger.getBudgetByIdFast(json.budget_id) || null : null;
+    transfer.fromImportId = json.from_import_id ?? null;
+    transfer.toImportId = json.to_import_id ?? null;
     return transfer;
   }
 
@@ -56,6 +68,8 @@ export class Transfer extends Model {
       date: this.date ? serializeDate(this.date) : null,
       note: this.note,
       budget_id: this.budget?.id || null,
+      from_import_id: this.fromImportId,
+      to_import_id: this.toImportId,
     };
   }
 
@@ -77,6 +91,45 @@ export class Transfer extends Model {
     this.notifyChange();
   }
 
+  /** Which side of this transfer the given account is on, if any. */
+  sideFor(account: Account): "from" | "to" | null {
+    if (this.fromAccount === account) return "from";
+    if (this.toAccount === account) return "to";
+    return null;
+  }
+
+  /**
+   * The transfer amount as it appears on the given account's statement:
+   * negative when money leaves the account, positive when it arrives.
+   */
+  signedAmountFor(account: Account): Amount {
+    return this.sideFor(account) === "from" ? -this.amount : this.amount;
+  }
+
+  /** The import id recorded for the given account's side, if any. */
+  importIdFor(account: Account): string | null {
+    const side = this.sideFor(account);
+    if (!side) return null;
+    return side === "from" ? this.fromImportId : this.toImportId;
+  }
+
+  /**
+   * Records that the given account's side of this transfer was seen on an
+   * imported statement, which also means the bank has booked it.
+   */
+  @action
+  markImported(account: Account, importId: string) {
+    const side = this.sideFor(account);
+    if (side === "from") {
+      this.fromImportId = importId;
+      this.fromStatus = "cleared";
+    } else if (side === "to") {
+      this.toImportId = importId;
+      this.toStatus = "cleared";
+    }
+    this.notifyChange();
+  }
+
   /**
    * Creates a draft copy of this transfer for editing.
    */
@@ -90,6 +143,8 @@ export class Transfer extends Model {
     draft.fromStatus = this.fromStatus;
     draft.toStatus = this.toStatus;
     draft.budget = this.budget;
+    draft.fromImportId = this.fromImportId;
+    draft.toImportId = this.toImportId;
     return draft;
   }
 
@@ -106,6 +161,8 @@ export class Transfer extends Model {
     this.fromStatus = draft.fromStatus;
     this.toStatus = draft.toStatus;
     this.budget = draft.budget;
+    this.fromImportId = draft.fromImportId;
+    this.toImportId = draft.toImportId;
     this.notifyChange();
   }
 

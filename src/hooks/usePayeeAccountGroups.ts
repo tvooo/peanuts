@@ -20,6 +20,13 @@ export function usePayeeAccountGroups(
   ledger: Ledger,
   excludeAccountId?: string | null
 ): ComboboxGroup<PayeeAccountOption>[] {
+  // Read the observable lengths outside the memo so callers (which are MobX
+  // observers) re-render — and the memo recomputes — when a payee is created
+  // inline in a combobox. The arrays keep their identity when pushed to.
+  const payeeCount = ledger?.payees.length ?? 0;
+  const accountCount = ledger?.accounts.length ?? 0;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   return React.useMemo(() => {
     const groups: ComboboxGroup<PayeeAccountOption>[] = [];
 
@@ -43,13 +50,16 @@ export function usePayeeAccountGroups(
     // Add payees group
     groups.push({
       label: "Payees",
-      options: ledger.payees.map((p) => ({
-        id: `payee-${p.id}`,
-        label: p.name,
-        payee: p,
-      })),
+      options: ledger.payees
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((p) => ({
+          id: `payee-${p.id}`,
+          label: p.name,
+          payee: p,
+        })),
     });
 
     return groups;
-  }, [ledger, excludeAccountId]);
+  }, [ledger, payeeCount, accountCount, excludeAccountId]);
 }
