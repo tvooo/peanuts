@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import type { Budget } from "@/models/Budget";
 import { Goal, type GoalType } from "@/models/Goal";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
@@ -138,6 +139,17 @@ export const BudgetPanel = observer(function BudgetPanel({
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="budget-note">Note</Label>
+              <Textarea
+                id="budget-note"
+                value={budget.note}
+                onChange={(e) => budget.setNote(e.target.value)}
+                placeholder="What is this budget for?"
+                className="min-h-20 text-sm"
+              />
             </div>
 
             <div className="flex items-center gap-2">
