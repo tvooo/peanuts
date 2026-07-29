@@ -19,6 +19,9 @@ export class Budget extends Model {
   @observable
   accessor budgetCategory: BudgetCategory | null = null;
 
+  @observable
+  accessor note: string = "";
+
   isToBeBudgeted: boolean = false;
 
   @action
@@ -40,6 +43,12 @@ export class Budget extends Model {
   }
 
   @action
+  setNote(note: string) {
+    this.note = note;
+    this.notifyChange();
+  }
+
+  @action
   setBudgetCategory(category: BudgetCategory | null) {
     this.budgetCategory = category;
     this.notifyChange();
@@ -52,6 +61,7 @@ export class Budget extends Model {
     budget.isToBeBudgeted = json.is_to_be_budgeted;
     budget.isArchived = json.is_archived ?? false;
     budget.isFavorited = json.is_favorited ?? false;
+    budget.note = json.note ?? "";
     return budget;
   }
 
@@ -63,6 +73,7 @@ export class Budget extends Model {
       is_to_be_budgeted: this.isToBeBudgeted,
       is_archived: this.isArchived,
       is_favorited: this.isFavorited,
+      note: this.note,
     };
   }
 
