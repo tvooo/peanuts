@@ -184,6 +184,18 @@ export const AccountPage = observer(function AccountPage() {
         transfer.toAccount = targetAccount;
       }
 
+      // Keep the link to the imported statement row, so a re-import of an
+      // overlapping export still recognises this movement
+      if (transaction.importId) {
+        if (transfer.fromAccount === currentAccount) {
+          transfer.fromImportId = transaction.importId;
+          transfer.fromStatus = transaction.status;
+        } else {
+          transfer.toImportId = transaction.importId;
+          transfer.toStatus = transaction.status;
+        }
+      }
+
       // Add transfer to ledger
       ledger.transfers.push(transfer);
 
@@ -206,6 +218,10 @@ export const AccountPage = observer(function AccountPage() {
       // Determine amount based on whether this is from or to the current account
       const isFromAccount = transfer.fromAccount?.id === currentAccount.id;
       posting.amount = isFromAccount ? -Math.abs(transfer.amount) : Math.abs(transfer.amount);
+
+      // Carry over this account's side of the import link and status
+      transaction.importId = transfer.importIdFor(currentAccount);
+      transaction.status = isFromAccount ? transfer.fromStatus : transfer.toStatus;
 
       transaction.postings.push(posting);
       ledger.transactionPostings.push(posting);

@@ -4,6 +4,7 @@ import { Budget } from "@/models/Budget";
 import { Ledger } from "@/models/Ledger";
 import { Payee } from "@/models/Payee";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
+import { Transfer } from "@/models/Transfer";
 import { parseAsnStatement } from "./asnBank";
 import { parseCsv } from "./csv";
 import { parseGlsStatement } from "./glsBank";
@@ -193,8 +194,39 @@ describe("parseStatementFile", () => {
 function makeLedger() {
   const ledger = new Ledger();
   const account = new Account({ ledger, id: null });
+  account.name = "Checking";
   ledger.accounts.push(account);
   return { ledger, account };
+}
+
+function addAccount(ledger: Ledger, name: string) {
+  const account = new Account({ ledger, id: null });
+  account.name = name;
+  ledger.accounts.push(account);
+  return account;
+}
+
+function addTransfer(
+  ledger: Ledger,
+  opts: {
+    date: Date;
+    /** Always positive; the direction comes from from/to */
+    amount: number;
+    fromAccount: Account;
+    toAccount: Account;
+    fromImportId?: string;
+    toImportId?: string;
+  }
+) {
+  const transfer = new Transfer({ ledger, id: null });
+  transfer.date = opts.date;
+  transfer.amount = opts.amount;
+  transfer.fromAccount = opts.fromAccount;
+  transfer.toAccount = opts.toAccount;
+  transfer.fromImportId = opts.fromImportId ?? null;
+  transfer.toImportId = opts.toImportId ?? null;
+  ledger.transfers.push(transfer);
+  return transfer;
 }
 
 function addTransaction(
@@ -316,5 +348,90 @@ describe("findDuplicate", () => {
     addTransaction(ledger, account, { date: new Date(2025, 10, 1), amount: -5293 });
 
     expect(findDuplicate(ledger, account, row, new Set())).toBeNull();
+  });
+
+  it("finds transfers already imported on this account's side", () => {
+    const { ledger, account } = makeLedger();
+    const savings = addAccount(ledger, "Savings");
+    const transfer = addTransfer(ledger, {
+      date: new Date(2025, 11, 17),
+      amount: 5293,
+      fromAccount: account,
+      toAccount: savings,
+      fromImportId: row.importId,
+    });
+
+    expect(findDuplicate(ledger, account, row, new Set())).toEqual({
+      kind: "imported-transfer",
+      transfer,
+    });
+  });
+
+  it("matches manually entered transfers using the account's signed amount", () => {
+    const { ledger, account } = makeLedger();
+    const savings = addAccount(ledger, "Savings");
+    const outgoing = addTransfer(ledger, {
+      date: new Date(2025, 11, 16),
+      amount: 5293,
+      fromAccount: account,
+      toAccount: savings,
+    });
+
+    expect(findDuplicate(ledger, account, row, new Set())).toEqual({
+      kind: "manual-transfer",
+      transfer: outgoing,
+    });
+    // ...but not when another statement row already claimed it
+    expect(findDuplicate(ledger, account, row, new Set([outgoing.id]))).toBeNull();
+    // ...and not for the receiving account, where the same transfer is an inflow
+    expect(findDuplicate(ledger, savings, row, new Set())).toBeNull();
+  });
+
+  it("matches the other side of a transfer that was imported from one account", () => {
+    const { ledger, account } = makeLedger();
+    const savings = addAccount(ledger, "Savings");
+    const transfer = addTransfer(ledger, {
+      date: new Date(2025, 11, 17),
+      amount: 5293,
+      fromAccount: account,
+      toAccount: savings,
+      // Already imported from the checking statement
+      fromImportId: row.importId,
+    });
+    // The savings statement lists the same movement as an inflow, with its own id
+    const savingsRow = { ...row, amount: 5293, importId: "PNT:gls:2025-12-17:5293:1" };
+
+    expect(findDuplicate(ledger, savings, savingsRow, new Set())).toEqual({
+      kind: "manual-transfer",
+      transfer,
+    });
+
+    transfer.markImported(savings, savingsRow.importId);
+    expect(findDuplicate(ledger, savings, savingsRow, new Set())).toEqual({
+      kind: "imported-transfer",
+      transfer,
+    });
+    expect(transfer.fromStatus).toBe("open");
+    expect(transfer.toStatus).toBe("cleared");
+  });
+
+  it("prefers an exact transaction match over a transfer at the same distance", () => {
+    const { ledger, account } = makeLedger();
+    const savings = addAccount(ledger, "Savings");
+    const manual = addTransaction(ledger, account, {
+      date: new Date(2025, 11, 17),
+      amount: -5293,
+    });
+    addTransfer(ledger, {
+      date: new Date(2025, 11, 17),
+      amount: 5293,
+      fromAccount: account,
+      toAccount: savings,
+    });
+
+    expect(findDuplicate(ledger, account, row, new Set())).toEqual({
+      kind: "manual",
+      transaction: manual,
+    });
   });
 });

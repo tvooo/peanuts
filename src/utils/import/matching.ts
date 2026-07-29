@@ -4,6 +4,7 @@ import type { Budget } from "@/models/Budget";
 import type { Ledger } from "@/models/Ledger";
 import type { Payee } from "@/models/Payee";
 import type { Transaction } from "@/models/Transaction";
+import type { Transfer } from "@/models/Transfer";
 import type { StatementRow } from "./types";
 
 /** How many days a manually entered transaction may differ from the bank's booking date */
@@ -72,15 +73,29 @@ export type DuplicateMatch =
   /** Already imported: an existing transaction carries the same import id */
   | { kind: "imported"; transaction: Transaction }
   /** Likely the same transaction, entered manually before the import */
-  | { kind: "manual"; transaction: Transaction };
+  | { kind: "manual"; transaction: Transaction }
+  /** Already imported: this account's side of a transfer carries the same import id */
+  | { kind: "imported-transfer"; transfer: Transfer }
+  /** Likely the same movement, entered manually as a transfer before the import */
+  | { kind: "manual-transfer"; transfer: Transfer };
+
+/** True for the matches that mean "this row is already in the ledger, skip it". */
+export function isAlreadyImported(match: DuplicateMatch | null): boolean {
+  return match?.kind === "imported" || match?.kind === "imported-transfer";
+}
 
 /**
  * Check whether a statement row already exists in the ledger.
  *
  * Exact duplicates are found via the import id. Beyond that, a manually
- * entered transaction (no import id) with the same amount within a few days
- * is offered as a match so importing doesn't double-book it; `claimed` lets
- * the caller ensure each existing transaction is matched by at most one row.
+ * entered transaction or transfer (no import id) with the same amount within
+ * a few days is offered as a match so importing doesn't double-book it;
+ * `claimed` lets the caller ensure each existing entry is matched by at most
+ * one row.
+ *
+ * Transfers are matched from the perspective of `account`: only the side that
+ * this statement belongs to is considered, since the other account's statement
+ * carries a different import id for the same transfer.
  */
 export function findDuplicate(
   ledger: Ledger,
@@ -88,23 +103,38 @@ export function findDuplicate(
   row: StatementRow,
   claimed: Set<string>
 ): DuplicateMatch | null {
-  const candidates = ledger.transactions.filter((t) => t.account === account);
+  const transactions = ledger.transactions.filter((t) => t.account === account);
+  const transfers = ledger.transfers.filter((t) => t.sideFor(account) !== null);
 
-  const imported = candidates.find((t) => t.importId === row.importId);
+  const imported = transactions.find((t) => t.importId === row.importId);
   if (imported) return { kind: "imported", transaction: imported };
 
-  let bestManual: Transaction | null = null;
+  const importedTransfer = transfers.find((t) => t.importIdFor(account) === row.importId);
+  if (importedTransfer) return { kind: "imported-transfer", transfer: importedTransfer };
+
+  let bestManual: DuplicateMatch | null = null;
   let bestDistance = Infinity;
-  for (const t of candidates) {
-    if (t.importId || claimed.has(t.id)) continue;
-    if (t.amount !== row.amount || !t.date) continue;
-    const distance = Math.abs(differenceInCalendarDays(t.date, row.date));
+
+  const consider = (date: Date | null, match: DuplicateMatch) => {
+    if (!date) return;
+    const distance = Math.abs(differenceInCalendarDays(date, row.date));
     if (distance <= MANUAL_MATCH_WINDOW_DAYS && distance < bestDistance) {
-      bestManual = t;
+      bestManual = match;
       bestDistance = distance;
     }
-  }
-  if (bestManual) return { kind: "manual", transaction: bestManual };
+  };
 
-  return null;
+  for (const t of transactions) {
+    if (t.importId || claimed.has(t.id)) continue;
+    if (t.amount !== row.amount) continue;
+    consider(t.date, { kind: "manual", transaction: t });
+  }
+
+  for (const t of transfers) {
+    if (t.importIdFor(account) || claimed.has(t.id)) continue;
+    if (t.signedAmountFor(account) !== row.amount) continue;
+    consider(t.date, { kind: "manual-transfer", transfer: t });
+  }
+
+  return bestManual;
 }

@@ -54,6 +54,8 @@ A dated event on **one** account, made up of one or more postings.
 | `postings` | One or more `TransactionPosting`s (the split lines). |
 | `status` | `"open"` or `"cleared"`. |
 | `date` | Transaction date. |
+| `importId` | Set when the transaction came from (or was matched to) a row of an imported bank statement; `null` for hand-entered ones. See §Bank import. |
+| `importPayee` | The raw counterparty name from that statement row. |
 
 Derived:
 - **`amount`** = **sum of its postings' amounts** (positive = money in, negative = money
@@ -105,6 +107,20 @@ An **internal move between two of your own accounts**: `fromAccount`, `toAccount
 > Cross-type transfers (e.g. budget account → savings) **do** affect budget activity: they
 > count against `transfer.budget`, or against "To Be Budgeted" if no budget is set
 > (`getAllBudgetValuesForMonth`, Ledger.ts:600–624).
+
+### Bank import (`src/utils/import/`, `src/features/import/`)
+A statement row is identified by an `importId` derived from its date, amount and position
+in the file, so re-importing an overlapping export yields the same id. A row can be
+imported as a `Transaction` or, by picking another account instead of a payee, as a
+`Transfer`.
+
+> ⚖️ **Convention — import ids on transfers are per side.** A transfer between two of your
+> own accounts appears on **both** bank statements, with a **different** id in each, so
+> `Transfer` stores `fromImportId` and `toImportId` separately (alongside the existing
+> per-side `fromStatus`/`toStatus`). Importing one account's statement fills in and clears
+> only that side; importing the other account's statement later matches the same transfer
+> by amount and date, and fills in the other side (`Transfer.markImported`). Duplicate
+> detection therefore always asks *this account's* side (`findDuplicate`, matching.ts).
 
 ### Goal (`src/models/Goal.ts`)
 A target attached to a budget.
