@@ -221,7 +221,7 @@ export class TransactionPosting extends Model {
   }
 
   @action
-  setBudget(budget: Budget) {
+  setBudget(budget: Budget | null) {
     this.budget = budget;
     this.notifyChange();
   }

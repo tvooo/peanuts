@@ -87,7 +87,10 @@ export const TransactionFormRow = observer(function TransactionFormRow({
   const payeeGroups = usePayeeAccountGroups(ledger!, transaction.account?.id);
 
   // Group budgets by category (with split option)
-  const budgetGroups = useBudgetGroups(ledger!, { includeSplitOption: true });
+  const budgetGroups = useBudgetGroups(ledger!, {
+    includeSplitOption: true,
+    includeNoneOption: true,
+  });
 
   // Creators for inline creation
   const createPayee = usePayeeCreator(ledger!);
