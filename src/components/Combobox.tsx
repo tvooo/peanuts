@@ -142,9 +142,9 @@ function ComboboxInner<T extends ComboboxOption>(
 
   // Update search when value changes externally (only when closed)
   React.useEffect(() => {
-    if (value && !open) {
-      setSearch(getLabel(value));
-    }
+    if (open) return;
+    // No value (e.g. the selection was cleared): fall back to the placeholder
+    setSearch(value ? getLabel(value) : "");
   }, [value, open, getLabel]);
 
   // Set default selection when popover opens or search changes

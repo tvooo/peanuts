@@ -50,6 +50,8 @@ export const TransferRow = observer(function TransferRow({
   onToggleSelection,
 }: TransferRowProps) {
   const rowClasses = twJoin(rowStyles.displayRow, transfer.isFuture && rowStyles.futureRow);
+  // Show the other side of the transfer, relative to the account being viewed
+  const otherAccount = isInbound ? transfer.fromAccount : transfer.toAccount;
 
   return (
     <tr className={rowClasses} onClick={onClick} onContextMenu={onContextMenu}>
@@ -62,7 +64,7 @@ export const TransferRow = observer(function TransferRow({
       <td className={twJoin(rowStyles.cellBase, "truncate")}>
         <div className="flex items-center gap-2">
           <ArrowLeftRight className="text-muted-foreground shrink-0" size={12} />
-          <span className="truncate">{transfer.toAccount?.name}</span>
+          <span className="truncate">{otherAccount?.name}</span>
         </div>
       </td>
       <td
