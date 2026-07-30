@@ -201,7 +201,7 @@ export const TransferFormRow = observer(function TransferFormRow({
         <FormInput
           ref={outInputRef}
           type="text"
-          className="tabular-nums text-right"
+          className="font-mono tabular-nums text-right"
           value={outValue}
           onChange={(e) => {
             setOutValue(e.target.value);
@@ -235,7 +235,7 @@ export const TransferFormRow = observer(function TransferFormRow({
         <FormInput
           ref={inInputRef}
           type="text"
-          className="tabular-nums text-right"
+          className="font-mono tabular-nums text-right"
           value={inValue}
           onChange={(e) => {
             setInValue(e.target.value);

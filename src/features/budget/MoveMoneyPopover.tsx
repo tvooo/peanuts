@@ -2,6 +2,7 @@ import { isSameMonth } from "date-fns";
 import { observer } from "mobx-react-lite";
 import { useState } from "react";
 import { Combobox } from "@/components/Combobox";
+import { Currency } from "@/components/Currency";
 import { AmountCell } from "@/components/Table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { type BudgetOption, useBudgetGroups } from "@/hooks/useBudgetGroups";
 import { Assignment } from "@/models/Assignment";
 import type { Budget } from "@/models/Budget";
 import type { Ledger } from "@/models/Ledger";
-import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
+import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 
 interface MoveMoneyPopoverProps {
   sourceBudget: Budget;
@@ -121,7 +122,7 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
               <div className="space-y-2">
                 <h4 className="font-medium text-sm">Cover overspending</h4>
                 <p className="text-sm text-muted-foreground">
-                  {formatCurrency(overspentAmount)} needed for{" "}
+                  <Currency amount={overspentAmount} /> needed for{" "}
                   <span className="font-medium text-foreground">{sourceBudget.name}</span>
                 </p>
               </div>
@@ -139,8 +140,8 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
                   <p className="text-xs text-muted-foreground">
                     {coverAmount > 0 ? (
                       <>
-                        Only {formatCurrency(coverAmount)} available here —{" "}
-                        {formatCurrency(overspentAmount - coverAmount)} will stay overspent.
+                        Only <Currency amount={coverAmount} /> available here —{" "}
+                        <Currency amount={overspentAmount - coverAmount} /> will stay overspent.
                       </>
                     ) : (
                       <>Nothing available in this budget to move.</>
@@ -154,9 +155,13 @@ export const MoveMoneyPopover = observer(function MoveMoneyPopover({
                 onClick={handleMove}
                 disabled={!selectedBudget || coverAmount <= 0}
               >
-                {coverAmount > 0 && coverAmount < overspentAmount
-                  ? `Cover ${formatCurrency(coverAmount)}`
-                  : "Cover"}
+                {coverAmount > 0 && coverAmount < overspentAmount ? (
+                  <>
+                    Cover <Currency amount={coverAmount} />
+                  </>
+                ) : (
+                  "Cover"
+                )}
               </Button>
             </>
           ) : (

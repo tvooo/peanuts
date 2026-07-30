@@ -79,7 +79,7 @@ const PostingRow = observer(function PostingRow({
       <td className={cn("py-1 pr-2", rowClasses)} onKeyDown={handleKeyDown}>
         <FormInput
           type="text"
-          className="tabular-nums text-right"
+          className="font-mono tabular-nums text-right"
           value={outValue}
           onChange={(e) => {
             setOutValue(e.target.value);
@@ -104,7 +104,7 @@ const PostingRow = observer(function PostingRow({
       <td className={cn("py-1 pr-2", rowClasses)} onKeyDown={handleKeyDown}>
         <FormInput
           type="text"
-          className="tabular-nums text-right"
+          className="font-mono tabular-nums text-right"
           value={inValue}
           onChange={(e) => {
             setInValue(e.target.value);

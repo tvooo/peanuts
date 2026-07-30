@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { AddBudgetModal } from "@/features/budget/AddBudgetModal";
 import { AvailableToBudgetPopover } from "@/features/budget/AvailableToBudgetPopover";
 import { BudgetTable } from "@/features/budget/BudgetTable";
+import { containerClass, surfaceClass } from "@/lib/layout";
+import { cn } from "@/lib/utils";
 import { PageLayout } from "@/PageLayout";
 import { formatMonth } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
@@ -36,7 +38,7 @@ export default function BudgetPage() {
     <PageLayout>
       <div className="flex flex-col h-full">
         {/* Fixed header - Month navigation and budget summary */}
-        <div className="flex justify-between items-center px-8 py-4 shrink-0">
+        <div className={cn(containerClass, "flex justify-between items-center py-4 shrink-0")}>
           <div className="flex justify-around items-center gap-2">
             <Button
               size="icon"
@@ -67,7 +69,7 @@ export default function BudgetPage() {
         </div>
 
         {/* Fixed header - Filters and actions */}
-        <div className="flex justify-between items-center px-8 py-4 shrink-0">
+        <div className={cn(containerClass, "flex justify-between items-center pb-4 shrink-0")}>
           <div className="flex gap-2 items-center">
             <Input
               type="text"
@@ -89,13 +91,15 @@ export default function BudgetPage() {
         </div>
 
         {/* Table container */}
-        <div className="flex-1 min-h-0">
-          <BudgetTable
-            currentMonth={currentMonth}
-            ledger={ledger}
-            searchQuery={searchQuery}
-            overspentOnly={overspentOnly}
-          />
+        <div className={cn(containerClass, "flex-1 min-h-0 pb-6")}>
+          <div className={cn(surfaceClass, "h-full overflow-hidden")}>
+            <BudgetTable
+              currentMonth={currentMonth}
+              ledger={ledger}
+              searchQuery={searchQuery}
+              overspentOnly={overspentOnly}
+            />
+          </div>
         </div>
       </div>
     </PageLayout>

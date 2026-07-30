@@ -2,6 +2,7 @@ import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { RRule } from "rrule";
+import { Currency } from "@/components/Currency";
 import { RecurringTemplateModal } from "@/features/budget/RecurringTemplateModal";
 import {
   type GroupBy,
@@ -9,10 +10,10 @@ import {
   RecurringTransactionsTable,
   type SortOrder,
 } from "@/features/budget/RecurringTransactionsTable";
+import { containerClass, surfaceClass } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import type { Budget } from "@/models/Budget";
 import { PageLayout } from "@/PageLayout";
-import { formatCurrency } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
 
 export const RecurringTransactionsPage = observer(() => {
@@ -87,95 +88,99 @@ export const RecurringTransactionsPage = observer(() => {
     <PageLayout>
       <div className="flex flex-col h-full">
         {/* Fixed header - Title and summary */}
-        <div className="flex justify-between items-center px-8 py-4 shrink-0">
+        <div className={cn(containerClass, "flex justify-between items-center py-4 shrink-0")}>
           <h2 className="text-2xl font-bold">Recurring Transactions</h2>
           <div className="flex items-center gap-8">
             <div>
               <div className="text-sm text-muted-foreground">Monthly average</div>
-              <div className="text-xl font-bold">{formatCurrency(monthlyTotal)}</div>
+              <Currency className="block text-xl font-bold" amount={monthlyTotal} />
             </div>
             <div>
               <div className="text-sm text-muted-foreground">Yearly total</div>
-              <div className="text-xl font-bold">{formatCurrency(yearlyTotal)}</div>
+              <Currency className="block text-xl font-bold" amount={yearlyTotal} />
             </div>
             <RecurringTemplateModal />
           </div>
         </div>
 
-        {/* Fixed header - Filters */}
-        <div className="px-8 py-4 flex gap-4 items-center border-b border-stone-200 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Group by:</span>
-            <select
-              className={cn(
-                "h-9 rounded-md border border-input bg-white px-3 py-1",
-                "text-sm shadow-sm transition-colors",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                "w-[150px]"
-              )}
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-            >
-              <option value="recurrence">Recurrence</option>
-              <option value="category">Category</option>
-              <option value="account">Bank account</option>
-              <option value="flow">Inflow/Outflow</option>
-            </select>
-          </div>
+        {/* Fixed header - Filters. The divider spans the full viewport width. */}
+        <div className="border-b border-stone-200 shrink-0">
+          <div className={cn(containerClass, "py-4 flex gap-4 items-center")}>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Group by:</span>
+              <select
+                className={cn(
+                  "h-9 rounded-md border border-input bg-white px-3 py-1",
+                  "text-sm shadow-sm transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "w-[150px]"
+                )}
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+              >
+                <option value="recurrence">Recurrence</option>
+                <option value="category">Category</option>
+                <option value="account">Bank account</option>
+                <option value="flow">Inflow/Outflow</option>
+              </select>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Filter by recurrence:</span>
-            <select
-              className={cn(
-                "h-9 rounded-md border border-input bg-white px-3 py-1",
-                "text-sm shadow-sm transition-colors",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                "w-[150px]"
-              )}
-              value={recurrenceFilter}
-              onChange={(e) => setRecurrenceFilter(e.target.value as RecurrenceFilter)}
-            >
-              <option value="all">All</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="biweekly">Biweekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Filter by recurrence:</span>
+              <select
+                className={cn(
+                  "h-9 rounded-md border border-input bg-white px-3 py-1",
+                  "text-sm shadow-sm transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "w-[150px]"
+                )}
+                value={recurrenceFilter}
+                onChange={(e) => setRecurrenceFilter(e.target.value as RecurrenceFilter)}
+              >
+                <option value="all">All</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Biweekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Filter by category:</span>
-            <select
-              className={cn(
-                "h-9 rounded-md border border-input bg-white px-3 py-1",
-                "text-sm shadow-sm transition-colors",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                "w-50"
-              )}
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="all">All</option>
-              {uniqueBudgets.map((budget) => (
-                <option key={budget.id} value={budget.id}>
-                  {budget.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Filter by category:</span>
+              <select
+                className={cn(
+                  "h-9 rounded-md border border-input bg-white px-3 py-1",
+                  "text-sm shadow-sm transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "w-50"
+                )}
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                {uniqueBudgets.map((budget) => (
+                  <option key={budget.id} value={budget.id}>
+                    {budget.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Scrollable table container */}
-        <div className="flex-1 overflow-auto min-h-0">
-          <RecurringTransactionsTable
-            ledger={ledger}
-            groupBy={groupBy}
-            sortOrder={sortOrder}
-            recurrenceFilter={recurrenceFilter}
-            categoryFilter={categoryFilter}
-            onSortChange={toggleSort}
-          />
+        <div className={cn(containerClass, "flex-1 min-h-0 py-6")}>
+          <div className={cn(surfaceClass, "h-full overflow-auto")}>
+            <RecurringTransactionsTable
+              ledger={ledger}
+              groupBy={groupBy}
+              sortOrder={sortOrder}
+              recurrenceFilter={recurrenceFilter}
+              categoryFilter={categoryFilter}
+              onSortChange={toggleSort}
+            />
+          </div>
         </div>
       </div>
     </PageLayout>

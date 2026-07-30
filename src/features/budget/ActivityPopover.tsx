@@ -110,7 +110,7 @@ export const ActivityPopover = observer(function ActivityPopover({
                     <td className="px-3 py-1.5 truncate max-w-[100px] text-muted-foreground">
                       {item.notes}
                     </td>
-                    <td className="px-3 py-1.5 text-right tabular-nums whitespace-nowrap">
+                    <td className="px-3 py-1.5 text-right font-mono tabular-nums whitespace-nowrap">
                       {formatCurrency(item.amount)}
                     </td>
                   </tr>

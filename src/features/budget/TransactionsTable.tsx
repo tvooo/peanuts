@@ -573,7 +573,7 @@ export const TransactionsTable = observer(function TransactionsTable({
         <ContextMenuTrigger asChild>
           <div
             ref={scrollContainerRef}
-            className="h-full overflow-auto"
+            className="h-full overflow-auto bg-card"
             style={{ contain: "strict" }}
           >
             <table className="w-full table-fixed">
@@ -588,9 +588,9 @@ export const TransactionsTable = observer(function TransactionsTable({
                 <col style={{ width: "100px" }} />
                 <col style={{ width: "50px" }} />
               </colgroup>
-              <thead className="sticky top-0 bg-slate-50 z-10">
+              <thead className="sticky top-0 bg-card z-10">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
+                  <tr key={headerGroup.id} className="border-b border-stone-300">
                     {headerGroup.headers.map((header) => {
                       const headerClasses =
                         header.id === "checkbox"

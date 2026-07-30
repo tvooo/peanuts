@@ -8,6 +8,7 @@ import { isSameMonth, subMonths } from "date-fns";
 import { Archive, CheckCircle2, Circle, Trash2 } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Currency } from "@/components/Currency";
 import { AmountCell, HeaderCell } from "@/components/Table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import { Assignment } from "@/models/Assignment";
 import type { Budget, BudgetCategory } from "@/models/Budget";
 import type { Goal } from "@/models/Goal";
 import type { Ledger } from "@/models/Ledger";
-import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
+import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { ActivityPopover } from "./ActivityPopover";
 import { BudgetPanel } from "./BudgetPanel";
 import { MoveMoneyPopover } from "./MoveMoneyPopover";
@@ -88,7 +89,7 @@ function AssignmentInput({
         <Input
           autoFocus
           type="text"
-          className="tabular-nums text-right"
+          className="font-mono tabular-nums text-right"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onFocus={() => setPopoverOpen(true)}
@@ -120,7 +121,7 @@ function AssignmentInput({
               onClick={() => handleQuickBudget(option.amount)}
             >
               <span className="text-muted-foreground">{option.label}</span>
-              <span className="tabular-nums font-medium">{formatCurrency(option.amount)}</span>
+              <Currency className="font-medium" amount={option.amount} />
             </button>
           ))}
         </div>
@@ -155,7 +156,7 @@ function GoalIndicator({
       <TooltipContent>
         <p className="text-xs">
           {goal.type === "monthly_assignment" ? "Monthly: " : "Savings: "}
-          {Math.round(percentage)}% of {formatCurrency(goal.targetAmount)}
+          {Math.round(percentage)}% of <Currency amount={goal.targetAmount} />
         </p>
       </TooltipContent>
     </Tooltip>
@@ -325,10 +326,10 @@ export const BudgetTable = observer(function BudgetTable({
   });
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full bg-card">
       <div className="flex-1 overflow-auto min-w-0">
         <table className="table w-full table-fixed">
-          <thead className="sticky top-0 bg-white z-10">
+          <thead className="sticky top-0 bg-card z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-stone-300">
                 {headerGroup.headers.map((header) => {

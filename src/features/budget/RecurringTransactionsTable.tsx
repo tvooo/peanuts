@@ -243,7 +243,7 @@ export const RecurringTransactionsTable = observer(function RecurringTransaction
   return (
     <>
       <table className="table w-full">
-        <thead className="sticky top-0 bg-white z-10">
+        <thead className="sticky top-0 bg-card z-10">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="border-b border-stone-300">
               {headerGroup.headers.map((header) => {

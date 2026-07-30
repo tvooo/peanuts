@@ -13,8 +13,11 @@ import { observer } from "mobx-react-lite";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { CreateAccountModal } from "@/components/CreateAccountModal";
+import { Currency, currencyClass } from "@/components/Currency";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { narrowContainerClass } from "@/lib/layout";
+import { cn } from "@/lib/utils";
 import { PageLayout } from "@/PageLayout";
 import { formatCurrency } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
@@ -39,12 +42,12 @@ export const DashboardPage = observer(function DashboardPage() {
 
   return (
     <PageLayout>
-      <div className="mx-auto w-full max-w-5xl px-6 py-8">
+      <div className={cn(narrowContainerClass, "py-8")}>
         {/* Net worth */}
         <header className="mb-8">
           <p className="text-sm font-medium text-muted-foreground">Net worth</p>
-          <h1 className="mt-1 text-4xl font-semibold tabular-nums tracking-tight">
-            {formatCurrency(netWorth)}
+          <h1 className="mt-1 text-4xl font-semibold tracking-tight">
+            <Currency amount={netWorth} />
           </h1>
         </header>
 
@@ -101,7 +104,7 @@ export const DashboardPage = observer(function DashboardPage() {
                         style={{ width: `${Math.min(100, goal.progress.percentage)}%` }}
                       />
                     </div>
-                    <span className="text-xs tabular-nums text-muted-foreground">
+                    <span className={cn(currencyClass, "text-xs text-muted-foreground")}>
                       {formatCurrency(goal.progress.current)} / {formatCurrency(goal.targetAmount)}
                     </span>
                   </Card>
@@ -213,7 +216,7 @@ function AccountCard({
             />
           )}
         </div>
-        <span className="text-lg font-semibold tabular-nums">{formatCurrency(balance)}</span>
+        <Currency className="text-lg font-semibold" amount={balance} />
       </Card>
     </Link>
   );

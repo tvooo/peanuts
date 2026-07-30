@@ -2,6 +2,7 @@ import { Star, X } from "lucide-react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useState } from "react";
+import { Currency } from "@/components/Currency";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Budget } from "@/models/Budget";
 import { Goal, type GoalType } from "@/models/Goal";
-import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
+import { formatCurrencyInput, parseCurrencyInput } from "@/utils/formatting";
 import { useLedger } from "@/utils/useLedger";
 
 interface BudgetPanelProps {
@@ -181,16 +182,16 @@ export const BudgetPanel = observer(function BudgetPanel({
                     <span className="text-sm font-medium">
                       {goal.type === "monthly_assignment" ? "Monthly Assignment" : "Savings Target"}
                     </span>
-                    <span className="text-sm text-stone-500">
-                      {formatCurrency(goal.targetAmount)}
-                    </span>
+                    <Currency className="text-sm text-stone-500" amount={goal.targetAmount} />
                   </div>
 
                   {/* Progress */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs text-stone-500">
-                      <span>{formatCurrency(goal.progressForMonth(currentMonth).current)}</span>
-                      <span>{Math.round(goal.progressForMonth(currentMonth).percentage)}%</span>
+                      <Currency amount={goal.progressForMonth(currentMonth).current} />
+                      <span className="tabular-nums">
+                        {Math.round(goal.progressForMonth(currentMonth).percentage)}%
+                      </span>
                     </div>
                     <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
                       <div

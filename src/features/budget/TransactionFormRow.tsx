@@ -191,7 +191,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
           <FormInput
             ref={outInputRef}
             type="text"
-            className="tabular-nums text-right"
+            className="font-mono tabular-nums text-right"
             value={outValue}
             onChange={(e) => {
               setOutValue(e.target.value);
@@ -218,7 +218,7 @@ export const TransactionFormRow = observer(function TransactionFormRow({
           <FormInput
             ref={inInputRef}
             type="text"
-            className="tabular-nums text-right"
+            className="font-mono tabular-nums text-right"
             value={inValue}
             onChange={(e) => {
               setInValue(e.target.value);

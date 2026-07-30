@@ -2,6 +2,8 @@ import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { AddPayeeModal } from "@/features/budget/AddPayeeModal";
+import { containerClass, surfaceClass } from "@/lib/layout";
+import { cn } from "@/lib/utils";
 import { PageLayout } from "@/PageLayout";
 import { useLedger } from "@/utils/useLedger";
 
@@ -40,39 +42,41 @@ export const PayeesPage = observer(function PayeesPage() {
 
   return (
     <PageLayout>
-      <div className="flex justify-between items-center px-8 py-4">
+      <div className={cn(containerClass, "flex justify-between items-center py-4")}>
         <h2 className="text-2xl font-bold">Payees</h2>
         <AddPayeeModal />
       </div>
-      <div className="flex flex-col items-stretch px-8 py-4">
-        {ledger.payees.map((payee) => {
-          const transactionCount = transactionCounts.get(payee.id) ?? 0;
-          const recurringCount = recurringCounts.get(payee.id) ?? 0;
-          const isUnused = transactionCount === 0 && recurringCount === 0;
+      <div className={cn(containerClass, "pb-6")}>
+        <div className={cn(surfaceClass, "flex flex-col items-stretch p-2")}>
+          {ledger.payees.map((payee) => {
+            const transactionCount = transactionCounts.get(payee.id) ?? 0;
+            const recurringCount = recurringCounts.get(payee.id) ?? 0;
+            const isUnused = transactionCount === 0 && recurringCount === 0;
 
-          return (
-            <div
-              key={payee.id}
-              className="flex justify-between items-center gap-4 p-2 hover:bg-mutedX rounded-md"
-            >
-              <div className={`text-sm ${isUnused ? "text-muted-foreground" : ""}`}>
-                {payee.name}
+            return (
+              <div
+                key={payee.id}
+                className="flex justify-between items-center gap-4 p-2 hover:bg-mutedX rounded-md"
+              >
+                <div className={`text-sm ${isUnused ? "text-muted-foreground" : ""}`}>
+                  {payee.name}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
+                  {isUnused ? (
+                    <span>Unused</span>
+                  ) : (
+                    <>
+                      <span>
+                        {transactionCount} {transactionCount === 1 ? "transaction" : "transactions"}
+                      </span>
+                      {recurringCount > 0 && <span>{recurringCount} recurring</span>}
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
-                {isUnused ? (
-                  <span>Unused</span>
-                ) : (
-                  <>
-                    <span>
-                      {transactionCount} {transactionCount === 1 ? "transaction" : "transactions"}
-                    </span>
-                    {recurringCount > 0 && <span>{recurringCount} recurring</span>}
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </PageLayout>
   );
