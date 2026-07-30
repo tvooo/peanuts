@@ -393,7 +393,7 @@ export const ImportStatementModal = observer(function ImportStatementModal({
                       )}
                     </td>
                     <td
-                      className={`py-2 pr-2 text-right whitespace-nowrap tabular-nums ${
+                      className={`py-2 pr-2 text-right whitespace-nowrap font-mono tabular-nums ${
                         row.amount >= 0 ? "text-green-700" : ""
                       }`}
                     >

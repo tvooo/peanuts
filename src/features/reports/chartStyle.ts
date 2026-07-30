@@ -33,6 +33,10 @@ export function topRoundedRect(x: number, y: number, w: number, h: number, r: nu
   ].join(" ");
 }
 
+/** Monospace stack (Tailwind's `font-mono`) so amounts get tabular figures in SVG too. */
+export const monoFont =
+  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+
 /** Drop the heavy domain line + tick marks and use soft grey labels. */
 export function tidyAxis(group: SvgGroup) {
   group.select(".domain").remove();
@@ -42,6 +46,15 @@ export function tidyAxis(group: SvgGroup) {
     .style("font-size", "12px")
     .style("fill", chartColors.axis)
     .style("font-family", "inherit");
+}
+
+/** Same as `tidyAxis`, but for axes whose labels are currency amounts. */
+export function tidyCurrencyAxis(group: SvgGroup) {
+  tidyAxis(group);
+  group
+    .selectAll("text")
+    .style("font-family", monoFont)
+    .style("font-variant-numeric", "tabular-nums");
 }
 
 /** A rounded dark tooltip with a little pointer, sized to its label. */
@@ -59,7 +72,8 @@ export function drawTooltip(svg: SvgGroup, x: number, y: number, label: string) 
     .attr("fill", chartColors.tooltipText)
     .style("font-size", "12px")
     .style("font-weight", "600")
-    .style("font-family", "inherit")
+    .style("font-family", monoFont)
+    .style("font-variant-numeric", "tabular-nums")
     .text(label);
 
   const textWidth = (text.node() as SVGTextElement).getBBox().width;

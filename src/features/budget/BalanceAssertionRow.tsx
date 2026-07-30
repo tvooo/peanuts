@@ -1,6 +1,7 @@
 import { twJoin } from "tailwind-merge";
+import { Currency } from "@/components/Currency";
 import type { BalanceAssertion } from "@/models/BalanceAssertion";
-import { formatCurrency, formatDate } from "@/utils/formatting";
+import { formatDate } from "@/utils/formatting";
 
 interface BalanceAssertionRowProps {
   transaction: BalanceAssertion;
@@ -24,7 +25,7 @@ export const BalanceAssertionRow = ({ transaction }: BalanceAssertionRowProps) =
       <td className={twJoin("tabular-nums", cellBase)}>{formatDate(transaction.date)}</td>
       {/* Span the remaining columns with the balance message */}
       <td colSpan={5} className={cellBase}>
-        Account balance was <strong>{formatCurrency(transaction.balance)}</strong>
+        Account balance was <Currency className="font-bold" amount={transaction.balance} />
       </td>
       <td />
     </tr>

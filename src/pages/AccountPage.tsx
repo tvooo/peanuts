@@ -4,14 +4,16 @@ import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { Currency } from "@/components/Currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TransactionsTable } from "@/features/budget/TransactionsTable";
 import { ImportStatementModal } from "@/features/import/ImportStatementModal";
+import { containerClass, surfaceClass } from "@/lib/layout";
+import { cn } from "@/lib/utils";
 import { Transaction, TransactionPosting } from "@/models/Transaction";
 import { Transfer } from "@/models/Transfer";
 import { PageLayout } from "@/PageLayout";
-import { formatCurrency } from "@/utils/formatting";
 import { type ParsedStatement, parseStatementFile, StatementParseError } from "@/utils/import";
 import { useLedger } from "@/utils/useLedger";
 
@@ -282,7 +284,7 @@ export const AccountPage = observer(function AccountPage() {
           </div>
         )}
         {/* Fixed header - Account info */}
-        <div className="flex justify-between items-center px-8 py-4 shrink-0">
+        <div className={cn(containerClass, "flex justify-between items-center py-4 shrink-0")}>
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold">{currentAccount.name}</h2>
             {currentAccount.type === "tracking" && (
@@ -301,19 +303,20 @@ export const AccountPage = observer(function AccountPage() {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Cleared</div>
-              <div className="text-md">{formatCurrency(currentAccount.clearedBalance)}</div>
+              <Currency className="block text-md" amount={currentAccount.clearedBalance} />
             </div>
             <div className="text-muted-foreground">+</div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Uncleared</div>
-              <div className="text-md">{formatCurrency(currentAccount.unclearedBalance)}</div>
+              <Currency className="block text-md" amount={currentAccount.unclearedBalance} />
             </div>
             <div className="text-muted-foreground">=</div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Total</div>
-              <div className="text-md font-bold">
-                {formatCurrency(currentAccount.currentBalance)}
-              </div>
+              <Currency
+                className="block text-md font-bold"
+                amount={currentAccount.currentBalance}
+              />
             </div>
             <Button
               variant={currentAccount.archived ? "default" : "outline"}
@@ -329,7 +332,7 @@ export const AccountPage = observer(function AccountPage() {
         </div>
 
         {/* Fixed header - Bulk actions and new transaction button */}
-        <div className="flex justify-between items-center px-8 py-4 shrink-0">
+        <div className={cn(containerClass, "flex justify-between items-center pb-4 shrink-0")}>
           <div className="flex gap-2">
             <Button variant="secondary" onClick={handleSelectAll}>
               Select All
@@ -366,28 +369,30 @@ export const AccountPage = observer(function AccountPage() {
         </div>
 
         {/* Scrollable table container */}
-        <div className="flex-1 overflow-auto min-h-0">
-          <TransactionsTable
-            currentAccount={currentAccount}
-            ledger={ledger}
-            selectedIds={selectedIds}
-            onToggleSelection={handleToggleSelection}
-            onConvertTransactionToTransfer={handleConvertTransactionToTransfer}
-            onConvertTransferToTransaction={handleConvertTransferToTransaction}
-            autoEditTransactionId={autoEditTransactionId}
-            onAutoEditProcessed={() => setAutoEditTransactionId(null)}
-            onDeleteItem={(item) => {
-              runInAction(() => {
-                if (item instanceof Transaction) {
-                  ledger.deleteTransaction(item);
-                } else if (item instanceof Transfer) {
-                  ledger.deleteTransfer(item);
-                }
-              });
-            }}
-            onRequestNewTransaction={createNewTransaction}
-            searchQuery={searchQuery}
-          />
+        <div className={cn(containerClass, "flex-1 min-h-0 pb-6")}>
+          <div className={cn(surfaceClass, "h-full overflow-hidden")}>
+            <TransactionsTable
+              currentAccount={currentAccount}
+              ledger={ledger}
+              selectedIds={selectedIds}
+              onToggleSelection={handleToggleSelection}
+              onConvertTransactionToTransfer={handleConvertTransactionToTransfer}
+              onConvertTransferToTransaction={handleConvertTransferToTransaction}
+              autoEditTransactionId={autoEditTransactionId}
+              onAutoEditProcessed={() => setAutoEditTransactionId(null)}
+              onDeleteItem={(item) => {
+                runInAction(() => {
+                  if (item instanceof Transaction) {
+                    ledger.deleteTransaction(item);
+                  } else if (item instanceof Transfer) {
+                    ledger.deleteTransfer(item);
+                  }
+                });
+              }}
+              onRequestNewTransaction={createNewTransaction}
+              searchQuery={searchQuery}
+            />
+          </div>
         </div>
 
         <ImportStatementModal

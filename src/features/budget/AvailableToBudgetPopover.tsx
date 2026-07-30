@@ -39,24 +39,26 @@ export const AvailableToBudgetPopover = observer(function AvailableToBudgetPopov
           className="text-right cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1"
         >
           <div className="text-xs text-muted-foreground">Available to budget</div>
-          <div className="text-xl font-bold tabular-nums">{formatCurrency(availableToBudget)}</div>
+          <div className="text-xl font-bold font-mono tabular-nums">
+            {formatCurrency(availableToBudget)}
+          </div>
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="end">
         <div className="p-3 space-y-2 text-sm">
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Rollover from last month</span>
-            <span className="tabular-nums text-green-600">
+            <span className="font-mono tabular-nums text-green-600">
               +{formatCurrency(lastMonthAvailable)}
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Inflow this month</span>
-            <span className="tabular-nums text-green-600">+{formatCurrency(inflow)}</span>
+            <span className="font-mono tabular-nums text-green-600">+{formatCurrency(inflow)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Assigned this month</span>
-            <span className="tabular-nums text-orange-600">
+            <span className="font-mono tabular-nums text-orange-600">
               -{formatCurrency(assignedThisMonth)}
             </span>
           </div>
@@ -64,7 +66,7 @@ export const AvailableToBudgetPopover = observer(function AvailableToBudgetPopov
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Assigned in the future</span>
               <span
-                className={`tabular-nums ${futureNet >= 0 ? "text-green-600" : "text-orange-600"}`}
+                className={`font-mono tabular-nums ${futureNet >= 0 ? "text-green-600" : "text-orange-600"}`}
               >
                 {futureNet >= 0 ? "+" : ""}
                 {formatCurrency(futureNet)}
@@ -73,7 +75,7 @@ export const AvailableToBudgetPopover = observer(function AvailableToBudgetPopov
           )}
           <div className="border-t pt-2 flex justify-between items-center font-medium">
             <span>Available</span>
-            <span className="tabular-nums">{formatCurrency(availableToBudget)}</span>
+            <span className="font-mono tabular-nums">{formatCurrency(availableToBudget)}</span>
           </div>
         </div>
       </PopoverContent>

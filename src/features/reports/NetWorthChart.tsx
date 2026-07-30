@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite";
 import { useEffect, useMemo, useRef } from "react";
 import type { Ledger } from "@/models/Ledger";
 import { formatCurrency } from "@/utils/formatting";
-import { chartColors, drawTooltip, tidyAxis } from "./chartStyle";
+import { chartColors, drawTooltip, tidyAxis, tidyCurrencyAxis } from "./chartStyle";
 
 interface NetWorthChartProps {
   ledger: Ledger;
@@ -111,7 +111,7 @@ export const NetWorthChart = observer(function NetWorthChart({ ledger, year }: N
       });
 
     svg.append("g").attr("transform", `translate(0,${height})`).call(xAxis).call(tidyAxis);
-    svg.append("g").call(yAxis).call(tidyAxis);
+    svg.append("g").call(yAxis).call(tidyCurrencyAxis);
 
     // Soft area fill under the line
     const area = d3

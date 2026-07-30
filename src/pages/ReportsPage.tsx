@@ -5,6 +5,8 @@ import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { InflowOutflowChart } from "@/features/reports/InflowOutflowChart";
 import { NetWorthChart } from "@/features/reports/NetWorthChart";
+import { narrowContainerClass } from "@/lib/layout";
+import { cn } from "@/lib/utils";
 import { PageLayout } from "@/PageLayout";
 import { useLedger } from "@/utils/useLedger";
 
@@ -26,7 +28,7 @@ export const ReportsPage = observer(() => {
 
   return (
     <PageLayout>
-      <div className="mx-auto w-full max-w-5xl px-8 py-6">
+      <div className={cn(narrowContainerClass, "py-6")}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">Reports</h2>
           <div className="flex items-center gap-2">
