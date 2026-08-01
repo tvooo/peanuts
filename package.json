@@ -58,9 +58,9 @@
     "typescript": "7.0.2"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-decorators": "^7.25.9",
-    "@babel/plugin-transform-class-properties": "^7.25.9",
-    "@babel/plugin-transform-class-static-block": "^7.26.0",
+    "@babel/plugin-proposal-decorators": "^8.0.0",
+    "@babel/plugin-transform-class-properties": "^8.0.0",
+    "@babel/plugin-transform-class-static-block": "^8.0.0",
     "@biomejs/biome": "2.5.6",
     "@vitejs/plugin-react": "^5.0.0",
     "husky": "^9.1.7",
