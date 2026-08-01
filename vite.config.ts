@@ -1,3 +1,4 @@
+import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -8,18 +9,16 @@ export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src/"),
+      "@": path.resolve(import.meta.dirname, "src/"),
     },
   },
   plugins: [
     tailwindcss(),
-    react({
-      babel: {
-        plugins: [
-          "@babel/plugin-transform-class-static-block",
-          ["@babel/plugin-proposal-decorators", { version: "2023-05" }],
-        ],
-      },
+    react(),
+    // MobX decorators: plugin-react v6 is oxc-based and no longer runs Babel,
+    // so the decorator transform runs as its own plugin.
+    babel({
+      plugins: [["@babel/plugin-proposal-decorators", { version: "2023-11" }]],
     }),
     {
       name: "configure-response-headers",
