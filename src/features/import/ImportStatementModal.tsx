@@ -245,8 +245,8 @@ export const ImportStatementModal = observer(function ImportStatementModal({
         <DialogHeader>
           <DialogTitle>Import transactions</DialogTitle>
           <DialogDescription>
-            {fileName} · {FORMAT_LABELS[statement.format]} ·{" "}
-            {statement.rows.length} transactions into {account.name}
+            {fileName} · {FORMAT_LABELS[statement.format]} · {statement.rows.length} transactions
+            into {account.name}
             {statement.accountIban ? ` (${statement.accountIban})` : ""}
           </DialogDescription>
         </DialogHeader>
