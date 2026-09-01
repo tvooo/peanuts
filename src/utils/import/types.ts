@@ -1,6 +1,12 @@
 import type { Amount } from "@/utils/types";
 
-export type StatementFormat = "asn" | "gls";
+export type StatementFormat = "asn" | "gls" | "dkb";
+
+export const FORMAT_LABELS: Record<StatementFormat, string> = {
+  asn: "ASN Bank",
+  gls: "GLS Bank",
+  dkb: "DKB",
+};
 
 /** A single transaction parsed from a bank statement file. */
 export interface StatementRow {

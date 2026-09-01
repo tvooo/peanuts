@@ -7,6 +7,7 @@ import { Transaction, TransactionPosting } from "@/models/Transaction";
 import { Transfer } from "@/models/Transfer";
 import { parseAsnStatement } from "./asnBank";
 import { parseCsv } from "./csv";
+import { parseDkbStatement } from "./dkbBank";
 import { parseGlsStatement } from "./glsBank";
 import { parseStatementFile } from "./index";
 import { findDuplicate, resolvePayee, suggestBudget } from "./matching";
@@ -66,6 +67,10 @@ describe("parseDayMonthYear", () => {
     expect(parseDayMonthYear("21-01-2020", "-")).toEqual(new Date(2020, 0, 21));
     expect(parseDayMonthYear("3-4-2020", "-")).toEqual(new Date(2020, 3, 3));
     expect(parseDayMonthYear("17.12.2025", ".")).toEqual(new Date(2025, 11, 17));
+  });
+
+  it("maps two-digit years to 20xx (DKB)", () => {
+    expect(parseDayMonthYear("15.12.25", ".")).toEqual(new Date(2025, 11, 15));
   });
 });
 
@@ -182,11 +187,76 @@ describe("parseGlsStatement", () => {
   });
 });
 
+const DKB_HEADER =
+  '"Buchungsdatum";"Wertstellung";"Status";"Zahlungspflichtige*r";"Zahlungsempfänger*in";"Verwendungszweck";"Umsatztyp";"IBAN";"Betrag (€)";"Gläubiger-ID";"Mandatsreferenz";"Kundenreferenz"';
+
+const DKB_SAMPLE = `﻿"Girokonto";"DE41100110012624346066"
+""
+"Kontostand vom 17.12.25:";"1.234,56 EUR"
+""
+${DKB_HEADER}
+"15.12.25";"15.12.25";"Gebucht";"Max Mustermann";"REWE Markt GmbH";"Einkauf bei REWE";"Ausgang";"DE12345678901234567890";"-23,45";"";"";""
+"16.12.25";"16.12.25";"Gebucht";"Arbeitgeber GmbH";"Max Mustermann";"Gehalt  Dezember";"Eingang";"";"2.500,00 €";"";"";""
+"17.12.25";"17.12.25";"Vorgemerkt";"Max Mustermann";"AMAZON";"Bestellung";"Ausgang";"";"-9,99";"";"";""`;
+
+describe("parseDkbStatement", () => {
+  it("parses the current format with BOM, skipping pending rows", () => {
+    const statement = parseDkbStatement(DKB_SAMPLE);
+    expect(statement.format).toBe("dkb");
+    expect(statement.accountIban).toBe("DE41100110012624346066");
+    expect(statement.rows).toHaveLength(2);
+
+    const [first, second] = statement.rows;
+    expect(first.date).toEqual(new Date(2025, 11, 15));
+    expect(first.amount).toBe(-2345);
+    // Outflow: counterparty is the recipient
+    expect(first.rawPayee).toBe("REWE Markt GmbH");
+    expect(first.counterIban).toBe("DE12345678901234567890");
+    expect(first.memo).toBe("Einkauf bei REWE");
+    expect(first.importId).toBe("PNT:dkb:2025-12-15:-2345:1");
+
+    // Inflow: counterparty is the payer; trailing "€" on the amount
+    expect(second.amount).toBe(250000);
+    expect(second.rawPayee).toBe("Arbeitgeber GmbH");
+    expect(second.counterIban).toBeNull();
+    expect(second.memo).toBe("Gehalt Dezember");
+  });
+
+  it("parses the comma-delimited variant", () => {
+    const commaSample = DKB_SAMPLE.replace(/";"/g, '","');
+    const statement = parseDkbStatement(commaSample);
+    expect(statement.rows).toHaveLength(2);
+    expect(statement.rows[0].amount).toBe(-2345);
+  });
+
+  it("parses the legacy format", () => {
+    const legacy = [
+      '"Kontonummer:";"DE41100110012624346066 / Girokonto";',
+      '"Von:";"01.05.2021";',
+      '"Bis:";"31.05.2021";',
+      '"Kontostand vom 31.05.2021:";"1.000,00 EUR";',
+      '"Buchungstag";"Wertstellung";"Buchungstext";"Auftraggeber / Begünstigter";"Verwendungszweck";"Kontonummer";"BLZ";"Betrag (EUR)";"Gläubiger-ID";"Mandatsreferenz";"Kundenreferenz";',
+      '"03.05.2021";"03.05.2021";"Lastschrift";"REWE MARKT GMBH";"REWE SAGT DANKE";"1234567890";"12030000";"-23,45";"";"";"";',
+      '"04.05.2021";"04.05.2021";"Gutschrift";"ARBEITGEBER GMBH";"Gehalt Mai";"0987654321";"12030000";"2.500,00";"";"";"";',
+    ].join("\n");
+
+    const statement = parseDkbStatement(legacy);
+    expect(statement.accountIban).toBe("DE41100110012624346066");
+    expect(statement.rows).toHaveLength(2);
+    expect(statement.rows[0].date).toEqual(new Date(2021, 4, 3));
+    expect(statement.rows[0].amount).toBe(-2345);
+    expect(statement.rows[0].rawPayee).toBe("REWE MARKT GMBH");
+    expect(statement.rows[0].memo).toBe("Lastschrift · REWE SAGT DANKE");
+    expect(statement.rows[1].amount).toBe(250000);
+  });
+});
+
 describe("parseStatementFile", () => {
   it("auto-detects formats from raw bytes", () => {
     const encode = (s: string) => new TextEncoder().encode(s).buffer as ArrayBuffer;
     expect(parseStatementFile(encode(ASN_SAMPLE)).format).toBe("asn");
     expect(parseStatementFile(encode(GLS_SAMPLE)).format).toBe("gls");
+    expect(parseStatementFile(encode(DKB_SAMPLE)).format).toBe("dkb");
     expect(() => parseStatementFile(encode("hello world"))).toThrow();
   });
 });
