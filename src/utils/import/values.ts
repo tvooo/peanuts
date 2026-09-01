@@ -38,13 +38,15 @@ export function parseAmountCentsFlexible(raw: string): Amount {
 /**
  * Parse a day-month-year date ("21-01-2020", "3-4-2020", "21.01.2020") to a
  * Date at local midnight, matching how the app deserializes dates.
+ * Two-digit years ("15.12.25", DKB's current export) map to 20xx.
  */
 export function parseDayMonthYear(raw: string, separator: string): Date {
   const parts = raw.trim().split(separator);
   if (parts.length !== 3) {
     throw new StatementParseError(`Cannot parse date: "${raw}"`);
   }
-  const [day, month, year] = parts.map((p) => parseInt(p, 10));
+  const [day, month, rawYear] = parts.map((p) => parseInt(p, 10));
+  const year = rawYear < 100 ? rawYear + 2000 : rawYear;
   if (!day || !month || !year || month > 12 || day > 31 || year < 1900) {
     throw new StatementParseError(`Cannot parse date: "${raw}"`);
   }

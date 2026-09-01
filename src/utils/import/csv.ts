@@ -74,6 +74,10 @@ export function parseCsv(text: string, delimiter: string, quote: string = '"'): 
   return rows;
 }
 
+export function stripBom(text: string): string {
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
 /**
  * Decode a statement file. Bank exports are typically UTF-8 or a Windows/ISO
  * Latin encoding; try strict UTF-8 first and fall back to windows-1252

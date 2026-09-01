@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { parseCsv } from "./csv";
+import { parseCsv, stripBom } from "./csv";
 import type { ParsedStatement, StatementRow } from "./types";
 import { ImportIdBuilder, StatementParseError } from "./types";
 import { parseAmountCents, parseDayMonthYear } from "./values";
@@ -41,10 +41,6 @@ function findLayout(rows: string[][]): GlsLayout | null {
     }
   }
   return null;
-}
-
-function stripBom(text: string): string {
-  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
 export function looksLikeGlsStatement(text: string): boolean {

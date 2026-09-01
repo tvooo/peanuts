@@ -31,7 +31,7 @@ import {
   resolvePayee,
   suggestBudget,
 } from "@/utils/import/matching";
-import type { ParsedStatement, StatementRow } from "@/utils/import/types";
+import { FORMAT_LABELS, type ParsedStatement, type StatementRow } from "@/utils/import/types";
 import { useLedger } from "@/utils/useLedger";
 
 interface ReviewRow {
@@ -245,7 +245,7 @@ export const ImportStatementModal = observer(function ImportStatementModal({
         <DialogHeader>
           <DialogTitle>Import transactions</DialogTitle>
           <DialogDescription>
-            {fileName} · {statement.format === "asn" ? "ASN Bank" : "GLS Bank"} ·{" "}
+            {fileName} · {FORMAT_LABELS[statement.format]} ·{" "}
             {statement.rows.length} transactions into {account.name}
             {statement.accountIban ? ` (${statement.accountIban})` : ""}
           </DialogDescription>
