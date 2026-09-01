@@ -1,15 +1,18 @@
+import { Pencil } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { AddPayeeModal } from "@/features/budget/AddPayeeModal";
+import { AddPayeeModal, PayeeModal } from "@/features/budget/AddPayeeModal";
 import { containerClass, surfaceClass } from "@/lib/layout";
 import { cn } from "@/lib/utils";
+import type { Payee } from "@/models/Payee";
 import { PageLayout } from "@/PageLayout";
 import { useLedger } from "@/utils/useLedger";
 
 export const PayeesPage = observer(function PayeesPage() {
   const { ledger } = useLedger();
   const navigate = useNavigate();
+  const [editingPayee, setEditingPayee] = useState<Payee | null>(null);
 
   useEffect(() => {
     if (!ledger) {
@@ -54,12 +57,20 @@ export const PayeesPage = observer(function PayeesPage() {
             const isUnused = transactionCount === 0 && recurringCount === 0;
 
             return (
-              <div
+              <button
+                type="button"
                 key={payee.id}
-                className="flex justify-between items-center gap-4 p-2 hover:bg-mutedX rounded-md"
+                onClick={() => setEditingPayee(payee)}
+                className="group flex justify-between items-center gap-4 p-2 hover:bg-mutedX rounded-md text-left"
               >
-                <div className={`text-sm ${isUnused ? "text-muted-foreground" : ""}`}>
+                <div
+                  className={`flex items-center gap-2 text-sm ${isUnused ? "text-muted-foreground" : ""}`}
+                >
                   {payee.name}
+                  <Pencil
+                    size={12}
+                    className="text-muted-foreground opacity-0 group-hover:opacity-100"
+                  />
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
                   {isUnused ? (
@@ -73,11 +84,16 @@ export const PayeesPage = observer(function PayeesPage() {
                     </>
                   )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
+      <PayeeModal
+        payee={editingPayee}
+        open={!!editingPayee}
+        onOpenChange={(open) => !open && setEditingPayee(null)}
+      />
     </PageLayout>
   );
 });

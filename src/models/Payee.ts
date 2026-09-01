@@ -26,6 +26,12 @@ export class Payee extends Model {
   }
 
   @action
+  setName(name: string) {
+    this.name = name;
+    this.notifyChange();
+  }
+
+  @action
   addImportName(rawName: string) {
     const trimmed = rawName.trim();
     if (!trimmed) return;
