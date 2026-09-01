@@ -251,6 +251,38 @@ export class Ledger {
     this.incrementVersion();
   }
 
+  /**
+   * Merge payees into `target`: their transactions and recurring templates
+   * are repointed, their names and import aliases become import aliases of
+   * the target (so future imports match it), and they are deleted.
+   */
+  @action
+  mergePayees(target: Payee, sources: Payee[]) {
+    const sourceIds = new Set(sources.filter((p) => p.id !== target.id).map((p) => p.id));
+    if (sourceIds.size === 0) return;
+
+    for (const transaction of this.transactions) {
+      if (transaction.payee && sourceIds.has(transaction.payee.id)) {
+        transaction.payee = target;
+      }
+    }
+    for (const template of this.recurringTemplates) {
+      if (template.payee && sourceIds.has(template.payee.id)) {
+        template.payee = target;
+      }
+    }
+    for (const source of sources) {
+      if (!sourceIds.has(source.id)) continue;
+      target.addImportName(source.name);
+      for (const name of source.importNames) {
+        target.addImportName(name);
+      }
+    }
+    this.payees = this.payees.filter((p) => !sourceIds.has(p.id));
+    this.buildPayeeBudgetMap();
+    this.incrementVersion();
+  }
+
   @action
   incrementVersion() {
     this._version++;
