@@ -161,25 +161,29 @@ function ComboboxInner<T extends ComboboxOption>(
       return;
     }
 
-    // Don't update selection if user has manually navigated with arrow keys
+    // Typing resumes automatic selection after manual arrow-key navigation
+    if (searchChanged) {
+      hasManuallyNavigatedRef.current = false;
+    }
     if (hasManuallyNavigatedRef.current) {
       return;
     }
 
     // Update selection when: popover opens or search changes
-    const shouldUpdateSelection =
-      open && filteredOptions.length > 0 && (justOpened || searchChanged);
-
-    if (shouldUpdateSelection) {
+    if (open && (justOpened || searchChanged)) {
       // When opening, if current value is in filtered options, keep it selected
       if (value && filteredOptions.find((opt) => opt.id === value.id)) {
         setSelectedValue(value.id);
-      } else {
-        // Otherwise, default to first filtered option
+      } else if (filteredOptions.length > 0) {
         setSelectedValue(filteredOptions[0].id);
+      } else if (showCreateOption) {
+        // Nothing matches: highlight "Create" so Enter creates the entry
+        setSelectedValue("__create__");
+      } else {
+        setSelectedValue("");
       }
     }
-  }, [open, search, filteredOptions, value]);
+  }, [open, search, filteredOptions, value, showCreateOption]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -197,27 +201,25 @@ function ComboboxInner<T extends ComboboxOption>(
       return;
     }
 
-    // When open, handle navigation
+    // When open, handle navigation. The "Create" option renders above the
+    // list and takes part in it.
+    const navigationIds = showCreateOption
+      ? ["__create__", ...filteredOptions.map((opt) => opt.id)]
+      : filteredOptions.map((opt) => opt.id);
+
     if (e.key === "ArrowDown") {
       e.preventDefault();
       hasManuallyNavigatedRef.current = true;
-      // Move to next item
-      const currentIndex = filteredOptions.findIndex((opt) => opt.id === selectedValue);
-      const nextIndex = currentIndex + 1;
-      if (nextIndex < filteredOptions.length) {
-        setSelectedValue(filteredOptions[nextIndex].id);
-      } else if (showCreateOption && currentIndex === -1) {
-        setSelectedValue(filteredOptions[0]?.id || "");
+      const currentIndex = navigationIds.indexOf(selectedValue);
+      if (currentIndex < navigationIds.length - 1) {
+        setSelectedValue(navigationIds[currentIndex + 1]);
       }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       hasManuallyNavigatedRef.current = true;
-      // Move to previous item
-      const currentIndex = filteredOptions.findIndex((opt) => opt.id === selectedValue);
+      const currentIndex = navigationIds.indexOf(selectedValue);
       if (currentIndex > 0) {
-        setSelectedValue(filteredOptions[currentIndex - 1].id);
-      } else if (showCreateOption && currentIndex === 0) {
-        setSelectedValue("__create__");
+        setSelectedValue(navigationIds[currentIndex - 1]);
       }
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -290,6 +292,10 @@ function ComboboxInner<T extends ComboboxOption>(
             e.preventDefault();
           }
         }}
+        // Inside a modal dialog, react-remove-scroll cancels wheel/touch
+        // events on the portaled popover; keep them so the list can scroll
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
         style={{
           width: inputRef.current?.offsetWidth || "auto",
         }}
