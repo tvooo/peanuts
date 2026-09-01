@@ -188,8 +188,14 @@ function ComboboxInner<T extends ComboboxOption>(
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
-      setOpen(false);
-      inputRef.current?.blur();
+      if (open) {
+        // Consume the key: closing the dropdown must not also cancel an
+        // enclosing form row
+        e.stopPropagation();
+        setOpen(false);
+      } else {
+        inputRef.current?.blur();
+      }
       return;
     }
 
@@ -223,6 +229,10 @@ function ComboboxInner<T extends ComboboxOption>(
       }
     } else if (e.key === "Enter") {
       e.preventDefault();
+      // Consume the key: an enclosing form row must not save on the same
+      // keystroke — creating an option is async, so the row would still see
+      // the old value
+      e.stopPropagation();
       // Select current highlighted item
       if (selectedValue === "__create__") {
         handleCreate();
